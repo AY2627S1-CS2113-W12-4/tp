@@ -4,18 +4,19 @@ import java.util.Scanner;
 
 public class Duke {
     /**
-     * Main entry-point for the java.duke.Duke application.
+     * Starts the application and continuously sends player input to its active state.
+     *
+     * @param args command-line arguments, which this application does not use
      */
     public static void main(String[] args) {
-        String banner = " ____        _        \n"
-                + "|  _ \\ _   _| | _____ \n"
-                + "| | | | | | | |/ / _ \\\n"
-                + "| |_| | |_| |   <  __/\n"
-                + "|____/ \\__,_|_|\\_\\___|\n";
-        System.out.println(banner);
-        System.out.println("What is your name?");
+        StateMachine stateMachine = new StateMachine();
+        stateMachine.start(new MainMenuState(stateMachine));
 
-        Scanner in = new Scanner(System.in);
-        System.out.println("Hello " + in.nextLine());
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (stateMachine.isRunning()) {
+                String input = scanner.nextLine();
+                stateMachine.handleInput(input);
+            }
+        }
     }
 }

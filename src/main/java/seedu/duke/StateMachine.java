@@ -1,0 +1,55 @@
+package seedu.duke;
+
+/**
+ * Keeps track of the active application state and delegates input to it.
+ */
+public class StateMachine {
+    private State currentState;
+    private boolean isRunning = true;
+
+    /**
+     * Activates the first state of the application.
+     *
+     * @param initialState the first state to enter
+     */
+    public void start(State initialState) {
+        currentState = initialState;
+        currentState.enter();
+    }
+
+    /**
+     * Leaves the active state and enters the next one.
+     *
+     * @param nextState the state to activate
+     */
+    public void transitState(State nextState) {
+        this.currentState.exit();
+        this.currentState = nextState;
+        this.currentState.enter();
+    }
+
+    /**
+     * Passes the player's input to the active state.
+     *
+     * @param input the player's input
+     */
+    public void handleInput(String input) {
+        this.currentState.handleInput(input);
+    }
+
+    /**
+     * Requests that the application's input loop stop.
+     */
+    public void stop() {
+        isRunning = false;
+    }
+
+    /**
+     * Reports whether the application should continue accepting input.
+     *
+     * @return true while the application is running
+     */
+    public boolean isRunning() {
+        return isRunning;
+    }
+}
