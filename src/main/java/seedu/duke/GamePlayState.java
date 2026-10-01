@@ -20,17 +20,16 @@ public class GamePlayState extends State {
 
     @Override
     public void exit() {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
+        System.out.println("----------------------------------------");
     }
 
     @Override
     public void handleInput(String input) {
         if (input.equalsIgnoreCase("exit")) {
             System.out.println("Exit");
+            stateMachine.stop();
             return;
         }
-
         System.out.println("Playing...");
     }
 }
