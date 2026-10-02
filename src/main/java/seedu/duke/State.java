@@ -4,8 +4,8 @@ package seedu.duke;
  * Base class for every state managed by the application.
  */
 public abstract class State {
-    private String stateName;
     protected final StateMachine stateMachine;
+    private String stateName;
 
     protected State(String stateName, StateMachine stateMachine) {
         this.stateName = stateName;
