@@ -26,10 +26,13 @@ public class GamePlayState extends State {
     @Override
     public void handleInput(String input) {
         if (input.equalsIgnoreCase("exit")) {
-            System.out.println("Exit");
             stateMachine.stop();
             return;
         }
         System.out.println("Playing...");
+    }
+    
+    @Override
+    public void update() {
     }
 }

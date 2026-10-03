@@ -1,7 +1,7 @@
 package seedu.duke;
 
 /**
- * Keeps track of the active application state and delegates input to it.
+ * Keeps track of the active application state and delegates game-loop work to it.
  */
 public class StateMachine {
     private State currentState;
@@ -38,10 +38,21 @@ public class StateMachine {
     }
 
     /**
-     * Requests that the application's input loop stop.
+     * Lets the active state perform time-based work without player input.
+     */
+    public void update() {
+        this.currentState.update();
+    }
+
+    /**
+     * Leaves the active state and requests that the application stop.
      */
     public void stop() {
-        isRunning = false;
+        if (isRunning) {
+            currentState.exit();
+            isRunning = false;
+            System.out.println("Exit.");
+        }
     }
 
     /**
