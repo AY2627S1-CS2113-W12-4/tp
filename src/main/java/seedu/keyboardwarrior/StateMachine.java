@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.keyboardwarrior;
 
 /**
  * Keeps track of the active application state and delegates game-loop work to it.

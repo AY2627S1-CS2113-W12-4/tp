@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.keyboardwarrior;
 
 /**
  * Stores the text and fixed time limit for a typing challenge.

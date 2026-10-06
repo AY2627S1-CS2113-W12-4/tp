@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.keyboardwarrior;
 
 /**
  * Represents the state in which the player is playing the game.

@@ -1,10 +1,11 @@
-package seedu.duke;
+package seedu.keyboardwarrior;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Scanner;
 
-public class Duke {
+/** Runs the Keyboard Warrior application and its input-processing loop. */
+public class KeyboardWarrior {
     /** Duration, in milliseconds, between consecutive game-loop updates. */
     private static final int TICK_MILLIS = 100;
 

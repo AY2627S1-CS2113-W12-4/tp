@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.keyboardwarrior;
 
 /**
  * Displays the main menu and responds to the player's menu choices.
