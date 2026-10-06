@@ -29,11 +29,12 @@ public class StateMachine {
     }
 
     /**
-     * Passes the player's input to the active state.
+     * Separates the player's input from the response, then passes it to the active state.
      *
      * @param input the player's input
      */
     public void handleInput(String input) {
+        Ui.showSeparator();
         this.currentState.handleInput(input);
     }
 
@@ -51,7 +52,7 @@ public class StateMachine {
         if (isRunning) {
             currentState.exit();
             isRunning = false;
-            System.out.println("Exit.");
+            Ui.showExit();
         }
     }
 

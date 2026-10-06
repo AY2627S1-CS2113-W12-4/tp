@@ -20,6 +20,7 @@ public class KeyboardWarrior {
         BlockingQueue<String> inputQueue = new LinkedBlockingQueue<>();
 
         stateMachine.start(new MainMenuState(stateMachine));
+        Ui.showInputPrompt();
 
         Thread inputThread = new Thread(() -> {
             try (Scanner scanner = new Scanner(System.in)) {
@@ -38,6 +39,7 @@ public class KeyboardWarrior {
                 if (!stateMachine.isRunning()) {
                     break;
                 }
+                Ui.showInputPrompt();
             }
             if (!stateMachine.isRunning()) {
                 break;

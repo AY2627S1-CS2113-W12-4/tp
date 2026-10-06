@@ -15,12 +15,11 @@ public class GamePlayState extends State {
 
     @Override
     public void enter() {
-        System.out.println("Begin gameplay");
+        Ui.showGameplayStart();
     }
 
     @Override
     public void exit() {
-        System.out.println("----------------------------------------");
     }
 
     @Override
@@ -29,7 +28,7 @@ public class GamePlayState extends State {
             stateMachine.stop();
             return;
         }
-        System.out.println("Playing...");
+        Ui.showPlaying();
     }
     
     @Override
