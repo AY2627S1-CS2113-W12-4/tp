@@ -1,10 +1,13 @@
-package seedu.duke;
+package seedu.keyboardwarrior;
 
 import java.util.Scanner;
 
-public class Duke {
+/**
+ * Starts the Keyboard Warrior application with an introductory greeting.
+ */
+public class KeyboardWarrior {
     /**
-     * Main entry-point for the java.duke.Duke application.
+     * Main entry point for the Keyboard Warrior application.
      */
     public static void main(String[] args) {
         String banner = " ____        _        \n"
