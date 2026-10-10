@@ -166,6 +166,13 @@ public final class Ui {
     }
 
     /**
+     * Announces that the player submitted the correct challenge text in time.
+     */
+    public static void showChallengeCompleted() {
+        printLine("Challenge completed!");
+    }
+
+    /**
      * Announces that the application has stopped.
      */
     public static void showExit() {

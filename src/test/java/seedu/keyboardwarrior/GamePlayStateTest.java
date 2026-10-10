@@ -15,6 +15,31 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  */
 class GamePlayStateTest {
     @Test
+    void handleInput_correctSentence_finishesEarlyWithActualDuration() {
+        RecordingStateMachine machine = new RecordingStateMachine();
+        ControlledClock clock = new ControlledClock();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream original = System.out;
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            machine.start(new GamePlayState(machine, clock));
+            machine.handleInput("  The quick brown fox  ");
+            assertEquals(null, machine.nextState);
+            machine.handleInput("jumps over the lazy dog.  ");
+            assertTrue(machine.nextState instanceof MainMenuState);
+            machine.update();
+            String report = output.toString(StandardCharsets.UTF_8);
+            assertTrue(report.contains("Challenge completed!"));
+            assertTrue(report.contains("Accuracy: 100.00%"));
+            assertTrue(report.contains("Elapsed time: 12.50 seconds"));
+            assertFalse(report.contains("Time's up!"));
+            assertEquals(1, report.split("WPM:", -1).length - 1);
+        } finally {
+            System.setOut(original);
+        }
+    }
+
+    @Test
     void update_expired_displaysSubmittedTextResultsOnlyOnce() {
         RecordingStateMachine machine = new RecordingStateMachine();
         ControlledClock clock = new ControlledClock();
@@ -24,7 +49,7 @@ class GamePlayStateTest {
             System.setOut(capture);
             machine.start(new GamePlayState(machine, clock));
             machine.handleInput("The quick brown fox");
-            machine.handleInput("jumps over the lazy dog.");
+            machine.handleInput("jumps over the lazy cat.");
             String beforeTick = output.toString(StandardCharsets.UTF_8);
             clock.remainingSeconds = 59;
             machine.update();
@@ -36,7 +61,7 @@ class GamePlayStateTest {
             machine.update();
             machine.update();
             String report = output.toString(StandardCharsets.UTF_8);
-            assertTrue(report.contains("Accuracy: 100.00%"));
+            assertTrue(report.contains("Accuracy: 88.89%"));
             assertTrue(report.contains("Elapsed time: 60.00 seconds"));
             assertEquals(1, report.split("WPM:", -1).length - 1);
         } finally {
@@ -107,6 +132,11 @@ class GamePlayStateTest {
         @Override
         public int getRemainingSeconds() {
             return remainingSeconds;
+        }
+
+        @Override
+        public double getElapsedSeconds() {
+            return 12.5;
         }
     }
 

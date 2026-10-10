@@ -59,6 +59,14 @@ public class GamePlayState extends State {
             submittedText.append(' ');
         }
         submittedText.append(input);
+        // Use fractional elapsed time so an early finish produces an accurate WPM.
+        double elapsedSeconds = Math.max(0.000000001, clock.getElapsedSeconds());
+        TypingResult result = TypingEvaluator.evaluateTyping(CHALLENGE_TEXT, submittedText.toString(),
+                elapsedSeconds, CHALLENGE_DURATION_SECONDS);
+        if (result.getWordErrors().isEmpty() && result.canDealDamage()) {
+            Ui.showChallengeCompleted();
+            showResultAndReturnToMenu(result);
+        }
     }
     
     @Override
@@ -87,8 +95,16 @@ public class GamePlayState extends State {
         // using the round duration rather than any delay before the next loop update.
         TypingResult result = TypingEvaluator.evaluateTyping(CHALLENGE_TEXT, submittedText.toString(),
                 CHALLENGE_DURATION_SECONDS, CHALLENGE_DURATION_SECONDS);
+        showResultAndReturnToMenu(result);
+        return true;
+    }
+
+    /**
+     * Clears the countdown and displays a completed attempt before opening the menu.
+     */
+    private void showResultAndReturnToMenu(TypingResult result) {
+        Ui.clearCountdown();
         Ui.showTypingResult(result);
         stateMachine.transitState(new MainMenuState(stateMachine));
-        return true;
     }
 }

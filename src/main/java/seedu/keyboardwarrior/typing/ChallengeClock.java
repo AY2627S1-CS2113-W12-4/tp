@@ -44,4 +44,13 @@ public class ChallengeClock {
         long remainingNanos = Math.max(0L, durationNanos - elapsedNanos);
         return (int) ((remainingNanos + NANOS_PER_SECOND - 1) / NANOS_PER_SECOND);
     }
+
+    /**
+     * Returns fractional seconds since a positive-duration countdown started.
+     *
+     * @return elapsed seconds, or zero when no positive-duration timer was started
+     */
+    public double getElapsedSeconds() {
+        return durationNanos == 0 ? 0.0 : (System.nanoTime() - startTimeNanos) / (double) NANOS_PER_SECOND;
+    }
 }
