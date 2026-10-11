@@ -8,11 +8,14 @@ import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
 import seedu.keyboardwarrior.ui.CombatUi;
 
-/**
- * SampleCombatRun
- */
+/** Demonstrates how to create and run a single interactive combat encounter. */
 public class SampleCombatRun {
 
+    /**
+     * Creates a player and a random enemy, then runs combat to completion.
+     *
+     * @param args command-line arguments; currently unused
+     */
     public static void main(String[] args) {
         Random random = new Random();
 

@@ -17,16 +17,20 @@ import seedu.keyboardwarrior.ui.StateUi;
  * Runs the Keyboard Warrior application and its input-processing loop.
  */
 public class KeyboardWarrior {
+    /** Delay between game-loop updates. */
     private static final int TICK_MILLIS = 100;
 
     /**
-     * Starts a background input reader and runs the game loop on the main thread.
+     * Opens the terminal, starts a background input reader and runs the game loop
+     * on the main thread.
      * The input reader may block while waiting for a line, but it only adds
      * complete
      * commands to {@code inputQueue}. The main thread is the only thread that
      * changes
      * the state machine, so timer updates and input handling cannot change a state
      * concurrently.
+     *
+     * @param args command-line arguments; currently unused
      */
     public static void main(String[] args) {
         try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {

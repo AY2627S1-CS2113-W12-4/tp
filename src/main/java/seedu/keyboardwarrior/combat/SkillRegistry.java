@@ -4,9 +4,7 @@ import java.util.HashMap;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/**
- * SkillRegistry
- */
+/** Provides shared definitions for every skill identified by the game. */
 public class SkillRegistry {
 
     private static final HashMap<String, Skill> SKILL_DATABASE = new HashMap<>();
@@ -18,6 +16,13 @@ public class SkillRegistry {
         SKILL_DATABASE.put("sigkill", new Skill("SIGKILL", 80, Difficulty.ULTIMATE));
     }
 
+    /**
+     * Looks up a skill by its registry identifier.
+     *
+     * @param id skill identifier, such as {@code ping}
+     * @return registered skill
+     * @throws IllegalArgumentException if no skill uses the supplied identifier
+     */
     public static Skill getSkill(String id) {
         if (!SKILL_DATABASE.containsKey(id)) {
             throw new IllegalArgumentException("Skill not found: " + id);

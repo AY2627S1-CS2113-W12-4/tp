@@ -8,6 +8,7 @@ import org.jline.terminal.Terminal;
  * Renders the countdown and editable input together under JLine's display lock.
  */
 public class CountdownReader extends LineReaderImpl {
+    /** Seconds shown in the prompt, or {@code null} when no countdown is active. */
     private Integer remainingSeconds;
 
     /**

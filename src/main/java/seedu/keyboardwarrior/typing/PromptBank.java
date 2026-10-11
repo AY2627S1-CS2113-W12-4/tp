@@ -7,20 +7,19 @@ import java.util.Random;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/**
- * PromptBank
- */
-
+/** Stores typing prompts by difficulty and selects prompts for new challenges. */
 public class PromptBank {
     private final HashMap<Difficulty, List<String>> prompts;
     private final Random random;
 
+    /** Creates and populates the prompt bank. */
     public PromptBank() {
         this.prompts = new HashMap<>();
         this.random = new Random();
         initializeBank();
     }
 
+    /** Populates each difficulty with its available challenge text. */
     private void initializeBank() {
         List<String> easy = new ArrayList<>();
         easy.add("The system booted successfully and local services are running on the server.");
@@ -51,6 +50,12 @@ public class PromptBank {
         prompts.put(Difficulty.ULTIMATE, ultimate);
     }
 
+    /**
+     * Selects a random prompt for a difficulty.
+     *
+     * @param difficulty desired challenge difficulty
+     * @return a prompt, or an error message if none is available
+     */
     public String getRandomPrompt(Difficulty difficulty) {
         List<String> availablePrompts = prompts.get(difficulty);
         if (availablePrompts == null || availablePrompts.isEmpty()) {

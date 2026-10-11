@@ -1,6 +1,13 @@
 package seedu.keyboardwarrior.combat;
 
+/** Represents the player and initializes the skills available to them. */
 public class Player extends Entity {
+    /**
+     * Creates a player with all skills from the standard player loadout.
+     *
+     * @param name name displayed during combat
+     * @param health starting health points
+     */
     public Player(String name, int health) {
         super(name, health);
 

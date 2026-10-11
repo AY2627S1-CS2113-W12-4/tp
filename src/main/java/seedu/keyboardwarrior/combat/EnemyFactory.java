@@ -1,10 +1,15 @@
 package seedu.keyboardwarrior.combat;
 
-/**
- * EnemyFactory
- */
+/** Creates predefined enemies with their health and skill loadouts configured. */
 public class EnemyFactory {
 
+    /**
+     * Creates an enemy for a registered type identifier.
+     *
+     * @param type enemy identifier, such as {@code rogue_ai} or {@code malware_bot}
+     * @return configured enemy
+     * @throws IllegalArgumentException if the enemy type is unknown
+     */
     public static Enemy createEnemy(String type) {
         Enemy enemy;
 

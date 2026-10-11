@@ -8,6 +8,12 @@ public abstract class State {
     protected final StateMachine stateMachine;
     private final String stateName;
 
+    /**
+     * Creates a state with its display name and owning state machine.
+     *
+     * @param stateName name used when representing the state as text
+     * @param stateMachine machine that controls this state
+     */
     protected State(String stateName, StateMachine stateMachine) {
         this.stateName = stateName;
         this.stateMachine = stateMachine;

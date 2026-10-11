@@ -13,6 +13,11 @@ import seedu.keyboardwarrior.typing.TypingChallengeRunner;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
+/**
+ * Runs turn-based combat between a player and an enemy.
+ * Player skills are resolved through typing challenges, while enemy skills apply
+ * their base damage automatically.
+ */
 public class CombatEncounter extends Encounter {
     private Player player;
     private Enemy enemy;
@@ -21,6 +26,13 @@ public class CombatEncounter extends Encounter {
     private TypingChallengeRunner challengeRunner;
     private TypingChallengeFactory challengeFactory;
 
+    /**
+     * Creates a combat encounter for the supplied participants and interface.
+     *
+     * @param player player taking part in the encounter
+     * @param enemy enemy taking part in the encounter
+     * @param ui interface used for combat input and output
+     */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui) {
         super();
         this.player = player;
@@ -31,6 +43,9 @@ public class CombatEncounter extends Encounter {
         this.challengeFactory = new TypingChallengeFactory();
     }
 
+    /**
+     * Alternates player and enemy turns until one participant is defeated.
+     */
     @Override
     public void start() {
         ui.showCombatStart(enemy);
@@ -58,6 +73,7 @@ public class CombatEncounter extends Encounter {
         }
     }
 
+    /** Runs skill selection, the typing challenge and damage resolution for the player. */
     private void executePlayerTurn(ArrayList<Skill> playerSkills) {
         ui.showPlayerTurn(player, enemy);
 
@@ -73,12 +89,14 @@ public class CombatEncounter extends Encounter {
         skillResolver.execute(player, enemy, chosenSkill, result);
     }
 
+    /** Uses the enemy's next skill without requiring a typing challenge. */
     private void executeEnemyTurn(ArrayList<Skill> enemySkills, int enemySkillIndex) {
         ui.showEnemyTurn(enemy);
         Skill enemySkill = enemySkills.get(enemySkillIndex);
         skillResolver.execute(enemy, player, enemySkill, null);
     }
 
+    /** Marks the enemy as defeated and completes the encounter as a victory. */
     private void executeVictory() {
         enemy.setIsDead(true);
         ui.showVictory(enemy);
@@ -87,6 +105,7 @@ public class CombatEncounter extends Encounter {
         this.isCompleted = true;
     }
 
+    /** Marks the player as defeated and completes the encounter as a loss. */
     private void executeDefeat() {
         player.setIsDead(true);
         ui.showDefeat();
@@ -95,6 +114,11 @@ public class CombatEncounter extends Encounter {
         this.isCompleted = true;
     }
 
+    /**
+     * Returns a short description containing the opposing enemy's name.
+     *
+     * @return combat encounter description
+     */
     @Override
     public String getDisplayText() {
         return "Combat Encounter: " + enemy.getName();
