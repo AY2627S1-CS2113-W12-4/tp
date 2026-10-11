@@ -11,6 +11,7 @@ public abstract class Entity {
     public Entity(String name, int health) {
         this.name = name;
         this.health = health;
+        this.isDead = false;
         this.activeSkills = new ArrayList<>();
     }
 

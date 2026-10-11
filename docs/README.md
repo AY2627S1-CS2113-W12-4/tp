@@ -1,4 +1,4 @@
-# Duke
+# KeyboardWarrior
 
 {Give product intro here}
 

@@ -41,14 +41,15 @@ public class CombatUi {
     }
 
     public void showPlayerSkills(Player player) {
-        ArrayList<Skill> activeSkills = player.getSkills();
-        String skillString = "";
+        ArrayList<Skill> activeSkills = player.getActiveSkills();
+        StringBuilder skillString = new StringBuilder();
         for (int i = 0; i < activeSkills.size(); i++) {
-            skillString.concat(activeSkills.get(i).getName());
-            if (i != activeSkills.size())
-                skillString.concat(" | ");
+            skillString.append(activeSkills.get(i).getName());
+            if (i < activeSkills.size() - 1) {
+                skillString.append(" | ");
+            }
         }
-        System.out.println(skillString);
+        System.out.println(skillString.toString());
     }
 
     public Skill getSkillChoice(ArrayList<Skill> activeSkills) {
@@ -70,11 +71,24 @@ public class CombatUi {
         System.out.println("\nGet ready!");
     }
 
+    public String getTypingSubmission(String typingChallenge) {
+        System.out.println(typingChallenge + "\n");
+        return scanner.nextLine();
+    }
+
+    public void showTypingSlow() {
+        System.out.println("Too Slow! Attack got blocked!");
+    }
+
+    public void showDamage(String name, int damage) {
+        System.out.println("Dealt " + damage + " damage to " + name);
+    }
+
     public void showVictory(Enemy enemy) {
         System.out.println("\n" + enemy.getName() + " has been defeated!");
     }
 
     public void showDefeat() {
-        System.out.println("\nYou have been defeaeted...");
+        System.out.println("\nYou have been defeated...");
     }
 }

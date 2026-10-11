@@ -2,15 +2,21 @@ package seedu.keyboardwarrior;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.Scanner;
+import java.io.IOException;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.LineReader;
+import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 import seedu.keyboardwarrior.state.StateMachine;
 import seedu.keyboardwarrior.state.MainMenuState;
 import seedu.keyboardwarrior.ui.StateUi;
 
-/** Runs the Keyboard Warrior application and its input-processing loop. */
+/**
+ * Runs the Keyboard Warrior application and its input-processing loop.
+ */
 public class KeyboardWarrior {
-    /** Duration, in milliseconds, between consecutive game-loop updates. */
     private static final int TICK_MILLIS = 100;
 
     /**
@@ -23,6 +29,23 @@ public class KeyboardWarrior {
      * concurrently.
      */
     public static void main(String[] args) {
+        try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {
+            CountdownReader reader = new CountdownReader(terminal);
+            reader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
+            StateUi.attachTerminal(reader);
+            runGame(reader);
+        } catch (IOException exception) {
+            System.err.println("Unable to open terminal: " + exception.getMessage());
+        } finally {
+            StateUi.detachTerminal();
+        }
+    }
+
+    /**
+     * Keeps state changes on the main thread while JLine reads and edits player
+     * input.
+     */
+    private static void runGame(LineReader reader) {
         StateMachine stateMachine = new StateMachine();
         BlockingQueue<String> inputQueue = new LinkedBlockingQueue<>();
 
@@ -30,10 +53,12 @@ public class KeyboardWarrior {
         StateUi.showInputPrompt();
 
         Thread inputThread = new Thread(() -> {
-            try (Scanner scanner = new Scanner(System.in)) {
-                while (scanner.hasNextLine()) {
-                    inputQueue.offer(scanner.nextLine());
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    inputQueue.offer(reader.readLine("Your input: "));
                 }
+            } catch (EndOfFileException | UserInterruptException exception) {
+                inputQueue.offer("exit");
             }
         });
         inputThread.setDaemon(true);
@@ -59,5 +84,6 @@ public class KeyboardWarrior {
                 break;
             }
         }
+        inputThread.interrupt();
     }
 }
