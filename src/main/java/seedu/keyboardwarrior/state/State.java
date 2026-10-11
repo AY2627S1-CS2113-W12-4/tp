@@ -1,4 +1,4 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.state;
 
 /**
  * Base class for every state managed by the application.

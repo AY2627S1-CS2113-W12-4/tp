@@ -1,13 +1,14 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.ui;
 
 /**
- * Displays the application's console interface, keeping presentation separate from state logic.
+ * Displays the application's console interface, keeping presentation separate
+ * from state logic.
  * The methods are static because this UI has no per-instance data.
  */
-public final class Ui {
+public final class StateUi {
     private static final String SEPARATOR = "----------------------------------------";
 
-    private Ui() {
+    private StateUi() {
         // Utility class: callers use the display methods without creating an instance.
     }
 

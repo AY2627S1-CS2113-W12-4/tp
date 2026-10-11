@@ -1,4 +1,6 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.state;
+
+import seedu.keyboardwarrior.ui.StateUi;
 
 /**
  * Represents the state in which the player is playing the game.
@@ -15,7 +17,7 @@ public class GamePlayState extends State {
 
     @Override
     public void enter() {
-        Ui.showGameplayStart();
+        StateUi.showGameplayStart();
     }
 
     @Override
@@ -28,9 +30,9 @@ public class GamePlayState extends State {
             stateMachine.stop();
             return;
         }
-        Ui.showPlaying();
+        StateUi.showPlaying();
     }
-    
+
     @Override
     public void update() {
     }

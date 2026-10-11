@@ -4,6 +4,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Scanner;
 
+import seedu.keyboardwarrior.state.StateMachine;
+import seedu.keyboardwarrior.state.MainMenuState;
+import seedu.keyboardwarrior.ui.StateUi;
+
 /** Runs the Keyboard Warrior application and its input-processing loop. */
 public class KeyboardWarrior {
     /** Duration, in milliseconds, between consecutive game-loop updates. */
@@ -11,16 +15,19 @@ public class KeyboardWarrior {
 
     /**
      * Starts a background input reader and runs the game loop on the main thread.
-     * The input reader may block while waiting for a line, but it only adds complete
-     * commands to {@code inputQueue}. The main thread is the only thread that changes
-     * the state machine, so timer updates and input handling cannot change a state concurrently.
+     * The input reader may block while waiting for a line, but it only adds
+     * complete
+     * commands to {@code inputQueue}. The main thread is the only thread that
+     * changes
+     * the state machine, so timer updates and input handling cannot change a state
+     * concurrently.
      */
     public static void main(String[] args) {
         StateMachine stateMachine = new StateMachine();
         BlockingQueue<String> inputQueue = new LinkedBlockingQueue<>();
 
         stateMachine.start(new MainMenuState(stateMachine));
-        Ui.showInputPrompt();
+        StateUi.showInputPrompt();
 
         Thread inputThread = new Thread(() -> {
             try (Scanner scanner = new Scanner(System.in)) {
@@ -39,7 +46,7 @@ public class KeyboardWarrior {
                 if (!stateMachine.isRunning()) {
                     break;
                 }
-                Ui.showInputPrompt();
+                StateUi.showInputPrompt();
             }
             if (!stateMachine.isRunning()) {
                 break;
