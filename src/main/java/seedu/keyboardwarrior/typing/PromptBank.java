@@ -29,17 +29,25 @@ public class PromptBank {
 
         List<String> medium = new ArrayList<>();
         medium.add(
-                "To compile Java code from the terminal, you must first verify that the development kit is correctly installed. Then, you can execute the compiler to generate the bytecode class files.");
+                "To compile Java code from the terminal, you must first verify that the development kit is correctly "
+                        + "installed. Then, you can execute the compiler to generate the bytecode class files.");
         prompts.put(Difficulty.MEDIUM, medium);
 
         List<String> hard = new ArrayList<>();
         hard.add(
-                "A buffer overflow occurs when a process attempts to write excess data to a fixed memory block. This vulnerability allows an attacker to execute malicious code, bypass security protocols, and gain root access to the entire system.");
+                "A buffer overflow occurs when a process attempts to write excess data to a fixed memory block. This "
+                        + "vulnerability allows an attacker to execute malicious code, bypass security protocols, and "
+                        + "gain root access to the entire system.");
         prompts.put(Difficulty.HARD, hard);
 
         List<String> ultimate = new ArrayList<>();
         ultimate.add(
-                "Advanced persistent threats often utilize polymorphic malware to evade signature-based detection systems. By constantly altering their binary code during execution, these malicious payloads can bypass standard antivirus firewall. To defend against this, security engineers must implement behavioral analysis tools that monitor network traffic anomalies and memory allocation in actual real time.");
+                "Advanced persistent threats often utilize polymorphic malware to evade signature-based detection "
+                        + "systems. By constantly altering their binary code during execution, these malicious "
+                        + "payloads can bypass standard antivirus firewall. To defend against this, security engineers "
+                        + "must "
+                        + "implement behavioral analysis tools that monitor network traffic anomalies and memory "
+                        + "allocation in actual real time.");
         prompts.put(Difficulty.ULTIMATE, ultimate);
     }
 

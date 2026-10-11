@@ -28,9 +28,10 @@ public class SampleCombatRun {
 
         encounter.start();
 
-        if (player.getIsDead())
+        if (player.getIsDead()) {
             System.out.println("You lost");
-        else
+        } else {
             System.out.println("You win");
+        }
     }
 }

@@ -22,8 +22,9 @@ public abstract class Encounter {
     }
 
     public EncounterOutcome getEncounterOutcome() {
-        if (!isCompleted)
+        if (!isCompleted) {
             throw new IllegalStateException("Cannot get outcome before encounter is complete!");
+        }
 
         return outcome;
     }

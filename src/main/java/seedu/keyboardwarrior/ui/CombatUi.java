@@ -59,8 +59,9 @@ public class CombatUi {
             String input = scanner.nextLine().trim();
 
             for (Skill skill : activeSkills) {
-                if (skill.getName().equalsIgnoreCase(input))
+                if (skill.getName().equalsIgnoreCase(input)) {
                     return skill;
+                }
             }
 
             System.out.println("Invalid Skill. Type the exact name of a skill.");

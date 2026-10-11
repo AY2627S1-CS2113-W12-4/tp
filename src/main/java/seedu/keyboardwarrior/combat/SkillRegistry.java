@@ -19,8 +19,9 @@ public class SkillRegistry {
     }
 
     public static Skill getSkill(String id) {
-        if (!SKILL_DATABASE.containsKey(id))
+        if (!SKILL_DATABASE.containsKey(id)) {
             throw new IllegalArgumentException("Skill not found: " + id);
+        }
 
         return SKILL_DATABASE.get(id);
     }

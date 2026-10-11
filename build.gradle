@@ -39,7 +39,7 @@ test {
 }
 
 application {
-    mainClass = 'seedu.keyboardwarrior.SampleCombatRun'
+    mainClass = 'seedu.keyboardwarrior.KeyboardWarrior'
 }
 
 jar {

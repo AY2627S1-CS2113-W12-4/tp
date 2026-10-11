@@ -6,14 +6,14 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
  * TypingChallengeFactory
  */
 public class TypingChallengeFactory {
-    private final PromptBank BANK;
+    private final PromptBank bank;
 
     public TypingChallengeFactory() {
-        this.BANK = new PromptBank();
+        this.bank = new PromptBank();
     }
 
     public TypingChallenge generate(Difficulty difficulty) {
-        String selectedText = BANK.getRandomPrompt(difficulty);
+        String selectedText = bank.getRandomPrompt(difficulty);
         int timeLimit = getTimeLimit(difficulty);
 
         return new TypingChallenge(selectedText, timeLimit);
