@@ -1,5 +1,5 @@
 # Keyboard Warrior User Guide
-
+Hello
 ## Introduction
 
 Keyboard Warrior combines typing practice with a planned roguelike adventure. Players will face typing
