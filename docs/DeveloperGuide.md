@@ -39,8 +39,9 @@ checks for victory, then resolves the enemy's attack if it survives and checks f
 The synchronous `CombatEncounter.start()` path remains available to `SampleCombatRun`.
 
 `SkillResolver` calculates player damage as
-`(int) (baseDamage * (accuracyPercent + wpm) / 100.0 * result.getTimeDamageMultiplier())`.
-The multiplier is `0.8` when elapsed time exceeds required time and `1.0` otherwise. Damage is
+`(int) (baseDamage * (0.02 * wpm * (accuracyPercent / 100.0)) * result.getTimeDamageMultiplier())`.
+Accuracy is converted to a fraction, so 50 WPM at 100% accuracy gives a typing multiplier of `1.0`.
+The time multiplier is `0.8` when elapsed time exceeds required time and `1.0` otherwise. Damage is
 rounded down once, after the penalty is applied. Enemy turns apply base damage directly.
 `TypingChallengeFactory` gives Ping 15 seconds, Brute Force and Buffer Overflow 30 seconds,
 and SIGKILL 45 seconds. It randomly selects a passage from the skill's difficulty pool.

@@ -162,7 +162,7 @@ class CombatEncounterTest {
     void submitTypingResult_repeatedPartialAttempts_rotatesEnemySkillsUntilVictory() {
         Player player = new Player("Player", 100);
         Skill skill = SkillRegistry.getSkill("ping");
-        Enemy enemy = new Enemy("Training Bot", 18);
+        Enemy enemy = new Enemy("Training Bot", 3);
         enemy.addSkill(SkillRegistry.getSkill("ping"));
         enemy.addSkill(SkillRegistry.getSkill("brute_force"));
         RecordingCombatUi ui = new RecordingCombatUi(skill);
@@ -173,13 +173,14 @@ class CombatEncounterTest {
         TypingChallenge challenge = encounter.preparePlayerTurn(skill);
         assertEquals(15, challenge.getTime());
         encounter.submitTypingResult(partialResult);
-        assertEquals(12, enemy.getHealth());
+        // 10 WPM at 50% accuracy deals one damage per Ping.
+        assertEquals(2, enemy.getHealth());
         assertEquals(90, player.getHealth());
         assertFalse(encounter.getIsCompleted());
 
         encounter.preparePlayerTurn(skill);
         encounter.submitTypingResult(partialResult);
-        assertEquals(6, enemy.getHealth());
+        assertEquals(1, enemy.getHealth());
         assertEquals(70, player.getHealth());
         assertFalse(encounter.getIsCompleted());
 
@@ -208,7 +209,7 @@ class CombatEncounterTest {
         encounter.preparePlayerTurn(skill);
         encounter.submitTypingResult(TypingEvaluator.evaluateTyping("alpha beta", "alpha beta", 15.01, 15.0));
 
-        assertEquals(92, enemy.getHealth());
+        assertEquals(99, enemy.getHealth());
         assertEquals(90, player.getHealth());
         assertFalse(encounter.getIsCompleted());
         assertEquals(1, ui.penalizedAttackCount);
@@ -220,7 +221,7 @@ class CombatEncounterTest {
     void submitTypingResult_lateKillingBlow_recordsVictoryWithoutRetaliation() {
         Player player = new Player("Player", 100);
         Skill skill = SkillRegistry.getSkill("ping");
-        Enemy enemy = new Enemy("Training Bot", 8);
+        Enemy enemy = new Enemy("Training Bot", 1);
         enemy.addSkill(SkillRegistry.getSkill("ping"));
         RecordingCombatUi ui = new RecordingCombatUi(skill);
         CombatEncounter encounter = new CombatEncounter(player, enemy, ui);

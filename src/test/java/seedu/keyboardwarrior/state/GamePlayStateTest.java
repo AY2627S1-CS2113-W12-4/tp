@@ -93,7 +93,7 @@ class GamePlayStateTest {
         String expected = ui.challenge.getText();
         String typed = expected.substring(0, expected.lastIndexOf(' '));
         TypingResult result = TypingEvaluator.evaluateTyping(expected, typed, 10.0, 15.0);
-        int damage = (int) (10 * (result.getAccuracyPercent() + result.getWpm()) / 100.0);
+        int damage = (int) (10 * (0.02 * result.getWpm() * (result.getAccuracyPercent() / 100.0)));
 
         submitAfterTenSeconds(typed);
 
@@ -161,7 +161,7 @@ class GamePlayStateTest {
                     .toString().contains("Time remaining:"));
             assertEquals(1, ui.enemyTurns);
             TypingResult timedOut = TypingEvaluator.evaluateTyping(expected, typed, 16.0, 15.0);
-            int damage = (int) (10 * (timedOut.getAccuracyPercent() + timedOut.getWpm()) / 100.0 * 0.8);
+            int damage = (int) (10 * (0.02 * timedOut.getWpm() * (timedOut.getAccuracyPercent() / 100.0)) * 0.8);
             assertTrue(damage > 0);
             assertEquals(80 - damage, ui.enemy.getHealth());
             assertEquals(90, ui.player.getHealth());
@@ -186,7 +186,7 @@ class GamePlayStateTest {
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
         TypingResult result = TypingEvaluator.evaluateTyping(expected, expected, 16.0, 15.0);
-        int damage = (int) (10 * (result.getAccuracyPercent() + result.getWpm()) / 100.0 * 0.8);
+        int damage = (int) (10 * (0.02 * result.getWpm() * (result.getAccuracyPercent() / 100.0)) * 0.8);
         clock.elapsedSeconds = 16.0;
         clock.remainingSeconds = 0;
         machine.handleInput(expected);
@@ -205,7 +205,7 @@ class GamePlayStateTest {
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
         TypingResult result = TypingEvaluator.evaluateTyping(expected, expected, 15.0, 15.0);
-        int damage = (int) (10 * (result.getAccuracyPercent() + result.getWpm()) / 100.0);
+        int damage = (int) (10 * (0.02 * result.getWpm() * (result.getAccuracyPercent() / 100.0)));
         clock.elapsedSeconds = 15.0;
         clock.remainingSeconds = 0;
         machine.update();

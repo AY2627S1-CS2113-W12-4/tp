@@ -95,13 +95,15 @@ Both time values must be positive and finite.
 Combat calculates:
 
 ```text
-Damage = base damage * (accuracy percentage + WPM) / 100 * time multiplier
+Damage = base damage * 0.02 * WPM * accuracy * time multiplier
+Accuracy = accuracy percentage / 100 (so 100% = 1.0)
 Time multiplier = 0.8 if elapsed time exceeds the limit, otherwise 1.0
 ```
 
 The result is rounded down to an integer after the time penalty is applied. For example, `Brute Force`
-with 80% accuracy and 40 WPM deals `20 * (80 + 40) / 100 = 24` damage within the time limit.
-With the same metrics after the limit, it deals `24 * 0.8 = 19.2`, rounded down to **19 damage**.
+with 80% accuracy and 40 WPM deals `20 * 0.02 * 40 * 0.8 = 12.8`, rounded down to **12 damage**
+within the time limit. With the same metrics after the limit, it deals `12.8 * 0.8 = 10.24`,
+rounded down to **10 damage**. At 50 WPM and 100% accuracy, an on-time attack deals its base damage.
 Enemy attacks use their skill's base damage.
 If no answer is submitted before expiry, the game evaluates the text currently in your input line
 and applies the 20% damage penalty. An empty input gives 0 WPM, 0% accuracy and zero damage.
