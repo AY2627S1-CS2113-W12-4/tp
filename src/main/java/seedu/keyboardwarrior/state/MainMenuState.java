@@ -1,4 +1,6 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.state;
+
+import seedu.keyboardwarrior.ui.StateUi;
 
 /**
  * Displays the main menu and responds to the player's menu choices.
@@ -15,7 +17,7 @@ public class MainMenuState extends State {
 
     @Override
     public void enter() {
-        Ui.showMainMenu();
+        StateUi.showMainMenu();
     }
 
     @Override
@@ -29,10 +31,10 @@ public class MainMenuState extends State {
         } else if (input.equalsIgnoreCase("exit")) {
             stateMachine.stop();
         } else {
-            Ui.showInvalidOption();
+            StateUi.showInvalidOption();
         }
     }
-    
+
     @Override
     public void update() {
     }

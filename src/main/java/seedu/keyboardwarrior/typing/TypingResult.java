@@ -27,18 +27,38 @@ public final class TypingResult {
         this.wordErrors = List.copyOf(wordErrors);
     }
 
+    /**
+     * Returns the gross typing speed.
+     *
+     * @return words per minute
+     */
     public double getWpm() {
         return wpm;
     }
 
+    /**
+     * Returns the percentage of correctly matched word positions.
+     *
+     * @return accuracy from zero to one hundred
+     */
     public double getAccuracyPercent() {
         return accuracyPercent;
     }
 
+    /**
+     * Returns the duration of the typing attempt.
+     *
+     * @return elapsed seconds
+     */
     public double getElapsedSeconds() {
         return elapsedSeconds;
     }
 
+    /**
+     * Returns the maximum duration that permits combat damage.
+     *
+     * @return time limit in seconds
+     */
     public double getRequiredSeconds() {
         return requiredSeconds;
     }
@@ -52,6 +72,11 @@ public final class TypingResult {
         return elapsedSeconds <= requiredSeconds;
     }
 
+    /**
+     * Returns an immutable list of mismatched word positions.
+     *
+     * @return word errors in position order
+     */
     public List<WordError> getWordErrors() {
         return wordErrors;
     }

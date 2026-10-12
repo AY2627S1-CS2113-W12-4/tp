@@ -20,18 +20,38 @@ public final class WordError {
         this.type = type;
     }
 
+    /**
+     * Returns the one-based position of the mismatch.
+     *
+     * @return word position
+     */
     public int getPosition() {
         return position;
     }
 
+    /**
+     * Returns the expected word, or an empty string for an extra submitted word.
+     *
+     * @return expected word
+     */
     public String getExpectedWord() {
         return expectedWord;
     }
 
+    /**
+     * Returns the submitted word, or an empty string for a missing word.
+     *
+     * @return submitted word
+     */
     public String getTypedWord() {
         return typedWord;
     }
 
+    /**
+     * Returns the category of mismatch.
+     *
+     * @return error type
+     */
     public ErrorType getType() {
         return type;
     }

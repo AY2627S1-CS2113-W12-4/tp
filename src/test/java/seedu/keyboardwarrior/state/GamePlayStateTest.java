@@ -1,4 +1,4 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.state;
 
 import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;

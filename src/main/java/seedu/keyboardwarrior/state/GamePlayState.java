@@ -1,4 +1,6 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.state;
+
+import seedu.keyboardwarrior.ui.StateUi;
 
 import seedu.keyboardwarrior.typing.ChallengeClock;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
@@ -35,15 +37,15 @@ public class GamePlayState extends State {
     public void enter() {
         submittedText.setLength(0);
         clock.start(CHALLENGE_DURATION_SECONDS);
-        Ui.showGameplayStart();
-        Ui.showTypingChallenge(CHALLENGE_TEXT);
-        Ui.showRemainingTime(clock.getRemainingSeconds());
+        StateUi.showGameplayStart();
+        StateUi.showTypingChallenge(CHALLENGE_TEXT);
+        StateUi.showRemainingTime(clock.getRemainingSeconds());
         lastDisplayedSeconds = clock.getRemainingSeconds();
     }
 
     @Override
     public void exit() {
-        Ui.clearCountdown();
+        StateUi.clearCountdown();
     }
 
     @Override
@@ -64,20 +66,20 @@ public class GamePlayState extends State {
         TypingResult result = TypingEvaluator.evaluateTyping(CHALLENGE_TEXT, submittedText.toString(),
                 elapsedSeconds, CHALLENGE_DURATION_SECONDS);
         if (result.getWordErrors().isEmpty() && result.canDealDamage()) {
-            Ui.showChallengeCompleted();
+            StateUi.showChallengeCompleted();
             showResultAndReturnToMenu(result);
         }
     }
-    
+
     @Override
     public void update() {
         int remainingSeconds = clock.getRemainingSeconds();
         if (remainingSeconds != lastDisplayedSeconds) {
-            Ui.updateCountdown(remainingSeconds);
+            StateUi.updateCountdown(remainingSeconds);
             lastDisplayedSeconds = remainingSeconds;
         }
         if (finishIfExpired()) {
-            Ui.showInputPrompt();
+            StateUi.showInputPrompt();
         }
     }
 
@@ -90,7 +92,7 @@ public class GamePlayState extends State {
         if (clock.getRemainingSeconds() > 0) {
             return false;
         }
-        Ui.showTimeUp();
+        StateUi.showTimeUp();
         // This is a fixed-duration round: score the text collected by the deadline,
         // using the round duration rather than any delay before the next loop update.
         TypingResult result = TypingEvaluator.evaluateTyping(CHALLENGE_TEXT, submittedText.toString(),
@@ -100,11 +102,12 @@ public class GamePlayState extends State {
     }
 
     /**
-     * Clears the countdown and displays a completed attempt before opening the menu.
+     * Clears the countdown and displays a completed attempt before opening the
+     * menu.
      */
     private void showResultAndReturnToMenu(TypingResult result) {
-        Ui.clearCountdown();
-        Ui.showTypingResult(result);
+        StateUi.clearCountdown();
+        StateUi.showTypingResult(result);
         stateMachine.transitState(new MainMenuState(stateMachine));
     }
 }

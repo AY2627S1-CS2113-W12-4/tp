@@ -1,7 +1,10 @@
-package seedu.keyboardwarrior;
+package seedu.keyboardwarrior.state;
+
+import seedu.keyboardwarrior.ui.StateUi;
 
 /**
- * Keeps track of the active application state and delegates game-loop work to it.
+ * Keeps track of the active application state and delegates game-loop work to
+ * it.
  */
 public class StateMachine {
     private State currentState;
@@ -29,12 +32,13 @@ public class StateMachine {
     }
 
     /**
-     * Separates the player's input from the response, then passes it to the active state.
+     * Separates the player's input from the response, then passes it to the active
+     * state.
      *
      * @param input the player's input
      */
     public void handleInput(String input) {
-        Ui.showSeparator();
+        StateUi.showSeparator();
         this.currentState.handleInput(input);
     }
 
@@ -52,7 +56,7 @@ public class StateMachine {
         if (isRunning) {
             currentState.exit();
             isRunning = false;
-            Ui.showExit();
+            StateUi.showExit();
         }
     }
 

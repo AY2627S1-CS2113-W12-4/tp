@@ -9,40 +9,52 @@ import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
+import seedu.keyboardwarrior.state.StateMachine;
+import seedu.keyboardwarrior.state.MainMenuState;
+import seedu.keyboardwarrior.ui.StateUi;
+
 /**
  * Runs the Keyboard Warrior application and its input-processing loop.
  */
 public class KeyboardWarrior {
+    /** Delay between game-loop updates. */
     private static final int TICK_MILLIS = 100;
 
     /**
-     * Starts a background input reader and runs the game loop on the main thread.
-     * The input reader may block while waiting for a line, but it only adds complete
-     * commands to {@code inputQueue}. The main thread is the only thread that changes
-     * the state machine, so timer updates and input handling cannot change a state concurrently.
+     * Opens the terminal, starts a background input reader and runs the game loop
+     * on the main thread.
+     * The input reader may block while waiting for a line, but it only adds
+     * complete
+     * commands to {@code inputQueue}. The main thread is the only thread that
+     * changes
+     * the state machine, so timer updates and input handling cannot change a state
+     * concurrently.
+     *
+     * @param args command-line arguments; currently unused
      */
     public static void main(String[] args) {
         try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {
             CountdownReader reader = new CountdownReader(terminal);
             reader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
-            Ui.attachTerminal(reader);
+            StateUi.attachTerminal(reader);
             runGame(reader);
         } catch (IOException exception) {
             System.err.println("Unable to open terminal: " + exception.getMessage());
         } finally {
-            Ui.detachTerminal();
+            StateUi.detachTerminal();
         }
     }
 
     /**
-     * Keeps state changes on the main thread while JLine reads and edits player input.
+     * Keeps state changes on the main thread while JLine reads and edits player
+     * input.
      */
     private static void runGame(LineReader reader) {
         StateMachine stateMachine = new StateMachine();
         BlockingQueue<String> inputQueue = new LinkedBlockingQueue<>();
 
         stateMachine.start(new MainMenuState(stateMachine));
-        Ui.showInputPrompt();
+        StateUi.showInputPrompt();
 
         Thread inputThread = new Thread(() -> {
             try {
@@ -63,7 +75,7 @@ public class KeyboardWarrior {
                 if (!stateMachine.isRunning()) {
                     break;
                 }
-                Ui.showInputPrompt();
+                StateUi.showInputPrompt();
             }
             if (!stateMachine.isRunning()) {
                 break;
