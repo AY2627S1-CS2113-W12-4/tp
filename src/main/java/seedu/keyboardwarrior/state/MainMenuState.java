@@ -26,9 +26,9 @@ public class MainMenuState extends State {
 
     @Override
     public void handleInput(String input) {
-        if (input.equalsIgnoreCase("start")) {
+        if (input.trim().equalsIgnoreCase("start")) {
             stateMachine.transitState(new GamePlayState(stateMachine));
-        } else if (input.equalsIgnoreCase("exit")) {
+        } else if (input.trim().equalsIgnoreCase("exit")) {
             stateMachine.stop();
         } else {
             StateUi.showInvalidOption();

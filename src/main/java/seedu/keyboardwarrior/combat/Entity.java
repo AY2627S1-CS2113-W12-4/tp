@@ -1,6 +1,7 @@
 package seedu.keyboardwarrior.combat;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 /** Represents a combat participant with health and a collection of usable skills. */
 public abstract class Entity {
@@ -18,9 +19,17 @@ public abstract class Entity {
      *
      * @param name name displayed during combat
      * @param health starting health points
+     * @throws NullPointerException if the name is null
+     * @throws IllegalArgumentException if the name is blank or health is negative
      */
     public Entity(String name, int health) {
-        this.name = name;
+        this.name = Objects.requireNonNull(name, "Entity name must not be null");
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Entity name must not be blank");
+        }
+        if (health < 0) {
+            throw new IllegalArgumentException("Health must not be negative");
+        }
         this.health = health;
         this.isDead = false;
         this.activeSkills = new ArrayList<>();
@@ -30,8 +39,12 @@ public abstract class Entity {
      * Replaces the entity's current health value.
      *
      * @param health new health value
+     * @throws IllegalArgumentException if health is negative
      */
     public void setHealth(int health) {
+        if (health < 0) {
+            throw new IllegalArgumentException("Health must not be negative");
+        }
         this.health = health;
     }
 
@@ -39,18 +52,20 @@ public abstract class Entity {
      * Updates whether the entity has been defeated.
      *
      * @param isDead {@code true} if the entity is defeated
+     * @throws NullPointerException if the defeated flag is null
      */
     public void setIsDead(Boolean isDead) {
-        this.isDead = isDead;
+        this.isDead = Objects.requireNonNull(isDead, "Defeated flag must not be null");
     }
 
     /**
      * Makes a skill available to this entity.
      *
      * @param skill skill to add
+     * @throws NullPointerException if the skill is null
      */
     public void addSkill(Skill skill) {
-        activeSkills.add(skill);
+        activeSkills.add(Objects.requireNonNull(skill, "Skill must not be null"));
     }
 
     /**
@@ -68,6 +83,7 @@ public abstract class Entity {
      * @return current health points
      */
     public int getHealth() {
+        assert health >= 0 : "Entity health must remain nonnegative";
         return health;
     }
 

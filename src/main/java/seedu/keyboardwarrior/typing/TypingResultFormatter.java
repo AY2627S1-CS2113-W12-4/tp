@@ -4,7 +4,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Formats typing metrics, damage eligibility and word errors for console display.
+ * Formats typing metrics, damage penalties and word errors for console display.
  */
 public final class TypingResultFormatter {
     private TypingResultFormatter() {
@@ -15,17 +15,12 @@ public final class TypingResultFormatter {
      * Formatting does not change the full-precision values stored in the result.
      *
      * @param result Evaluated typing result.
-     * @return Metrics, the time limit and damage eligibility followed by word errors.
+     * @return Metrics, the time limit and damage penalty followed by word errors.
      * @throws NullPointerException If the result is null.
      */
     public static String formatTypingResult(TypingResult result) {
-        Objects.requireNonNull(result, "Typing result must not be null");
-        StringBuilder report = new StringBuilder(String.format(Locale.ROOT,
-                "WPM: %.2f%nAccuracy: %.2f%%%nElapsed time: %.2f seconds%nRequired time: %.2f seconds%n",
-                result.getWpm(), result.getAccuracyPercent(), result.getElapsedSeconds(), result.getRequiredSeconds()));
+        StringBuilder report = new StringBuilder(formatTypingSummary(result));
         String newline = System.lineSeparator();
-        report.append(result.canDealDamage() ? "Damage allowed: Yes" : "Damage: 0 (time limit exceeded)")
-                .append(newline);
         report.append("Wrong words:").append(newline);
         if (result.getWordErrors().isEmpty()) {
             report.append("  None").append(newline);
@@ -49,6 +44,26 @@ public final class TypingResultFormatter {
                 report.append(newline);
             }
         }
+        return report.toString();
+    }
+
+    /**
+     * Returns gameplay feedback without listing individual word errors.
+     * The result retains its errors for later features and the detailed formatter.
+     *
+     * @param result Evaluated typing result.
+     * @return Metrics, both time values and the damage penalty.
+     * @throws NullPointerException If the result is null.
+     */
+    public static String formatTypingSummary(TypingResult result) {
+        Objects.requireNonNull(result, "Typing result must not be null");
+        StringBuilder report = new StringBuilder(String.format(Locale.ROOT,
+                "WPM: %.2f%nAccuracy: %.2f%%%nElapsed time: %.2f seconds%nRequired time: %.2f seconds%n",
+                result.getWpm(), result.getAccuracyPercent(), result.getElapsedSeconds(), result.getRequiredSeconds()));
+        String newline = System.lineSeparator();
+        report.append(result.isTimeLimitExceeded()
+                ? "Damage penalty: 20% (time limit exceeded)" : "Damage penalty: 0%")
+                .append(newline);
         return report.toString();
     }
 }

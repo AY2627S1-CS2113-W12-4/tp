@@ -1,5 +1,7 @@
 package seedu.keyboardwarrior.state;
 
+import java.util.Objects;
+
 /**
  * Base class for every state managed by the application.
  */
@@ -13,10 +15,16 @@ public abstract class State {
      *
      * @param stateName name used when representing the state as text
      * @param stateMachine machine that controls this state
+     * @throws NullPointerException if the name or state machine is null
+     * @throws IllegalArgumentException if the name is blank
      */
     protected State(String stateName, StateMachine stateMachine) {
+        Objects.requireNonNull(stateName, "State name must not be null");
+        if (stateName.isBlank()) {
+            throw new IllegalArgumentException("State name must not be blank.");
+        }
         this.stateName = stateName;
-        this.stateMachine = stateMachine;
+        this.stateMachine = Objects.requireNonNull(stateMachine, "State machine must not be null");
     }
 
     @Override

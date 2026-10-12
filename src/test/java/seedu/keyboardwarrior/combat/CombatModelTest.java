@@ -3,6 +3,7 @@ package seedu.keyboardwarrior.combat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -54,5 +55,54 @@ class CombatModelTest {
         assertEquals("Test Strike", skill.getName());
         assertEquals(12, skill.getBaseDamage());
         assertEquals(Difficulty.HARD, skill.getDifficulty());
+    }
+
+    @Test
+    void entity_invalidNameOrHealth_rejectsConstruction() {
+        assertThrows(NullPointerException.class, () -> new Enemy(null, 50));
+        assertThrows(IllegalArgumentException.class, () -> new Enemy("", 50));
+        assertThrows(IllegalArgumentException.class, () -> new Player(" \t", 50));
+        assertThrows(IllegalArgumentException.class, () -> new Enemy("Target", -1));
+    }
+
+    @Test
+    void entity_invalidUpdates_preservePreviousState() {
+        Enemy enemy = new Enemy("Target", 50);
+
+        assertThrows(IllegalArgumentException.class, () -> enemy.setHealth(-1));
+        assertThrows(NullPointerException.class, () -> enemy.setIsDead(null));
+        assertThrows(NullPointerException.class, () -> enemy.addSkill(null));
+
+        assertEquals(50, enemy.getHealth());
+        assertFalse(enemy.getIsDead());
+        assertTrue(enemy.getActiveSkills().isEmpty());
+    }
+
+    @Test
+    void entity_zeroHealth_isAllowedWithoutChangingDefeatedFlag() {
+        Enemy enemy = new Enemy("Target", 0);
+
+        assertEquals(0, enemy.getHealth());
+        assertFalse(enemy.getIsDead());
+        enemy.setHealth(1);
+        enemy.setHealth(0);
+        assertEquals(0, enemy.getHealth());
+        assertFalse(enemy.getIsDead());
+    }
+
+    @Test
+    void skill_invalidArguments_rejectsConstruction() {
+        assertThrows(NullPointerException.class, () -> new Skill(null, 12, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill("", 12, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill(" \t", 12, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill("Strike", -1, Difficulty.EASY));
+        assertThrows(NullPointerException.class, () -> new Skill("Strike", 12, null));
+    }
+
+    @Test
+    void skill_zeroDamage_isAllowed() {
+        Skill skill = new Skill("Wait", 0, Difficulty.EASY);
+
+        assertEquals(0, skill.getBaseDamage());
     }
 }

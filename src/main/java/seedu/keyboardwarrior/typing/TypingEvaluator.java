@@ -15,13 +15,13 @@ public final class TypingEvaluator {
      * Leading and trailing whitespace is removed, and repeated spaces, tabs and line breaks
      * are collapsed into a single space. Words are compared at corresponding positions,
      * with capitalization and punctuation preserved.
-     * Damage is allowed only when the elapsed time does not exceed the required time.
+     * Exceeding the required time applies a twenty-percent penalty to combat damage.
      *
      * @param expectedText Nonempty challenge text.
      * @param typedText Player's submitted text; an empty submission is allowed.
      * @param elapsedSeconds Positive, finite typing duration supplied by the timer component.
      * @param requiredSeconds Positive, finite time limit for the challenge, in seconds.
-     * @return Typing metrics, word errors in position order and whether damage is allowed.
+     * @return Typing metrics, word errors in position order and the timing damage multiplier.
      * @throws NullPointerException If either text is null.
      * @throws IllegalArgumentException If the challenge is blank or either time is invalid.
      */
@@ -45,8 +45,10 @@ public final class TypingEvaluator {
         String[] expectedWords = normalizedExpected.split(" ");
         String[] typedWords = normalizedTyped.isEmpty() ? new String[0] : normalizedTyped.split(" ");
         int comparisonCount = Math.max(expectedWords.length, typedWords.length);
+        assert comparisonCount > 0 : "A validated challenge must contain a word";
         List<WordError> wordErrors = WordErrorFinder.find(expectedWords, typedWords);
         int correctWords = comparisonCount - wordErrors.size();
+        assert correctWords >= 0 && correctWords <= comparisonCount : "Word errors must fit the compared positions";
         double wpm = WpmCalculator.calculate(normalizedTyped.length(), elapsedSeconds);
         double accuracyPercent = AccuracyCalculator.calculate(correctWords, comparisonCount);
         return new TypingResult(wpm, accuracyPercent, elapsedSeconds, requiredSeconds, wordErrors);
