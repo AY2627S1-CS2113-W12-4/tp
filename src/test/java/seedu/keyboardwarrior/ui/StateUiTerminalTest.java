@@ -14,6 +14,7 @@ import java.util.function.BooleanSupplier;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.Test;
 
 import seedu.keyboardwarrior.CountdownReader;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Exercises countdown rendering in a simulated terminal with cursor support.
+ * Exercises countdown rendering with both interactive terminals and basic consoles.
  */
 class StateUiTerminalTest {
     @Test
@@ -73,6 +74,65 @@ class StateUiTerminalTest {
             keyboard.flush();
 
             assertEquals("SIGKILL", submission.get(2, TimeUnit.SECONDS));
+        } finally {
+            StateUi.detachTerminal();
+            inputExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    void countdown_basicConsoleDoesNotAppendTimerDigits() throws Exception {
+        for (String terminalType : new String[] {Terminal.TYPE_DUMB, Terminal.TYPE_DUMB_COLOR}) {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try (PipedInputStream input = new PipedInputStream();
+                    PipedOutputStream keyboard = new PipedOutputStream(input);
+                    Terminal terminal = new DumbTerminal("basic-console", terminalType,
+                            input, output, StandardCharsets.UTF_8)) {
+                // A known size cannot compensate for a console's missing cursor controls.
+                terminal.setSize(new Size(80, 24));
+                assertCountdownLeavesTypingUntouched(terminal, keyboard, output);
+            }
+        }
+    }
+
+    @Test
+    void countdown_unknownTerminalSizeDoesNotAppendTimerDigits() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PipedInputStream input = new PipedInputStream();
+                PipedOutputStream keyboard = new PipedOutputStream(input);
+                Terminal terminal = TerminalBuilder.builder().system(false).type("xterm")
+                        .streams(input, output).build()) {
+            terminal.setSize(new Size(0, 0));
+            assertCountdownLeavesTypingUntouched(terminal, keyboard, output);
+        }
+    }
+
+    /** Verifies that unsupported countdown redraws leave an active answer undisturbed. */
+    private void assertCountdownLeavesTypingUntouched(Terminal terminal, PipedOutputStream keyboard,
+            ByteArrayOutputStream output) throws Exception {
+        ExecutorService inputExecutor = Executors.newSingleThreadExecutor();
+        try {
+            CountdownReader reader = new CountdownReader(terminal);
+            StateUi.attachTerminal(reader);
+            Future<String> submission = inputExecutor.submit(() -> reader.readLine("Your input: "));
+            assertTrue(waitUntil(reader::isReading), "The reader should start before typing.");
+            keyboard.write("unfinished answer".getBytes(StandardCharsets.UTF_8));
+            keyboard.flush();
+            assertTrue(waitUntil(() -> reader.getBuffer().toString().equals("unfinished answer")),
+                    "The unfinished answer should reach the active editing buffer.");
+
+            reader.showTypingChallenge("Test passage", 15);
+            String outputBeforeCountdown = output.toString(StandardCharsets.UTF_8);
+            for (int seconds = 4; seconds >= 0; seconds--) {
+                StateUi.updateCountdown(seconds);
+            }
+
+            assertEquals(outputBeforeCountdown, output.toString(StandardCharsets.UTF_8),
+                    "Countdown digits must not appear in a console without redraw support.");
+            assertEquals("unfinished answer", reader.getBuffer().toString());
+            keyboard.write('\r');
+            keyboard.flush();
+            assertEquals("unfinished answer", submission.get(2, TimeUnit.SECONDS));
         } finally {
             StateUi.detachTerminal();
             inputExecutor.shutdownNow();

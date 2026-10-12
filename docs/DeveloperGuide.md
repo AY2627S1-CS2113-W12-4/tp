@@ -9,8 +9,11 @@ Typing feedback uses the Java standard library; its automated tests use the temp
 
 ### v1.0 gameplay loop
 
-`KeyboardWarrior.java` starts the main menu and the existing JLine input loop. A background
-reader queues complete lines, while the main thread handles input and updates the state machine
+`KeyboardWarrior.java` checks terminal support before starting the main menu and JLine input loop.
+`CountdownReader.supportsLiveDisplay()` checks the capabilities needed to redraw the prompt.
+Basic or redirected consoles are rejected with a friendly message and gameplay launcher commands,
+so countdown updates cannot append digits to input or evaluate an unavailable input buffer at expiry.
+A background reader queues complete lines, while the main thread handles input and updates the state machine
 every 100 milliseconds. This lets the countdown refresh while the player edits a submission.
 
 `MainMenuState` accepts `start` to enter `GamePlayState`, which creates a player with 100 HP.
@@ -47,6 +50,13 @@ Enemies and previously used passages can appear again later. `CombatUi` displays
 `StateUi`, preserving the player's current input while messages and countdown updates appear.
 On a Windows console, the entry point selects the native Windows terminal type even if a launcher
 sets `TERM=dumb`. Native input delivers keystrokes before Enter, allowing timeout capture.
+
+`run-game.bat` (Windows PowerShell or Command Prompt) and `run-game.sh` (macOS/Linux) first run Gradle's
+`prepareTerminalRun` task. The task depends on `classes`, writes `sourceSets.main.runtimeClasspath`
+and the build JVM's Java home to files, and does not build a JAR. The launcher reads these files,
+then starts Java in the foreground with `-ea`, retaining the current terminal's input and output.
+This avoids the redirected streams used by Gradle `run` or an IDE Run console. IntelliJ's Terminal
+can use the launcher; if it lacks the required cursor capabilities, use a supported native terminal.
 
 ### Typing feedback: tasks 3.1 and 3.2
 
@@ -157,8 +167,9 @@ input remains valid and is evaluated normally.
 
 Assertions check internal assumptions about computed metrics, health and gameplay state. They
 help expose programming errors during development and do not replace argument validation.
-`build.gradle` enables assertions for both `run` and `test`. When IntelliJ uses a direct Application
-run configuration, add `-ea` to **VM options** through `Run > Edit Configurations > KeyboardWarrior >
+`build.gradle` enables assertions for both `run` and `test`, and the gameplay launchers pass `-ea`.
+When IntelliJ uses a direct Application run configuration, add `-ea` to **VM options** through
+`Run > Edit Configurations > KeyboardWarrior >
 Modify options > Add VM options`; Gradle-delegated runs use the build configuration. See the
 [Gradle JavaExec reference](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html)
 and [IntelliJ Application configuration guide](https://www.jetbrains.com/help/idea/run-debug-configuration-java-application.html).
@@ -217,7 +228,8 @@ and countdown output. Typing feedback tests include:
 
 ### Manual gameplay testing
 
-1. Run `./gradlew run` or `.\gradlew.bat run` with Java 25 in a terminal.
+1. Run `sh ./run-game.sh` or `.\run-game.bat` with Java 25 in IntelliJ's Terminal or a native terminal.
+   Confirm that an unsupported basic/redirected console shows the launcher instructions before gameplay.
 2. Enter `start`; check that scenario 1 shows an enemy and the player has 100 HP.
 3. Select `Ping`; check that a 15-second countdown appears above the typing instructions and passage
    and updates while typing.

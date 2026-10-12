@@ -3,6 +3,7 @@ package seedu.keyboardwarrior;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp.Capability;
 
 /**
  * Renders the countdown and editable input together under JLine's display lock.
@@ -23,6 +24,22 @@ public class CountdownReader extends LineReaderImpl {
             setPrompt(countdownPrompt());
             return true;
         });
+    }
+
+    /**
+     * Reports whether this console can redraw the timer above an editable answer.
+     * Redirected Gradle/IDE consoles may supply basic input and output without cursor control.
+     * Declaring an ANSI terminal type alone cannot restore a native terminal connection.
+     *
+     * @return true when terminal dimensions and cursor movement are available
+     */
+    public boolean supportsLiveDisplay() {
+        Terminal terminal = getTerminal();
+        return !Terminal.TYPE_DUMB.equals(terminal.getType())
+                && !Terminal.TYPE_DUMB_COLOR.equals(terminal.getType())
+                && terminal.getWidth() > 0 && terminal.getHeight() > 0
+                && terminal.getStringCapability(Capability.cursor_up) != null
+                && terminal.getStringCapability(Capability.cursor_left) != null;
     }
 
     /**
@@ -72,7 +89,7 @@ public class CountdownReader extends LineReaderImpl {
         try {
             String typedText = getBuffer().toString();
             getBuffer().clear();
-            if (isReading()) {
+            if (isReading() && supportsLiveDisplay()) {
                 redisplay();
                 getTerminal().flush();
             }
@@ -84,6 +101,9 @@ public class CountdownReader extends LineReaderImpl {
 
     /** Refreshes the complete challenge display while the display lock is held. */
     private void refreshPrompt() {
+        if (!supportsLiveDisplay()) {
+            return;
+        }
         setPrompt(countdownPrompt());
         if (isReading()) {
             redisplay();
@@ -92,7 +112,7 @@ public class CountdownReader extends LineReaderImpl {
     }
 
     private String countdownPrompt() {
-        if (remainingSeconds == null) {
+        if (remainingSeconds == null || !supportsLiveDisplay()) {
             return "Your input: ";
         }
         String challengeDisplay = challengeText == null ? ""
