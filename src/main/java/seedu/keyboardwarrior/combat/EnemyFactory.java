@@ -1,7 +1,35 @@
 package seedu.keyboardwarrior.combat;
 
+import java.util.Objects;
+import java.util.Random;
+
 /** Creates predefined enemies with their health and skill loadouts configured. */
 public class EnemyFactory {
+    /** Enemy types available when a scenario randomly chooses its opponent. */
+    private static final String[] ENEMY_TYPES = {
+        "rogue_ai", "malware_bot", "firewall_golem", "cache_goblin",
+        "phantom_packet", "cipher_serpent", "trojan_knight", "null_dragon"
+    };
+
+    /**
+     * Creates a randomly selected enemy for a new scenario.
+     *
+     * @return a fresh enemy with its starting health and skills
+     */
+    public static Enemy createRandomEnemy() {
+        return createRandomEnemy(new Random());
+    }
+
+    /**
+     * Creates a randomly selected enemy using the supplied random source.
+     *
+     * @param random source used to select the enemy type
+     * @return a fresh enemy with its starting health and skills
+     */
+    public static Enemy createRandomEnemy(Random random) {
+        Objects.requireNonNull(random);
+        return createEnemy(ENEMY_TYPES[random.nextInt(ENEMY_TYPES.length)]);
+    }
 
     /**
      * Creates an enemy for a registered type identifier.
@@ -24,6 +52,36 @@ public class EnemyFactory {
             enemy = new Enemy("Malware Bot", 120);
             enemy.addSkill(SkillRegistry.getSkill("ping"));
             enemy.addSkill(SkillRegistry.getSkill("brute_force"));
+            break;
+        case "firewall_golem":
+            enemy = new Enemy("Firewall Golem", 90);
+            enemy.addSkill(SkillRegistry.getSkill("ping"));
+            enemy.addSkill(SkillRegistry.getSkill("buffer_overflow"));
+            break;
+        case "cache_goblin":
+            enemy = new Enemy("Cache Goblin", 80);
+            enemy.addSkill(SkillRegistry.getSkill("ping"));
+            enemy.addSkill(SkillRegistry.getSkill("brute_force"));
+            break;
+        case "phantom_packet":
+            enemy = new Enemy("Phantom Packet", 90);
+            enemy.addSkill(SkillRegistry.getSkill("ping"));
+            enemy.addSkill(SkillRegistry.getSkill("buffer_overflow"));
+            break;
+        case "cipher_serpent":
+            enemy = new Enemy("Cipher Serpent", 100);
+            enemy.addSkill(SkillRegistry.getSkill("brute_force"));
+            enemy.addSkill(SkillRegistry.getSkill("buffer_overflow"));
+            break;
+        case "trojan_knight":
+            enemy = new Enemy("Trojan Knight", 110);
+            enemy.addSkill(SkillRegistry.getSkill("ping"));
+            enemy.addSkill(SkillRegistry.getSkill("brute_force"));
+            break;
+        case "null_dragon":
+            enemy = new Enemy("Null Dragon", 120);
+            enemy.addSkill(SkillRegistry.getSkill("brute_force"));
+            enemy.addSkill(SkillRegistry.getSkill("buffer_overflow"));
             break;
         default:
             throw new IllegalArgumentException("Unknown enemy type: " + type);

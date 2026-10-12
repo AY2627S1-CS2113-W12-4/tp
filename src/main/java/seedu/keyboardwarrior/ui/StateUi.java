@@ -1,6 +1,7 @@
 package seedu.keyboardwarrior.ui;
 
 import seedu.keyboardwarrior.CountdownReader;
+import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.typing.TypingResultFormatter;
 
@@ -49,10 +50,43 @@ public final class StateUi {
         }
     }
 
+    /** Clears the editing line before asking for the next combat skill. */
+    public static void clearInput() {
+        if (reader != null) {
+            reader.clearInput();
+        }
+    }
+
+    /** Returns and clears the unfinished passage for automatic timeout evaluation. */
+    public static String takeCurrentInput() {
+        return reader == null ? "" : reader.takeCurrentInput();
+    }
+
+    /** Displays the timer above the typing instruction and target passage. */
+    public static void showTypingChallenge(TypingChallenge challenge) {
+        if (reader != null) {
+            reader.showTypingChallenge(challenge.getText(), challenge.getTime());
+        } else {
+            showRemainingTime(challenge.getTime());
+            printLine("Time limit: " + challenge.getTime() + " seconds");
+            printLine("Type the following text and press Enter to attack:");
+            printLine(challenge.getText());
+        }
+    }
+
+    /**
+     * Shows the target text and explains how to submit text before the deadline.
+     */
+    public static void showTypingChallenge(String text) {
+        printLine("Type the following text. Press Enter to submit each line before time runs out:");
+        printLine(text);
+    }
+
     /**
      * Prints output above any input currently being edited, or directly in tests.
+     * Combat output uses this same terminal so it does not overwrite the editable line.
      */
-    private static void printLine(String text) {
+    public static void printLine(String text) {
         if (reader == null) {
             System.out.println(text);
         } else {
@@ -101,9 +135,7 @@ public final class StateUi {
     public static void showMainMenu() {
         showBanner();
         showSeparator();
-        printLine("Choose 1 option:");
-        printLine("1. Start");
-        printLine("2. Exit");
+        printLine("Type Start to begin five combat scenarios, or Exit to quit.");
     }
 
     /**
@@ -117,22 +149,31 @@ public final class StateUi {
      * Announces entry into gameplay.
      */
     public static void showGameplayStart() {
-        printLine("Begin gameplay");
+        printLine("Begin gameplay. Choose a skill, then type its prompt to attack.");
+        printLine("Your remaining health carries into the next scenario. Type Exit at any time to quit.");
+    }
+
+    /** Displays progress before the next scenario begins. */
+    public static void showScenario(int number, int total) {
+        showSeparator();
+        printLine("Scenario " + number + "/" + total);
+    }
+
+    /** Announces victory after all five enemies have been defeated. */
+    public static void showRunVictory() {
+        printLine("You win! All 5 scenarios cleared.");
+    }
+
+    /** Announces that player defeat ended the run. */
+    public static void showRunDefeat() {
+        printLine("Game over. Start a new run from the main menu.");
     }
 
     /**
-     * Shows the target text and explains how to submit text before the deadline.
-     */
-    public static void showTypingChallenge(String text) {
-        printLine("Type the following text. Press Enter to submit each line before time runs out:");
-        printLine(text);
-    }
-
-    /**
-     * Displays the evaluated metrics and word errors for the completed round.
+     * Displays evaluated metrics while retaining individual word errors in the result.
      */
     public static void showTypingResult(TypingResult result) {
-        printLine(TypingResultFormatter.formatTypingResult(result));
+        printLine(TypingResultFormatter.formatTypingSummary(result));
     }
 
     /**

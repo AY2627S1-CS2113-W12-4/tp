@@ -22,7 +22,8 @@ class TypingEvaluatorTest {
         assertEquals(100.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(6.0, result.getElapsedSeconds(), 0.000001);
         assertEquals(10.0, result.getRequiredSeconds(), 0.000001);
-        assertTrue(result.canDealDamage());
+        assertFalse(result.isTimeLimitExceeded());
+        assertEquals(1.0, result.getTimeDamageMultiplier());
         assertTrue(result.getWordErrors().isEmpty());
     }
 
@@ -157,30 +158,33 @@ class TypingEvaluatorTest {
     }
 
     @Test
-    public void evaluateTyping_overTimeLimit_blocksDamageDespitePerfectAccuracy() {
+    public void evaluateTyping_overTimeLimit_reducesDamageMultiplierDespitePerfectAccuracy() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the goblin", 6.0, 5.0);
 
-        assertFalse(result.canDealDamage());
+        assertTrue(result.isTimeLimitExceeded());
+        assertEquals(0.8, result.getTimeDamageMultiplier());
         assertEquals(34.0, result.getWpm(), 0.000001);
         assertEquals(100.0, result.getAccuracyPercent(), 0.000001);
         assertTrue(result.getWordErrors().isEmpty());
     }
 
     @Test
-    public void evaluateTyping_exactTimeLimit_allowsDamage() {
+    public void evaluateTyping_exactTimeLimit_hasNoDamagePenalty() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the goblin", 6.0, 6.0);
 
-        assertTrue(result.canDealDamage());
+        assertFalse(result.isTimeLimitExceeded());
+        assertEquals(1.0, result.getTimeDamageMultiplier());
     }
 
     @Test
-    public void evaluateTyping_justOverTimeLimit_blocksDamage() {
+    public void evaluateTyping_justOverTimeLimit_appliesDamagePenalty() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the goblin", Math.nextUp(6.0), 6.0);
 
-        assertFalse(result.canDealDamage());
+        assertTrue(result.isTimeLimitExceeded());
+        assertEquals(0.8, result.getTimeDamageMultiplier());
     }
 
     @Test
@@ -188,7 +192,8 @@ class TypingEvaluatorTest {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 5.0);
 
-        assertFalse(result.canDealDamage());
+        assertTrue(result.isTimeLimitExceeded());
+        assertEquals(0.8, result.getTimeDamageMultiplier());
         assertEquals(200.0 / 3.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(1, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 2, "the", "teh", ErrorType.WRONG);

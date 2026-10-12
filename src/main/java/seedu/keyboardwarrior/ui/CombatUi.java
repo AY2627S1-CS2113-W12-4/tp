@@ -6,6 +6,7 @@ import java.util.Scanner;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
+import seedu.keyboardwarrior.typing.TypingChallenge;
 
 /** Handles console input and output for interactive combat encounters. */
 public class CombatUi {
@@ -23,8 +24,8 @@ public class CombatUi {
      * @param enemy enemy entering combat
      */
     public void showCombatStart(Enemy enemy) {
-        System.out.println("\n==== COMBAT STARTED ====");
-        System.out.println("A wild " + enemy.getName() + " appears!");
+        StateUi.printLine("\n==== COMBAT STARTED ====");
+        StateUi.printLine("A wild " + enemy.getName() + " appears!");
         showEnemyStats(enemy);
     }
 
@@ -34,8 +35,8 @@ public class CombatUi {
      * @param enemy enemy taking its turn
      */
     public void showEnemyTurn(Enemy enemy) {
-        System.out.println("---- Enemy Turn ----");
-        System.out.println(enemy.getName() + " attacks for ");
+        StateUi.printLine("---- Enemy Turn ----");
+        StateUi.printLine(enemy.getName() + " attacks:");
         showEnemyStats(enemy);
     }
 
@@ -45,7 +46,7 @@ public class CombatUi {
      * @param enemy enemy whose statistics are displayed
      */
     public void showEnemyStats(Enemy enemy) {
-        System.out.println(enemy.getName() + "| HP: " + enemy.getHealth());
+        StateUi.printLine(enemy.getName() + " | HP: " + enemy.getHealth());
     }
 
     /**
@@ -55,7 +56,7 @@ public class CombatUi {
      * @param enemy opposing enemy
      */
     public void showPlayerTurn(Player player, Enemy enemy) {
-        System.out.println("\n---- Your Turn ----");
+        StateUi.printLine("\n---- Your Turn ----");
         showPlayerStats(player);
         showPlayerSkills(player);
     }
@@ -66,7 +67,7 @@ public class CombatUi {
      * @param player player whose health is displayed
      */
     public void showPlayerStats(Player player) {
-        System.out.println("HP: " + player.getHealth());
+        StateUi.printLine("HP: " + player.getHealth());
     }
 
     /**
@@ -83,7 +84,7 @@ public class CombatUi {
                 skillString.append(" | ");
             }
         }
-        System.out.println(skillString.toString());
+        StateUi.printLine(skillString.toString());
     }
 
     /**
@@ -94,7 +95,7 @@ public class CombatUi {
      */
     public Skill getSkillChoice(ArrayList<Skill> activeSkills) {
         while (true) {
-            System.out.println("> ");
+            StateUi.printLine("> ");
 
             String input = scanner.nextLine().trim();
 
@@ -104,13 +105,23 @@ public class CombatUi {
                 }
             }
 
-            System.out.println("Invalid Skill. Type the exact name of a skill.");
+            showInvalidSkill();
         }
     }
 
     /** Tells the player to prepare for the typing challenge. */
     public void showTypingPrep() {
-        System.out.println("\nGet ready!");
+        StateUi.printLine("\nGet ready!");
+    }
+
+    /** Explains how to select one of the displayed skills. */
+    public void showInvalidSkill() {
+        StateUi.printLine("Invalid skill. Type the name of a displayed skill, or Exit to quit.");
+    }
+
+    /** Displays the target text and limit before the live countdown starts. */
+    public void showTypingChallenge(TypingChallenge challenge) {
+        StateUi.showTypingChallenge(challenge);
     }
 
     /**
@@ -120,13 +131,13 @@ public class CombatUi {
      * @return submitted text
      */
     public String getTypingSubmission(String typingChallenge) {
-        System.out.println(typingChallenge + "\n");
+        StateUi.printLine(typingChallenge + "\n");
         return scanner.nextLine();
     }
 
-    /** Explains that an overdue typing attempt caused the attack to be blocked. */
+    /** Explains the damage reduction applied to an overdue typing attempt. */
     public void showTypingSlow() {
-        System.out.println("Too Slow! Attack got blocked!");
+        StateUi.printLine("Time limit exceeded: attack damage reduced by 20%.");
     }
 
     /**
@@ -136,7 +147,7 @@ public class CombatUi {
      * @param damage damage applied
      */
     public void showDamage(String name, int damage) {
-        System.out.println("Dealt " + damage + " damage to " + name);
+        StateUi.printLine("Dealt " + damage + " damage to " + name);
     }
 
     /**
@@ -145,11 +156,11 @@ public class CombatUi {
      * @param enemy defeated enemy
      */
     public void showVictory(Enemy enemy) {
-        System.out.println("\n" + enemy.getName() + " has been defeated!");
+        StateUi.printLine("\n" + enemy.getName() + " has been defeated!");
     }
 
     /** Announces that the player was defeated. */
     public void showDefeat() {
-        System.out.println("\nYou have been defeated...");
+        StateUi.printLine("\nYou have been defeated...");
     }
 }

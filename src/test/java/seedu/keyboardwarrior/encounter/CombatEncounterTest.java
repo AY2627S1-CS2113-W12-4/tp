@@ -2,6 +2,7 @@ package seedu.keyboardwarrior.encounter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -12,13 +13,103 @@ import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.combat.SkillRegistry;
+import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
+import seedu.keyboardwarrior.typing.TypingChallengeFactory;
+import seedu.keyboardwarrior.typing.TypingEvaluator;
+import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
 /**
  * Tests complete victory and defeat paths through a combat encounter.
  */
 class CombatEncounterTest {
+    @Test
+    void constructor_nullDependencies_rejectsInvalidEncounter() {
+        Player player = new Player("Player", 100);
+        Enemy enemy = new Enemy("Training Bot", 100);
+        RecordingCombatUi ui = new RecordingCombatUi(SkillRegistry.getSkill("ping"));
+
+        assertThrows(NullPointerException.class, () -> new CombatEncounter(null, enemy, ui));
+        assertThrows(NullPointerException.class, () -> new CombatEncounter(player, null, ui));
+        assertThrows(NullPointerException.class, () -> new CombatEncounter(player, enemy, null));
+        assertThrows(NullPointerException.class, () -> new CombatEncounter(player, enemy, ui, null));
+    }
+
+    @Test
+    void begin_invalidEnemySkills_rejectsBeforeStartingAndAllowsCorrection() {
+        Player player = new Player("Player", 100);
+        Enemy enemy = new Enemy("Training Bot", 100);
+        RecordingCombatUi ui = new RecordingCombatUi(SkillRegistry.getSkill("ping"));
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+
+        assertThrows(IllegalStateException.class, encounter::begin);
+        enemy.getActiveSkills().add(null);
+        assertThrows(IllegalStateException.class, encounter::begin);
+        assertEquals(0, ui.combatStartCount);
+        enemy.getActiveSkills().clear();
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        encounter.begin();
+
+        assertEquals(1, ui.combatStartCount);
+        assertThrows(IllegalStateException.class, encounter::begin);
+    }
+
+    @Test
+    void preparePlayerTurn_invalidOrderOrChoice_keepsValidTurnAvailable() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 100);
+        enemy.addSkill(skill);
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+
+        assertThrows(IllegalStateException.class, () -> encounter.preparePlayerTurn(skill));
+        encounter.begin();
+        assertThrows(NullPointerException.class, () -> encounter.preparePlayerTurn(null));
+        Skill unavailable = new Skill("Unavailable", 10, Difficulty.EASY);
+        assertThrows(IllegalArgumentException.class, () -> encounter.preparePlayerTurn(unavailable));
+        assertEquals(15, encounter.preparePlayerTurn(skill).getTime());
+        assertThrows(IllegalStateException.class, () -> encounter.preparePlayerTurn(skill));
+    }
+
+    @Test
+    void submitTypingResult_invalidOrderOrNull_doesNotConsumePendingAttack() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 1);
+        enemy.addSkill(skill);
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+        TypingResult result = TypingEvaluator.evaluateTyping("alpha", "alpha", 12.0, 15.0);
+
+        encounter.begin();
+        assertThrows(IllegalStateException.class, () -> encounter.submitTypingResult(result));
+        encounter.preparePlayerTurn(skill);
+        assertThrows(NullPointerException.class, () -> encounter.submitTypingResult(null));
+        assertEquals(1, enemy.getHealth());
+        assertEquals(100, player.getHealth());
+        encounter.submitTypingResult(result);
+
+        assertTrue(encounter.getIsCompleted());
+        assertThrows(IllegalStateException.class, () -> encounter.submitTypingResult(result));
+        assertThrows(IllegalStateException.class, () -> encounter.preparePlayerTurn(skill));
+    }
+
+    @Test
+    void preparePlayerTurn_factoryFailure_doesNotLeaveAttackPending() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 100);
+        enemy.addSkill(skill);
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui, new FailingOnceChallengeFactory());
+        encounter.begin();
+
+        assertThrows(IllegalStateException.class, () -> encounter.preparePlayerTurn(skill));
+        assertEquals(15, encounter.preparePlayerTurn(skill).getTime());
+    }
+
     @Test
     void start_playerDefeatsEnemy_recordsVictory() {
         Player player = new Player("Player", 100);
@@ -67,12 +158,134 @@ class CombatEncounterTest {
         assertTrue(ui.defeatShown);
     }
 
+    @Test
+    void submitTypingResult_repeatedPartialAttempts_rotatesEnemySkillsUntilVictory() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 18);
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        enemy.addSkill(SkillRegistry.getSkill("brute_force"));
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+        TypingResult partialResult = TypingEvaluator.evaluateTyping("alpha beta", "alpha nope", 12.0, 15.0);
+
+        encounter.begin();
+        TypingChallenge challenge = encounter.preparePlayerTurn(skill);
+        assertEquals(15, challenge.getTime());
+        encounter.submitTypingResult(partialResult);
+        assertEquals(12, enemy.getHealth());
+        assertEquals(90, player.getHealth());
+        assertFalse(encounter.getIsCompleted());
+
+        encounter.preparePlayerTurn(skill);
+        encounter.submitTypingResult(partialResult);
+        assertEquals(6, enemy.getHealth());
+        assertEquals(70, player.getHealth());
+        assertFalse(encounter.getIsCompleted());
+
+        encounter.preparePlayerTurn(skill);
+        encounter.submitTypingResult(partialResult);
+        assertEquals(0, enemy.getHealth());
+        assertEquals(70, player.getHealth());
+        assertTrue(encounter.getIsCompleted());
+        assertTrue(encounter.getEncounterOutcome().getIsVictory());
+        assertEquals(3, ui.playerTurnCount);
+        assertEquals(2, ui.enemyTurnCount);
+        assertEquals(0, ui.skillChoiceCount);
+        assertEquals(0, ui.submissionCount);
+    }
+
+    @Test
+    void submitTypingResult_lateAttempt_reducesDamageAndAllowsEnemyResponse() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 100);
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+
+        encounter.begin();
+        encounter.preparePlayerTurn(skill);
+        encounter.submitTypingResult(TypingEvaluator.evaluateTyping("alpha beta", "alpha beta", 15.01, 15.0));
+
+        assertEquals(92, enemy.getHealth());
+        assertEquals(90, player.getHealth());
+        assertFalse(encounter.getIsCompleted());
+        assertEquals(1, ui.penalizedAttackCount);
+        assertEquals(1, ui.enemyTurnCount);
+        assertEquals(2, ui.playerTurnCount);
+    }
+
+    @Test
+    void submitTypingResult_lateKillingBlow_recordsVictoryWithoutRetaliation() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 8);
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+
+        encounter.begin();
+        encounter.preparePlayerTurn(skill);
+        encounter.submitTypingResult(TypingEvaluator.evaluateTyping("alpha beta", "alpha beta", 15.01, 15.0));
+
+        assertTrue(encounter.getIsCompleted());
+        assertTrue(encounter.getEncounterOutcome().getIsVictory());
+        assertEquals(0, enemy.getHealth());
+        assertTrue(enemy.getIsDead());
+        assertEquals(100, player.getHealth());
+        assertEquals(1, ui.penalizedAttackCount);
+        assertEquals(0, ui.enemyTurnCount);
+        assertEquals(1, ui.playerTurnCount);
+        assertTrue(ui.victoryShown);
+    }
+
+    @Test
+    void submitTypingResult_killingBlow_recordsVictoryWithoutRetaliation() {
+        Player player = new Player("Player", 100);
+        Skill skill = SkillRegistry.getSkill("ping");
+        Enemy enemy = new Enemy("Training Bot", 1);
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        RecordingCombatUi ui = new RecordingCombatUi(skill);
+        CombatEncounter encounter = new CombatEncounter(player, enemy, ui);
+
+        encounter.begin();
+        encounter.preparePlayerTurn(skill);
+        encounter.submitTypingResult(TypingEvaluator.evaluateTyping("alpha beta", "alpha beta", 12.0, 15.0));
+
+        assertTrue(encounter.getIsCompleted());
+        assertTrue(encounter.getEncounterOutcome().getIsVictory());
+        assertEquals(0, enemy.getHealth());
+        assertTrue(enemy.getIsDead());
+        assertEquals(100, player.getHealth());
+        assertEquals(0, ui.enemyTurnCount);
+        assertEquals(1, ui.playerTurnCount);
+        assertTrue(ui.victoryShown);
+    }
+
+    /** Simulates a failed generation followed by a successful retry. */
+    private static class FailingOnceChallengeFactory extends TypingChallengeFactory {
+        private boolean shouldFail = true;
+
+        @Override
+        public TypingChallenge generate(Difficulty difficulty) {
+            if (shouldFail) {
+                shouldFail = false;
+                throw new IllegalStateException("Simulated challenge generation failure");
+            }
+            return super.generate(difficulty);
+        }
+    }
+
     /** Supplies deterministic choices and records encounter UI events. */
     private static class RecordingCombatUi extends CombatUi {
         private final Skill selectedSkill;
         private int combatStartCount;
         private int playerTurnCount;
         private int enemyTurnCount;
+        private int skillChoiceCount;
+        private int submissionCount;
+        private int penalizedAttackCount;
         private boolean victoryShown;
         private boolean defeatShown;
 
@@ -92,6 +305,7 @@ class CombatEncounterTest {
 
         @Override
         public Skill getSkillChoice(ArrayList<Skill> activeSkills) {
+            skillChoiceCount++;
             return selectedSkill;
         }
 
@@ -102,7 +316,13 @@ class CombatEncounterTest {
 
         @Override
         public String getTypingSubmission(String typingChallenge) {
+            submissionCount++;
             return typingChallenge;
+        }
+
+        @Override
+        public void showTypingSlow() {
+            penalizedAttackCount++;
         }
 
         @Override

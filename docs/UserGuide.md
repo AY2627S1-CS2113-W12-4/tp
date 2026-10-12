@@ -1,23 +1,53 @@
 # Keyboard Warrior User Guide
-Hello
+
 ## Introduction
 
-Keyboard Warrior combines typing practice with a planned roguelike adventure. Players will face typing
-challenges in situations such as fighting monsters, talking to characters and exploring new areas.
-
-This guide covers the implemented feedback component for v1.0 tasks **3.1** (WPM and accuracy) and
-**3.2** (wrong words), including the time limit that determines whether damage is allowed.
-Connecting this component to the scenario loop, timer and gameplay CLI is pending.
-Launching the current application still asks for your name and prints a greeting; it does not yet run a
-typing challenge. The reports below show the output produced by the feedback component.
+Keyboard Warrior is a terminal typing combat game. Choose an attack skill, type its prompt, and
+deal damage based on your words per minute (WPM) and accuracy. A live countdown shows your
+time remaining; exceeding the time limit reduces damage by 20%. Defeat the enemies in five
+scenarios to win v1.0.
 
 ## Quick Start
 
 1. Install Java 25.
 2. From the project folder, run `./gradlew run` on macOS/Linux or `.\gradlew.bat run` in Windows PowerShell.
-3. Enter your name when prompted.
+3. At the main menu, type `start` and press Enter to begin the first scenario.
+4. Type a displayed skill name, such as `Ping`, and press Enter.
+5. Type the displayed prompt as one line and press Enter before the timer reaches zero for full damage.
+   If time expires first, the game automatically evaluates what you have typed so far with a 20% damage penalty.
 
-The [Developer Guide](DeveloperGuide.md) explains how to try the feedback component before gameplay integration.
+Use a terminal that supports the live countdown. Type `exit` and press Enter at any phase to quit.
+Gradle enables the game's internal assertions automatically. If you launch directly from IntelliJ,
+add `-ea` to the run configuration's **VM options**, following the [README setup instructions](../README.md#setting-up-in-intellij).
+
+## Combat and Scenarios
+
+Each player turn begins with a skill choice. Skill names are case-insensitive.
+
+| Skill | Base damage | Typing time limit |
+| --- | --- | --- |
+| `Ping` | 10 | 15 seconds |
+| `Brute Force` | 20 | 30 seconds |
+| `Buffer Overflow` | 40 | 30 seconds |
+| `SIGKILL` | 80 | 45 seconds |
+
+The live timer appears above "Type the following..." and the passage. It starts when the prompt
+is shown and displays the seconds remaining while you type.
+Enter submits one attack attempt; you do not need perfect accuracy to attack. The game shows
+WPM, accuracy, elapsed time, the time limit and damage after your attempt. Individual wrong words
+are not listed. If the enemy survives, it attacks and you choose a skill for your next turn.
+An expired challenge applies a 20% damage penalty and still consumes your turn. Its feedback uses
+the current input, including text you have not submitted with Enter.
+
+Defeating an enemy automatically starts the next numbered scenario. Each scenario randomly
+selects an enemy from a pool of different monsters; its name and HP appear when combat starts.
+Each attack randomly selects a passage from the chosen skill's difficulty pool, so passages
+can differ between turns. The same difficulty will not repeat its previous passage immediately;
+enemies and passages can reappear later.
+
+You start with 100 HP, and remaining HP carries between scenarios. Defeating the fifth enemy
+wins the run. If your HP reaches zero, the run ends in defeat. Both outcomes return you to the
+main menu, where `start` begins a fresh run with 100 HP.
 
 ## Typing Feedback
 
@@ -49,28 +79,29 @@ accuracy. An empty or whitespace-only submission gives 0 WPM and 0% accuracy.
 ### Time limit and damage
 
 Each challenge supplies a required time, measured in seconds. Your elapsed time is the time you
-spent typing and submitting the answer.
+spent typing until you submit the answer or the countdown expires.
 
-* If elapsed time exceeds required time, the attempt deals **zero damage**, even if every word is correct.
-* If elapsed time is less than or equal to required time, damage is allowed by the time limit.
+* If elapsed time exceeds required time, the attempt deals **20% less damage**.
+* If elapsed time is less than or equal to required time, there is no time penalty.
 
-WPM, accuracy and word feedback are still shown for late attempts. The feedback component determines
-whether the time limit allows damage; the combat component determines the damage amount.
+WPM and accuracy are still shown for late attempts. The feedback component supplies the
+time penalty; the combat component determines the damage amount.
 Both time values must be positive and finite.
 
-### Wrong words
+Combat calculates:
 
-The report lists word positions starting at 1 and distinguishes three kinds of error:
+```text
+Damage = base damage * (accuracy percentage + WPM) / 100 * time multiplier
+Time multiplier = 0.8 if elapsed time exceeds the limit, otherwise 1.0
+```
 
-| Error | Example report |
-| --- | --- |
-| Wrong word | `Word 2: expected "the", typed "teh"` |
-| Missing word | `Word 3: missing "goblin"` |
-| Extra word | `Word 4: unexpected "now"` |
-
-Words are compared at corresponding positions. An inserted or omitted word in the middle can shift
-later words, so several positions may be reported as incorrect. Mistakes corrected before submission
-are not included: the component evaluates only the final submitted text.
+The result is rounded down to an integer after the time penalty is applied. For example, `Brute Force`
+with 80% accuracy and 40 WPM deals `20 * (80 + 40) / 100 = 24` damage within the time limit.
+With the same metrics after the limit, it deals `24 * 0.8 = 19.2`, rounded down to **19 damage**.
+Enemy attacks use their skill's base damage.
+If no answer is submitted before expiry, the game evaluates the text currently in your input line
+and applies the 20% damage penalty. An empty input gives 0 WPM, 0% accuracy and zero damage.
+Corrections made before submission or expiry count: the game evaluates the final text in the input line.
 
 ### Example
 
@@ -82,9 +113,7 @@ WPM: 34.00
 Accuracy: 66.67%
 Elapsed time: 6.00 seconds
 Required time: 10.00 seconds
-Damage allowed: Yes
-Wrong words:
-  Word 2: expected "the", typed "teh"
+Damage penalty: 0%
 ```
 
 Submitting `Strike the goblin` in the same time produces:
@@ -94,9 +123,7 @@ WPM: 34.00
 Accuracy: 100.00%
 Elapsed time: 6.00 seconds
 Required time: 10.00 seconds
-Damage allowed: Yes
-Wrong words:
-  None
+Damage penalty: 0%
 ```
 
 If the required time were **5 seconds**, the same correct submission would produce:
@@ -106,10 +133,8 @@ WPM: 34.00
 Accuracy: 100.00%
 Elapsed time: 6.00 seconds
 Required time: 5.00 seconds
-Damage: 0 (time limit exceeded)
-Wrong words:
-  None
+Damage penalty: 20% (time limit exceeded)
 ```
 
 Metrics and times are displayed to two decimal places. The time limit uses the actual values,
-so even a small overrun blocks damage when rounded times look equal.
+so even a small overrun applies the 20% penalty when rounded times look equal.
