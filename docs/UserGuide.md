@@ -10,14 +10,18 @@ scenarios to win v1.0.
 ## Quick Start
 
 1. Install Java 25.
-2. From the project folder, run `./gradlew run` on macOS/Linux or `.\gradlew.bat run` in Windows PowerShell.
+2. From the project folder, run `sh ./run-game.sh` on macOS/Linux or `.\run-game.bat` in Windows PowerShell,
+   using IntelliJ's Terminal or a native terminal.
 3. At the main menu, type `start` and press Enter to begin the first scenario.
 4. Type a displayed skill name, such as `Ping`, and press Enter.
 5. Type the displayed prompt as one line and press Enter before the timer reaches zero for full damage.
    If time expires first, the game automatically evaluates what you have typed so far with a 20% damage penalty.
 
-Use a terminal that supports the live countdown. Type `exit` and press Enter at any phase to quit.
-Gradle enables the game's internal assertions automatically. If you launch directly from IntelliJ,
+The launchers compile through Gradle, then run the game directly in your terminal with assertions enabled.
+Gradle `run` or IntelliJ's Run console can redirect input and prevent the live countdown from working.
+If the game reports an unsupported console, use the displayed launcher command in a native terminal;
+on Windows, try Windows Terminal if IntelliJ's Terminal remains unsupported.
+Type `exit` and press Enter at any phase to quit. If you launch directly from IntelliJ,
 add `-ea` to the run configuration's **VM options**, following the [README setup instructions](../README.md#setting-up-in-intellij).
 
 ## Combat and Scenarios

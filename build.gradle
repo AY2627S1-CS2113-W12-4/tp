@@ -62,3 +62,28 @@ run {
     standardInput = System.in
     enableAssertions = true
 }
+
+// Compile through Gradle, then let the launch scripts start Java with native terminal input/output.
+tasks.register('prepareTerminalRun') {
+    group = 'application'
+    description = 'Compiles the game and prepares a direct interactive terminal launch without a JAR.'
+    dependsOn tasks.named('classes')
+
+    def runtimeClasspath = sourceSets.main.runtimeClasspath
+    def classpathFile = layout.buildDirectory.file('terminal-run/classpath.txt')
+    def javaHomeFile = layout.buildDirectory.file('terminal-run/java-home.txt')
+    inputs.files(runtimeClasspath)
+    inputs.property('javaHome', System.getProperty('java.home'))
+    inputs.property('javaVersion', JavaVersion.current().toString())
+    outputs.files(classpathFile, javaHomeFile)
+
+    doLast {
+        if (JavaVersion.current() != JavaVersion.VERSION_25) {
+            throw new GradleException('Use Java 25 to build and run Keyboard Warrior.')
+        }
+        def outputFile = classpathFile.get().asFile
+        outputFile.parentFile.mkdirs()
+        outputFile.setText(runtimeClasspath.asPath, 'UTF-8')
+        javaHomeFile.get().asFile.setText(System.getProperty('java.home'), 'UTF-8')
+    }
+}

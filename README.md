@@ -12,13 +12,21 @@ Prerequisites: JDK 25 (use the exact version), update Intellij to the most recen
 1. **Ensure Intellij JDK 25 is defined as an SDK**, as described [here](https://www.jetbrains.com/help/idea/sdk.html#set-up-jdk) -- this step is not needed if you have used JDK 25 in a previous Intellij project.
 1. **Import the project _as a Gradle project_**, as described [here](https://se-education.org/guides/tutorials/intellijImportGradleProject.html).
 1. **Enable assertions for a direct IntelliJ run**: Open `Run > Edit Configurations`, select the `KeyboardWarrior` Application configuration, choose `Modify options > Add VM options`, and enter `-ea` in **VM options**. This is a JVM option, so do not put it in Program arguments. See the [IntelliJ Application configuration guide](https://www.jetbrains.com/help/idea/run-debug-configuration-java-application.html). If IntelliJ runs through Gradle, assertions are already enabled by `build.gradle`.
-1. **Verify the setup**: After the importing is complete, locate the `src/main/java/seedu/keyboardwarrior/KeyboardWarrior.java` file, right-click it, and choose `Run KeyboardWarrior.main()`. You should see the main menu. Type `start` and press Enter to begin the first scenario, or `exit` to close the game.
+1. **Verify the setup**: Run the Gradle `check` task for tests and Checkstyle. For gameplay, open IntelliJ's Terminal and use the launcher below. You should see the main menu. Type `start` and press Enter to begin the first scenario, or `exit` to close the game.
 
 **Warning:** Keep the `src\main\java` folder as the root folder for Java files (i.e., don't rename those folders or move Java files to another folder outside of this folder path), as this is the default location some tools (e.g., Gradle) expect to find Java files.
 
 ## Running v1.0
 
-Use Java 25 and run `./gradlew run` on macOS/Linux or `.\gradlew.bat run` in Windows PowerShell.
+Use Java 25 and run `sh ./run-game.sh` on macOS/Linux or `.\run-game.bat` in Windows PowerShell
+from the project folder. These launchers use Gradle to compile the game, then launch Java directly
+in the current terminal with assertions enabled. They do not build a JAR.
+
+Use IntelliJ's Terminal or a native terminal for gameplay. Gradle `run` and IntelliJ's Run console
+can redirect input, preventing the live countdown and capture of text before Enter. The game checks
+terminal capabilities at startup and shows the launcher command when the console is unsupported.
+If IntelliJ's Terminal is still unsupported, run the same launcher in Windows Terminal.
+
 Choose a skill by its displayed name (`Ping`, `Brute Force`, `Buffer Overflow` or `SIGKILL`),
 then submit the displayed prompt as one line with Enter. The live timer shows seconds remaining
 above the typing instructions and passage while you type. If time expires before you press Enter,
@@ -35,6 +43,7 @@ See the [User Guide](docs/UserGuide.md) for the skill time limits and typing fee
 
 * This project uses Gradle for build automation and dependency management. It includes a basic build script as well (i.e. the `build.gradle` file).
 * The Gradle `run` and `test` tasks enable assertions. Internal assertions check game invariants; argument validation still throws exceptions when assertions are disabled.
+* `prepareTerminalRun` compiles the classes and prepares the runtime classpath and Java location used by the gameplay launchers.
 * If you are new to Gradle, refer to the [Gradle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/gradle.html).
 
 ## Testing

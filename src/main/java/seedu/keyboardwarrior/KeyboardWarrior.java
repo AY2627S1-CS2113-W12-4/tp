@@ -45,6 +45,14 @@ public class KeyboardWarrior {
         }
         try (Terminal terminal = terminalBuilder.build()) {
             CountdownReader reader = new CountdownReader(terminal);
+            if (!reader.supportsLiveDisplay()) {
+                LOGGER.fine(() -> "Unsupported interactive console: " + terminal.getType());
+                System.err.println("This console cannot display the live timer or capture typing before Enter.");
+                String launcher = System.getProperty("os.name").startsWith("Windows")
+                        ? ".\\run-game.bat" : "sh ./run-game.sh";
+                System.err.println("Open IntelliJ's Terminal or a system terminal and run: " + launcher);
+                return;
+            }
             reader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
             StateUi.attachTerminal(reader);
             runGame(reader);
