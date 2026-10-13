@@ -16,7 +16,12 @@ public class TypingChallengeRunner {
      * @param ui interface used to show prompts and read input
      */
     public TypingChallengeRunner(CombatUi ui) {
-        this.clock = new ChallengeClock();
+        this(ui, new ChallengeClock());
+    }
+
+    /** Accepts a controllable clock so tests can verify timing without waiting. */
+    TypingChallengeRunner(CombatUi ui, ChallengeClock clock) {
+        this.clock = clock;
         this.ui = ui;
     }
 

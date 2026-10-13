@@ -25,7 +25,8 @@ public class SkillResolver {
 
     /**
      * Resolves one skill use against a target.
-     * Player damage is scaled using a typing result, while a {@code null} result
+     * Player damage is scaled by 0.02 times WPM times accuracy as a fraction,
+     * while a {@code null} result
      * applies the base damage directly for automated enemy turns.
      * Exceeding the time limit reduces player damage by twenty percent.
      *
@@ -48,7 +49,8 @@ public class SkillResolver {
             ui.showTypingSlow();
         }
 
-        double multiplier = (result.getAccuracyPercent() + result.getWpm()) / 100.0;
+        double accuracy = result.getAccuracyPercent() / 100.0;
+        double multiplier = 0.02 * result.getWpm() * accuracy;
         // Apply the time penalty before rounding so fractional damage is retained until the end.
         int calculatedDamage = (int) (chosenSkill.getBaseDamage() * multiplier * result.getTimeDamageMultiplier());
         applyDamage(target, calculatedDamage);

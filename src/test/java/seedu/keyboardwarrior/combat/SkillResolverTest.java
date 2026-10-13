@@ -43,9 +43,9 @@ class SkillResolverTest {
 
         resolver.execute(SOURCE, target, skill, result);
 
-        // Five correct characters in one minute give 1 WPM and a 1.01 multiplier.
-        assertEquals(99, target.getHealth());
-        assertEquals(101, ui.reportedDamage);
+        // Five correct characters in one minute give 1 WPM and a 0.02 multiplier.
+        assertEquals(198, target.getHealth());
+        assertEquals(2, ui.reportedDamage);
         assertFalse(ui.typingWasTooSlow);
     }
 
@@ -55,7 +55,7 @@ class SkillResolverTest {
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
         Skill skill = new Skill("Late Strike", 20, Difficulty.EASY);
-        TypingResult result = TypingEvaluator.evaluateTyping("abcde", "abcde", 61.0, 60.0);
+        TypingResult result = TypingEvaluator.evaluateTyping("abcde", "abcde", 1.2, 1.0);
 
         resolver.execute(SOURCE, target, skill, result);
 
@@ -69,15 +69,46 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
-        Skill skill = new Skill("Fractional Strike", 12, Difficulty.EASY);
+        Skill skill = new Skill("Fractional Strike", 112, Difficulty.EASY);
         TypingResult result = TypingEvaluator.evaluateTyping("abcde", "abcde", 10.0, 5.0);
 
         resolver.execute(SOURCE, target, skill, result);
 
-        // 100% accuracy and 6 WPM produce 12.72 damage; after the penalty, 10.176 rounds down to 10.
+        // 100% accuracy and 6 WPM produce 13.44 damage; after the penalty, 10.752 rounds down to 10.
         assertEquals(70, target.getHealth());
         assertEquals(10, ui.reportedDamage);
         assertTrue(ui.typingWasTooSlow);
+    }
+
+    @Test
+    void execute_partialAccuracy_scalesDamageByCorrectFraction() {
+        RecordingCombatUi ui = new RecordingCombatUi();
+        SkillResolver resolver = new SkillResolver(ui);
+        Enemy target = new Enemy("Target", 200);
+        Skill skill = new Skill("Measured Strike", 100, Difficulty.EASY);
+        TypingResult result = TypingEvaluator.evaluateTyping("hello world", "hello wrong", 2.64, 15.0);
+
+        resolver.execute(SOURCE, target, skill, result);
+
+        // 50 WPM at 50% accuracy gives half the base damage.
+        assertEquals(150, target.getHealth());
+        assertEquals(50, ui.reportedDamage);
+        assertFalse(ui.typingWasTooSlow);
+    }
+
+    @Test
+    void execute_allWordsIncorrect_dealsZeroDamageDespiteTypingSpeed() {
+        RecordingCombatUi ui = new RecordingCombatUi();
+        SkillResolver resolver = new SkillResolver(ui);
+        Enemy target = new Enemy("Target", 80);
+        Skill skill = new Skill("Missed Strike", 100, Difficulty.EASY);
+        TypingResult result = TypingEvaluator.evaluateTyping("abcde", "wrong", 1.0, 15.0);
+
+        resolver.execute(SOURCE, target, skill, result);
+
+        assertEquals(80, target.getHealth());
+        assertEquals(0, ui.reportedDamage);
+        assertFalse(ui.typingWasTooSlow);
     }
 
     @Test
