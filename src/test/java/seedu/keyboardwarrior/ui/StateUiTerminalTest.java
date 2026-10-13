@@ -24,12 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Exercises countdown rendering with both interactive terminals and basic consoles.
+ * Simulated terminals use stream-based output consistently across operating systems.
  */
 class StateUiTerminalTest {
     @Test
     void countdown_reusesStatusRowAndPreservesInput() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        try (Terminal terminal = TerminalBuilder.builder().system(false).type("xterm")
+        try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
                 .streams(new ByteArrayInputStream(new byte[0]), output).paused(true).build()) {
             terminal.setSize(new Size(80, 24));
             CountdownReader reader = new CountdownReader(terminal);
@@ -52,7 +53,7 @@ class StateUiTerminalTest {
         ExecutorService inputExecutor = Executors.newSingleThreadExecutor();
         try (PipedInputStream input = new PipedInputStream();
                 PipedOutputStream keyboard = new PipedOutputStream(input);
-                Terminal terminal = TerminalBuilder.builder().system(false).type("xterm")
+                Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
                         .streams(input, output).build()) {
             terminal.setSize(new Size(80, 24));
             CountdownReader reader = new CountdownReader(terminal);
@@ -100,7 +101,7 @@ class StateUiTerminalTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (PipedInputStream input = new PipedInputStream();
                 PipedOutputStream keyboard = new PipedOutputStream(input);
-                Terminal terminal = TerminalBuilder.builder().system(false).type("xterm")
+                Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
                         .streams(input, output).build()) {
             terminal.setSize(new Size(0, 0));
             assertCountdownLeavesTypingUntouched(terminal, keyboard, output);
