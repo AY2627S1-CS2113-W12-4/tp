@@ -218,7 +218,9 @@ show players how their typing affects attack damage.
 Run `./gradlew check` on macOS/Linux or `.\gradlew.bat check` in Windows PowerShell, using Java 25.
 This runs JUnit tests and Checkstyle. Tests are under `src/test/java/seedu/keyboardwarrior`.
 Combat, gameplay and terminal tests cover turn resolution, scenario progression, timeout damage
-and countdown output. Typing feedback tests include:
+and countdown output. Simulated terminals use JLine's `exec` provider for consistent stream-based
+input and output on every platform, avoiding paused POSIX output pumps in feedback assertions.
+Typing feedback tests include:
 
 * `TypingEvaluatorTest.java` covers correct input, fractional WPM, wrong/missing/extra words, empty
   submissions, whitespace normalization, case and punctuation, positional matching, repeated words,

@@ -133,7 +133,8 @@ class GamePlayStateTest {
     @Test
     void update_liveCountdown_scoresUnsubmittedAnswerAndPreservesTimerOrder() throws Exception {
         ByteArrayOutputStream terminalOutput = new ByteArrayOutputStream();
-        try (Terminal terminal = TerminalBuilder.builder().system(false).type("xterm")
+        // Use stream-based output on every OS; a paused POSIX PTY also pauses its output pump.
+        try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
                 .streams(new ByteArrayInputStream(new byte[0]), terminalOutput).paused(true).build()) {
             terminal.setSize(new Size(80, 24));
             CountdownReader reader = new CountdownReader(terminal);
