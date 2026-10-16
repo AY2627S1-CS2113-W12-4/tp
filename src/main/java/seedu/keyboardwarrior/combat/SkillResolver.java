@@ -51,8 +51,11 @@ public class SkillResolver {
 
         double accuracy = result.getAccuracyPercent() / 100.0;
         double multiplier = 0.02 * result.getWpm() * accuracy;
+        assert accuracy >= 0.0 && accuracy <= 1.0 : "Typing accuracy must be normalized";
+        assert Double.isFinite(multiplier) && multiplier >= 0.0 : "Damage multiplier must be valid";
         // Apply the time penalty before rounding so fractional damage is retained until the end.
         int calculatedDamage = (int) (chosenSkill.getBaseDamage() * multiplier * result.getTimeDamageMultiplier());
+        assert calculatedDamage >= 0 : "Calculated damage must not be negative";
         applyDamage(target, calculatedDamage);
     }
 
@@ -63,6 +66,7 @@ public class SkillResolver {
         int newHealth = Math.max(0, currentHealth - damage);
         assert newHealth >= 0 && newHealth <= currentHealth : "Damage must not increase or make health negative";
         target.setHealth(newHealth);
+        assert target.getHealth() == newHealth : "Target health must reflect the resolved damage";
 
         LOGGER.log(Level.FINE, "Applied {0} damage to {1}; health changed from {2} to {3}",
                 new Object[] {damage, target.getName(), currentHealth, newHealth});

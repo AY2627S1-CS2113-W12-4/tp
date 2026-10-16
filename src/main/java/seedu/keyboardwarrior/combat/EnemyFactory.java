@@ -28,6 +28,7 @@ public class EnemyFactory {
      */
     public static Enemy createRandomEnemy(Random random) {
         Objects.requireNonNull(random);
+        assert ENEMY_TYPES.length > 0 : "At least one enemy type must be registered";
         return createEnemy(ENEMY_TYPES[random.nextInt(ENEMY_TYPES.length)]);
     }
 
@@ -87,6 +88,9 @@ public class EnemyFactory {
             throw new IllegalArgumentException("Unknown enemy type: " + type);
         }
 
+        assert enemy.getHealth() > 0 : "Factory enemies must start with health";
+        assert !enemy.getActiveSkills().isEmpty() && !enemy.getActiveSkills().contains(null)
+                : "Factory enemies must have a valid skill loadout";
         return enemy;
     }
 }

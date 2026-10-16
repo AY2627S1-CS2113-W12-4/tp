@@ -90,6 +90,8 @@ public class CombatEncounter extends Encounter {
         if (isStarted) {
             throw new IllegalStateException("Combat has already begun.");
         }
+        assert !isCompleted : "Combat must be incomplete before it begins";
+        assert pendingSkill == null && enemySkillIndex == 0 : "New combat must start with a clean turn state";
         if (player.getHealth() > 0 && enemy.getHealth() > 0) {
             requireEnemySkills();
         }
@@ -122,6 +124,7 @@ public class CombatEncounter extends Encounter {
         if (!player.getActiveSkills().contains(chosenSkill)) {
             throw new IllegalArgumentException("Chosen skill must be available to the player.");
         }
+        assert player.getHealth() > 0 && enemy.getHealth() > 0 : "A player turn requires living participants";
         TypingChallenge challenge = challengeFactory.generate(chosenSkill.getDifficulty());
         assert challenge != null : "The challenge factory must generate a challenge";
         ui.showTypingPrep();
@@ -142,6 +145,7 @@ public class CombatEncounter extends Encounter {
             throw new IllegalStateException("No player turn is awaiting a typing result.");
         }
         Objects.requireNonNull(result, "Typing result must not be null");
+        assert player.getHealth() > 0 && enemy.getHealth() > 0 : "A pending attack requires living participants";
         skillResolver.execute(player, enemy, pendingSkill, result);
         pendingSkill = null;
 
@@ -160,12 +164,19 @@ public class CombatEncounter extends Encounter {
 
     /** Uses the enemy's next skill without requiring a typing challenge. */
     private void executeEnemyTurn() {
+        assert isStarted && !isCompleted : "An enemy turn requires active combat";
+        assert pendingSkill == null : "The player attack must resolve before the enemy turn";
+        assert player.getHealth() > 0 && enemy.getHealth() > 0 : "An enemy turn requires living participants";
         requireEnemySkills();
         ArrayList<Skill> enemySkills = enemy.getActiveSkills();
+        assert enemySkillIndex >= 0 && enemySkillIndex < enemySkills.size()
+                : "Enemy skill index must identify an available skill";
         ui.showEnemyTurn(enemy);
         Skill enemySkill = enemySkills.get(enemySkillIndex);
         skillResolver.execute(enemy, player, enemySkill, null);
         enemySkillIndex = (enemySkillIndex + 1) % enemySkills.size();
+        assert enemySkillIndex >= 0 && enemySkillIndex < enemySkills.size()
+                : "Enemy skill rotation must remain within the loadout";
     }
 
     /** Rejects unusable enemy loadouts before a turn can partially execute. */
@@ -179,25 +190,32 @@ public class CombatEncounter extends Encounter {
     /** Marks the enemy as defeated and completes the encounter as a victory. */
     private void executeVictory() {
         assert enemy.getHealth() == 0 : "Victory requires the enemy to have no health";
+        assert player.getHealth() > 0 : "The player must be alive on victory";
         assert pendingSkill == null : "Victory must follow a resolved attack";
+        assert !isCompleted : "Victory must only complete an active encounter";
         LOGGER.fine(() -> "Player defeated " + enemy.getName());
         enemy.setIsDead(true);
         ui.showVictory(enemy);
 
         this.outcome.setVictory(true);
         this.isCompleted = true;
+        assert enemy.getIsDead() && outcome.getIsVictory() && isCompleted
+                : "Victory must finalize the enemy and encounter state";
     }
 
     /** Marks the player as defeated and completes the encounter as a loss. */
     private void executeDefeat() {
         assert player.getHealth() == 0 : "Defeat requires the player to have no health";
         assert pendingSkill == null : "Defeat must follow a resolved attack";
+        assert !isCompleted : "Defeat must only complete an active encounter";
         LOGGER.fine(() -> "Player was defeated by " + enemy.getName());
         player.setIsDead(true);
         ui.showDefeat();
 
         this.outcome.setVictory(false);
         this.isCompleted = true;
+        assert player.getIsDead() && !outcome.getIsVictory() && isCompleted
+                : "Defeat must finalize the player and encounter state";
     }
 
     /**

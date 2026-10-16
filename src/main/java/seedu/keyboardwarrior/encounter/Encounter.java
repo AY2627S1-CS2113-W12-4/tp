@@ -47,6 +47,7 @@ public abstract class Encounter {
             throw new IllegalStateException("Cannot get outcome before encounter is complete!");
         }
 
+        assert outcome != null : "A completed encounter must have an outcome";
         return outcome;
     }
 }
