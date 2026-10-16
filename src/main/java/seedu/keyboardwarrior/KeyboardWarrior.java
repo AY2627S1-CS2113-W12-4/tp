@@ -49,7 +49,8 @@ public class KeyboardWarrior {
                 LOGGER.fine(() -> "Unsupported interactive console: " + terminal.getType());
                 System.err.println("This console cannot display the live timer or capture typing before Enter.");
                 String launcher = System.getProperty("os.name").startsWith("Windows")
-                        ? ".\\run-game.bat" : "sh ./run-game.sh";
+                        ? ".\\run-game.bat"
+                        : "sh ./run-game.sh";
                 System.err.println("Open IntelliJ's Terminal or a system terminal and run: " + launcher);
                 return;
             }
@@ -87,7 +88,8 @@ public class KeyboardWarrior {
                 LOGGER.fine("Terminal input ended; requesting game exit");
                 inputQueue.offer("exit");
             } catch (RuntimeException exception) {
-                // A failed reader must stop the game instead of leaving the timer loop running forever.
+                // A failed reader must stop the game instead of leaving the timer loop running
+                // forever.
                 LOGGER.log(Level.SEVERE, "Terminal input reader failed", exception);
                 inputQueue.offer("exit");
             }

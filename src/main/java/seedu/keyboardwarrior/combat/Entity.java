@@ -74,6 +74,7 @@ public abstract class Entity {
      * @return entity name
      */
     public String getName() {
+        assert name != null && !name.isBlank() : "Entity name must remain valid";
         return name;
     }
 
@@ -93,6 +94,7 @@ public abstract class Entity {
      * @return {@code true} if the entity is dead
      */
     public boolean getIsDead() {
+        assert isDead != null : "Entity defeated state must remain defined";
         return isDead;
     }
 
@@ -102,6 +104,7 @@ public abstract class Entity {
      * @return active skills
      */
     public ArrayList<Skill> getActiveSkills() {
+        assert activeSkills != null : "Entity skill collection must remain available";
         return activeSkills;
     }
 }

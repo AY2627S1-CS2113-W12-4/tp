@@ -14,6 +14,7 @@ public class SkillRegistry {
         SKILL_DATABASE.put("brute_force", new Skill("Brute Force", 20, Difficulty.MEDIUM));
         SKILL_DATABASE.put("buffer_overflow", new Skill("Buffer Overflow", 40, Difficulty.HARD));
         SKILL_DATABASE.put("sigkill", new Skill("SIGKILL", 80, Difficulty.ULTIMATE));
+        assert SKILL_DATABASE.size() == 4 : "Every standard skill must have a unique identifier";
     }
 
     /**
@@ -28,6 +29,8 @@ public class SkillRegistry {
             throw new IllegalArgumentException("Skill not found: " + id);
         }
 
-        return SKILL_DATABASE.get(id);
+        Skill skill = SKILL_DATABASE.get(id);
+        assert skill != null : "Registered skill identifiers must map to a skill";
+        return skill;
     }
 }
