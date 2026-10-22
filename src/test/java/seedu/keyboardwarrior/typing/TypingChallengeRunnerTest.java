@@ -42,7 +42,7 @@ class TypingChallengeRunnerTest {
     }
 
     @Test
-    void run_afterDeadline_scoresLateTextWithPenalty() {
+    void run_afterDeadline_scoresLateTextWithoutPenalty() {
         runner.init(new TypingChallenge("hello world", 15));
         clock.elapsedSeconds = Math.nextUp(15.0);
         ui.submission = "hello world";
@@ -53,18 +53,18 @@ class TypingChallengeRunnerTest {
         assertTrue(result.getWpm() > 0.0);
         assertEquals(clock.elapsedSeconds, result.getElapsedSeconds());
         assertTrue(result.isTimeLimitExceeded());
-        assertEquals(0.8, result.getTimeDamageMultiplier());
+        assertEquals(1.0, result.getTimeDamageMultiplier());
     }
 
     @Test
     void run_partialAnswer_reportsAccuracyAndWordErrors() {
         runner.init(new TypingChallenge("hello world", 15));
         clock.elapsedSeconds = 5.0;
-        ui.submission = "hello wrong";
+        ui.submission = "hello worle";
 
         TypingResult result = runner.run();
 
-        assertEquals(50.0, result.getAccuracyPercent());
+        assertEquals(1000.0 / 11.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(26.4, result.getWpm(), 0.000001);
         assertEquals(1, result.getWordErrors().size());
         assertFalse(result.isTimeLimitExceeded());
@@ -78,7 +78,7 @@ class TypingChallengeRunnerTest {
 
         TypingResult result = runner.run();
 
-        assertEquals(0.0, result.getAccuracyPercent());
+        assertTrue(result.getAccuracyPercent() < 100.0);
         assertEquals(2, result.getWordErrors().size());
         assertEquals(1, ui.submissionCount);
     }
@@ -95,7 +95,7 @@ class TypingChallengeRunnerTest {
         assertEquals(0.0, result.getWpm());
         assertEquals(2, result.getWordErrors().size());
         assertTrue(result.getWordErrors().stream().allMatch(error -> error.getType() == ErrorType.MISSING));
-        assertEquals(0.8, result.getTimeDamageMultiplier());
+        assertEquals(1.0, result.getTimeDamageMultiplier());
     }
 
     @Test

@@ -1,77 +1,88 @@
 # Keyboard Warrior
 
-Keyboard Warrior is a terminal typing combat game. Type `start` at the main menu, choose a skill,
-and type its prompt to attack while a live countdown shows the time remaining. Defeat the enemies
-in five scenarios to win. Your typing speed and accuracy determine your damage; exceeding the
-time limit reduces that damage by 20%.
+Keyboard Warrior is a terminal typing combat game. Type `start`, choose a skill and type its
+passage while a live countdown shows the time remaining. Character accuracy and typing speed
+determine your damage. Survive five regular scenarios, then defeat both phases of the Kernel
+Overlord to win. Your 100 starting HP carries through the whole run without healing.
 
-## Setting up in Intellij
+## Setting up in IntelliJ
 
-Prerequisites: JDK 25 (use the exact version), update Intellij to the most recent version.
+Prerequisites: JDK 25 (use the exact major version) and an IntelliJ version that supports it.
 
-1. **Ensure Intellij JDK 25 is defined as an SDK**, as described [here](https://www.jetbrains.com/help/idea/sdk.html#set-up-jdk) -- this step is not needed if you have used JDK 25 in a previous Intellij project.
-1. **Import the project _as a Gradle project_**, as described [here](https://se-education.org/guides/tutorials/intellijImportGradleProject.html).
-1. **Enable assertions for a direct IntelliJ run**: Open `Run > Edit Configurations`, select the `KeyboardWarrior` Application configuration, choose `Modify options > Add VM options`, and enter `-ea` in **VM options**. This is a JVM option, so do not put it in Program arguments. See the [IntelliJ Application configuration guide](https://www.jetbrains.com/help/idea/run-debug-configuration-java-application.html). If IntelliJ runs through Gradle, assertions are already enabled by `build.gradle`.
-1. **Verify the setup**: Run the Gradle `check` task for tests and Checkstyle. For gameplay, open IntelliJ's Terminal and use the launcher below. You should see the main menu. Type `start` and press Enter to begin the first scenario, or `exit` to close the game.
+1. Define JDK 25 as the project SDK, following the [IntelliJ SDK guide](https://www.jetbrains.com/help/idea/sdk.html#set-up-jdk).
+2. Import the project [as a Gradle project](https://se-education.org/guides/tutorials/intellijImportGradleProject.html).
+3. Set the Gradle JVM to JDK 25. Run the Gradle `check` task to execute the tests and Checkstyle.
+4. For gameplay, open IntelliJ's Terminal and use the launcher below. Enter `start` at the main menu,
+   or `exit` to close the game.
 
-**Warning:** Keep the `src\main\java` folder as the root folder for Java files (i.e., don't rename those folders or move Java files to another folder outside of this folder path), as this is the default location some tools (e.g., Gradle) expect to find Java files.
+The launchers enable assertions. For a direct IntelliJ Application configuration, add `-ea` to
+**VM options** under `Run > Edit Configurations > Modify options > Add VM options`.
+Gradle's `run` and `test` tasks also enable assertions.
 
-## Running v1.0
+Keep Java sources under `src/main/java`; Gradle expects that source layout.
+
+## Running the game
 
 Use Java 25 and run `sh ./run-game.sh` on macOS/Linux or `.\run-game.bat` in Windows PowerShell
-from the project folder. These launchers use Gradle to compile the game, then launch Java directly
-in the current terminal with assertions enabled. They do not build a JAR.
+from the project folder. These launchers use Gradle to compile, then run Java directly in the
+current terminal with assertions enabled. They do not build a JAR.
 
 Use IntelliJ's Terminal or a native terminal for gameplay. Gradle `run` and IntelliJ's Run console
 can redirect input, preventing the live countdown and capture of text before Enter. The game checks
 terminal capabilities at startup and shows the launcher command when the console is unsupported.
-If IntelliJ's Terminal is still unsupported, run the same launcher in Windows Terminal.
+On Windows, try Windows Terminal if IntelliJ's Terminal remains unsupported.
 
-Choose a skill by its displayed name (`Ping`, `Brute Force`, `Buffer Overflow` or `SIGKILL`),
-then submit the displayed prompt as one line with Enter. The live timer shows seconds remaining
-above the typing instructions and passage while you type. If time expires before you press Enter,
-the game evaluates the text currently in your input line for WPM and accuracy. A missed deadline
-reduces the attack's damage by 20% and lets the enemy take its turn. Feedback shows the metrics
-without listing individual wrong words. Passages and enemies are selected randomly from varied pools.
-Combat repeats until the enemy or player is defeated. Enemy defeats advance automatically to
-the next scenario; clearing the fifth wins the run. Your health carries between scenarios.
-After victory or defeat, `start` begins a fresh run from the menu. Type `exit` at any phase to quit.
+Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow` or `SIGKILL`), then type its
+passage as one line. Skills select different passage difficulties; the same typing performance gives
+the same player damage for every skill. At 50 WPM and 95% character accuracy, an attack deals 40 damage.
 
-See the [User Guide](docs/UserGuide.md) for the skill time limits and typing feedback.
+The timer appears above the passage. Press Enter to submit, or let the deadline submit the text
+currently in the input line. Feedback shows WPM, character accuracy, elapsed time and required time;
+it does not list individual wrong words. Expiry is announced with "Time's up". Passing the deadline
+adds no separate damage penalty.
+An enemy that survives the attack retaliates. Defeating an enemy advances automatically, with no
+retaliation or healing during the transition. Clearing scenario 5 starts the final boss; victory
+requires defeating its second phase. `start` after victory or defeat begins a fresh run.
+Type `exit` at any phase to quit.
 
-## Build automation using Gradle
+See the [User Guide](docs/UserGuide.md) for the scoring formula, time limits and progression.
 
-* This project uses Gradle for build automation and dependency management. It includes a basic build script as well (i.e. the `build.gradle` file).
-* The Gradle `run` and `test` tasks enable assertions. Internal assertions check game invariants; argument validation still throws exceptions when assertions are disabled.
-* `prepareTerminalRun` compiles the classes and prepares the runtime classpath and Java location used by the gameplay launchers.
-* If you are new to Gradle, refer to the [Gradle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/gradle.html).
+## Build automation
 
-## Testing
+The project uses Gradle 9.6.1 and Java 25. Useful tasks are:
 
-### JUnit tests
+| Task | Purpose |
+| --- | --- |
+| `check` | Run JUnit tests and Checkstyle |
+| `prepareTerminalRun` | Compile and prepare the classpath used by the terminal launchers |
+| `shadowJar` | Package the application and its dependencies in `build/libs/KeyboardWarrior.jar` |
 
-* Run `./gradlew check` or `.\gradlew.bat check` with Java 25 for JUnit tests and Checkstyle.
-* Tests are under `src/test/java/seedu/keyboardwarrior`, covering typing feedback, clocks,
-  combat, gameplay progression and terminal output.
-* If you are new to JUnit, refer to the [JUnit Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/junit.html).
+For example, use `.\gradlew.bat check` in Windows PowerShell or `./gradlew check` on macOS/Linux.
+To package a demo, run the same wrapper with `shadowJar`. Run the resulting JAR in a supported
+terminal with Java 25:
 
-## Checkstyle
+```text
+java -ea --enable-native-access=ALL-UNNAMED -jar build/libs/KeyboardWarrior.jar
+```
 
-* A sample CheckStyle rule configuration is provided in this project.
-* If you are new to Checkstyle, refer to the [Checkstyle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/checkstyle.html).
+The Gradle `run` and `test` tasks enable assertions. Internal assertions check game invariants;
+argument validation still throws exceptions when assertions are disabled.
 
-## CI using GitHub Actions
+## Testing and CI
 
-The project uses [GitHub actions](https://github.com/features/actions) for CI. When you push a commit to this repo or PR against it, GitHub actions will run automatically to build and verify the code as updated by the commit/PR.
+Tests live under `src/test/java/seedu/keyboardwarrior` and cover typing feedback, clocks, damage,
+combat, scenario and boss progression, and terminal output. Run `check` with Java 25.
+[GitHub Actions](.github/workflows/gradle.yml) runs the same checks on Windows, macOS and Linux
+for pushes and pull requests. Checkstyle rules are in `config/checkstyle`.
+
+The [Developer Guide](docs/DeveloperGuide.md) explains the design, automated checks and manual
+acceptance tests. Introductory guides are available for
+[Gradle](https://se-education.org/guides/tutorials/gradle.html),
+[JUnit](https://se-education.org/guides/tutorials/junit.html) and
+[Checkstyle](https://se-education.org/guides/tutorials/checkstyle.html).
 
 ## Documentation
 
-`/docs` folder contains a skeleton version of the project documentation.
-
-Steps for publishing documentation to the public: 
-1. If you are using this project template for an individual project, go your fork on GitHub.<br>
-   If you are using this project template for a team project, go to the team fork on GitHub.
-1. Click on the `settings` tab.
-1. Scroll down to the `GitHub Pages` section.
-1. Set the `source` as `master branch /docs folder`.
-1. Optionally, use the `choose a theme` button to choose a theme for your documentation.
+The `docs` folder contains the [User Guide](docs/UserGuide.md),
+[Developer Guide](docs/DeveloperGuide.md) and team pages. To publish it through GitHub Pages,
+select the repository's `master` branch and `/docs` folder under `Settings > Pages`.

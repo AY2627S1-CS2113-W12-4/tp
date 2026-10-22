@@ -2,279 +2,388 @@
 
 ## Acknowledgements
 
-The project uses the [CS2113 tP starter template](https://github.com/NUS-CS2113-AY2627-S1/tp).
-Typing feedback uses the Java standard library; its automated tests use the template's JUnit Jupiter dependency.
+The project uses the [CS2113 tP starter template](https://github.com/NUS-CS2113-AY2627-S1/tp),
+JLine for interactive terminal input and JUnit Jupiter for tests. Typing evaluation uses the Java
+standard library. The enhancement sections below follow the
+[Week 10 design documentation guidance](https://nus-cs2113-ay2627-s1.github.io/website/schedule/week10/project.html):
+explain implementation, rationale and alternatives, with UML placed beside the relevant explanation.
 
-## Design and Implementation
+## Design and implementation
 
-### v1.0 gameplay loop
+### Runtime and terminal input
 
-`KeyboardWarrior.java` checks terminal support before starting the main menu and JLine input loop.
-`CountdownReader.supportsLiveDisplay()` checks the capabilities needed to redraw the prompt.
-Basic or redirected consoles are rejected with a friendly message and gameplay launcher commands,
-so countdown updates cannot append digits to input or evaluate an unavailable input buffer at expiry.
-A background reader queues complete lines, while the main thread handles input and updates the state machine
-every 100 milliseconds. This lets the countdown refresh while the player edits a submission.
+`KeyboardWarrior.java` initializes the terminal, checks its capabilities, then starts the main menu
+and JLine input loop. `CountdownReader.supportsLiveDisplay()` rejects consoles that cannot redraw
+input safely. The application displays terminal launcher instructions for unsupported consoles.
+A background reader queues complete lines; the main thread processes input and updates the state
+machine every 100 milliseconds. This keeps a live countdown above the typing instructions and passage
+while the user edits the input line.
 
-`MainMenuState` accepts `start` to enter `GamePlayState`, which creates a player with 100 HP.
-Gameplay starts five combat scenarios in sequence, choosing a random enemy from `EnemyFactory`
-for each scenario. The same player continues across scenarios, so health carries over.
-Enemy defeat advances immediately; player defeat or clearing
-all five scenarios returns to the menu. A new `start` creates a fresh run. `exit` stops the game
-from the menu, skill selection or typing challenge.
+`MainMenuState` accepts `start` and enters `GamePlayState`. The gameplay state owns the run's player,
+current encounter, clock and challenge factory. The same player and prompt selection history survive
+scenario and boss phase transitions. `exit` stops the application from the menu, skill selection or
+an active typing challenge.
 
-On each player turn, `GamePlayState` accepts a skill's display name and calls
-`CombatEncounter.preparePlayerTurn()` to generate its prompt and time limit. It displays the
-prompt, starts `ChallengeClock`, and refreshes the remaining seconds through `StateUi` and
-`CountdownReader`. The timer, time limit, typing instructions, passage and input line appear
-together in the JLine prompt, in that order, so the live timer stays above the passage.
-Submitting one line evaluates that attempt, including imperfect answers. On expiry, gameplay
-captures the current editable input and clears it before asking for the next skill. That captured
-text is evaluated as an overdue attempt: WPM and accuracy reflect what the player typed,
-and the resulting damage is reduced by 20%.
+`run-game.bat` and `run-game.sh` first invoke Gradle's `prepareTerminalRun` task. That task depends on
+`classes`, writes the runtime classpath and the build JVM's Java home, and does not create a JAR.
+The launcher starts Java in the foreground with `-ea` and native access enabled. Direct terminal
+input avoids Gradle `run` and IDE Run console stream redirection, which can prevent JLine from seeing
+unsubmitted keystrokes. On Windows, the entry point selects the native Windows terminal type even
+when the launcher supplies `TERM=dumb`.
 
-`CombatEncounter.begin()`, `preparePlayerTurn()` and `submitTypingResult()` let the state machine
-drive combat without blocking input or timer updates. The encounter resolves the player's attack,
-checks for victory, then resolves the enemy's attack if it survives and checks for defeat.
-The synchronous `CombatEncounter.start()` path remains available to `SampleCombatRun`.
+### Enhancement 8.1: Character feedback and accuracy-based damage
 
-`SkillResolver` calculates player damage as
-`(int) (baseDamage * (0.02 * wpm * (accuracyPercent / 100.0)) * result.getTimeDamageMultiplier())`.
-Accuracy is converted to a fraction, so 50 WPM at 100% accuracy gives a typing multiplier of `1.0`.
-The time multiplier is `0.8` when elapsed time exceeds required time and `1.0` otherwise. Damage is
-rounded down once, after the penalty is applied. Enemy turns apply base damage directly.
-`TypingChallengeFactory` gives Ping 15 seconds, Brute Force and Buffer Overflow 30 seconds,
-and SIGKILL 45 seconds. It randomly selects a passage from the skill's difficulty pool.
-`EnemyFactory` retains named enemy creation and supplies random enemy selection for gameplay.
-The run shares one prompt factory, avoiding consecutive repeated passages at the same difficulty.
-Enemies and previously used passages can appear again later. `CombatUi` displays combat messages through the terminal-aware
-`StateUi`, preserving the player's current input while messages and countdown updates appear.
-On a Windows console, the entry point selects the native Windows terminal type even if a launcher
-sets `TERM=dumb`. Native input delivers keystrokes before Enter, allowing timeout capture.
+#### Responsibilities and data flow
 
-`run-game.bat` (Windows PowerShell or Command Prompt) and `run-game.sh` (macOS/Linux) first run Gradle's
-`prepareTerminalRun` task. The task depends on `classes`, writes `sourceSets.main.runtimeClasspath`
-and the build JVM's Java home to files, and does not build a JAR. The launcher reads these files,
-then starts Java in the foreground with `-ea`, retaining the current terminal's input and output.
-This avoids the redirected streams used by Gradle `run` or an IDE Run console. IntelliJ's Terminal
-can use the launcher; if it lacks the required cursor capabilities, use a supported native terminal.
+The typing package evaluates a completed input snapshot. It does not read the terminal, measure time,
+apply damage or select an enemy. `GamePlayState` supplies expected text, current input, elapsed seconds
+and required seconds to `TypingEvaluator.evaluateTyping(...)`. The returned `TypingResult` is immutable.
+The state prints a summary and sends the same result to `CombatEncounter.submitTypingResult(...)`.
+The encounter delegates damage to `SkillResolver`, preserving the boundary between measurement and combat.
 
-### Typing feedback: tasks 3.1 and 3.2
-
-Typing features are separate classes in the `seedu.keyboardwarrior.typing` package,
-under `src/main/java/seedu/keyboardwarrior/typing`.
-
-| File | Responsibility |
+| Class | Responsibility |
 | --- | --- |
-| `WpmCalculator.java` | Calculates gross WPM from character count and elapsed seconds |
-| `AccuracyCalculator.java` | Calculates accuracy from matching positions and total positions |
-| `WordErrorFinder.java` | Finds wrong, missing and extra words |
-| `TypingEvaluator.java` | Validates the four inputs and combines the typing metrics with a time limit |
-| `TypingResultFormatter.java` | Formats gameplay summaries and optional detailed reports with word errors |
-| `TypingResult.java` | Stores immutable metrics, the time limit and word errors; exposes time-limit status and a damage multiplier |
-| `WordError.java` | Stores one positional word error |
-| `ErrorType.java` | Defines the wrong, missing and extra error categories |
+| `TypingEvaluator` | Validate and normalize the four inputs; coordinate metrics and retained word diagnostics |
+| `AccuracyCalculator` | Compute character accuracy using Levenshtein edit distance |
+| `WpmCalculator` | Compute gross WPM from normalized submitted character count and elapsed seconds |
+| `WordErrorFinder` | Retain positional wrong, missing and extra word diagnostics for later features |
+| `TypingResult` | Store full-precision metrics, supplied times and a defensive copy of word errors |
+| `TypingResultFormatter` | Produce the short gameplay summary or optional detailed word report |
+| `SkillResolver` | Convert WPM and character accuracy into player damage and apply health changes |
+| `TypingChallengeFactory` | Select a difficulty-appropriate prompt and derive a suitable deadline |
 
-The calculators and finder are package-private implementation helpers. Other game components use
-the public evaluator and formatter; result types are public top-level classes rather than nested in the entry class.
+The sequence below focuses on evaluation. The calls to `TypingEvaluator` and `AccuracyCalculator`
+are static operations; formatting and combat happen after the result returns.
 
-The gameplay integration methods are:
+![Sequence diagram for evaluating one typing attempt](diagrams/typing-evaluation.svg)
 
-```java
-import seedu.keyboardwarrior.typing.TypingEvaluator;
-import seedu.keyboardwarrior.typing.TypingResult;
-import seedu.keyboardwarrior.typing.TypingResultFormatter;
+[Editable PlantUML source](diagrams/typing-evaluation.puml).
 
-TypingResult result = TypingEvaluator.evaluateTyping(expectedText, typedText, elapsedSeconds, requiredSeconds);
-String report = TypingResultFormatter.formatTypingSummary(result);
+#### Normalization and character accuracy
+
+Both strings are normalized with `trim()` and `replaceAll("\\s+", " ")`. This removes leading and
+trailing whitespace and collapses repeated internal whitespace. Capitalization and punctuation are
+preserved. Let `expected` and `typed` denote those normalized strings.
+
+```text
+accuracyPercent = 100 * (1 - editDistance(expected, typed) / max(expectedLength, typedLength))
 ```
 
-The scenario component supplies `expectedText` and `requiredSeconds`, and the input/timer component
-supplies `typedText` and `elapsedSeconds`. Both time values are in seconds. The CLI can print `report`.
-The gameplay summary omits individual wrong words, but `result.getWordErrors()` and
-`TypingResultFormatter.formatTypingResult(result)` remain available for future detailed feedback.
-Combat code uses `result.getTimeDamageMultiplier()` in its damage calculation. This returns `0.8`
-for late attempts and `1.0` otherwise; `result.isTimeLimitExceeded()` reports whether the attempt is late.
-For example, an attack worth 40 damage before the penalty deals 32 damage when late.
-Evaluating and formatting do not read input, measure time, print output,
-change gameplay state or save files. `GamePlayState` supplies the prompt, submitted or captured input and
-elapsed duration, and forwards the result to the encounter for damage resolution.
+Edit distance is the minimum number of insertions, deletions and substitutions that transforms one
+string into the other. `AccuracyCalculator` compares Unicode code points, so a supplementary character
+counts as one character for accuracy. A deleted character is one edit rather than a shift that makes
+every later character incorrect. Empty typed text is valid and produces zero accuracy; expected text
+must remain nonempty after normalization, guaranteeing a positive denominator.
 
-#### Input and output contract
+The implementation uses the usual dynamic programming recurrence. Each cell takes the minimum of
+insertion, deletion and substitution cost. Only the previous and current row are retained, and the
+shorter string occupies the columns. Runtime is `O(m * n)` and working memory is `O(min(m, n))` for
+code point counts `m` and `n`. English challenge passages keep these inputs small. Evaluation compares
+final text snapshots, so it cannot count mistakes that the player corrected before submission.
 
-| Input | Requirement |
-| --- | --- |
-| `expectedText` | Non-null and must contain a word after normalization |
-| `typedText` | Non-null; empty or whitespace-only submissions are allowed |
-| `elapsedSeconds` | A positive, finite `double` in seconds, supplied by the timer |
-| `requiredSeconds` | A positive, finite `double` defining the challenge's time limit in seconds |
+Word diagnostics remain separate from accuracy. `WordErrorFinder` still compares words at corresponding
+positions and produces `WRONG`, `MISSING` and `EXTRA` entries. These entries are preserved for future
+feedback; their count does not determine character accuracy. Gameplay uses `formatTypingSummary`,
+which prints WPM, accuracy and the two times without the word list. `formatTypingResult` remains
+available for detailed component inspection.
 
-The gameplay timer starts when the typing prompt is shown and stops on submission or expiry.
-Skill selection, previous feedback and scenario transitions are outside that duration.
-The evaluator consumes the supplied value without performing timing itself.
+#### Speed, damage and time allowance
 
-| Result getter | Meaning |
-| --- | --- |
-| `getWpm()` | Gross WPM as a full-precision `double` |
-| `getAccuracyPercent()` | Word accuracy between 0 and 100 |
-| `getElapsedSeconds()` | The supplied typing duration |
-| `getRequiredSeconds()` | The supplied challenge time limit |
-| `isTimeLimitExceeded()` | `true` when elapsed time is strictly greater than required time |
-| `getTimeDamageMultiplier()` | `0.8` when the limit is exceeded, otherwise `1.0` |
-| `getWordErrors()` | An unmodifiable list of errors in ascending position order |
+Gross WPM remains `(normalizedTyped.length() / 5.0) / (elapsedSeconds / 60.0)`. The existing WPM contract
+uses Java `String.length()` (UTF-16 code units), whereas character accuracy uses code points. This
+produces the same length for the intended ASCII English passages. Incorrect submitted characters and
+normalized spaces count toward gross speed; Enter and discarded surrounding whitespace do not.
 
-Each error exposes `getPosition()`, `getExpectedWord()`, `getTypedWord()` and `getType()`.
-Positions start at 1. Types are `WRONG`, `MISSING` and `EXTRA`; an absent word is represented by `""`.
-Result fields and error fields are immutable, and the result retains a defensive copy of the error list.
+Player damage is now independent of the chosen skill's base damage:
 
-#### Evaluation rules
+```text
+accuracyFraction = accuracyPercent / 100
+playerDamage = floor(wpm * accuracyFraction^4)
+```
 
-1. Normalize both texts with `trim()` and `replaceAll("\\s+", " ")`. Spaces, tabs and line breaks are
-   collapsed; capitalization and punctuation are preserved.
-2. Calculate gross WPM as `(normalizedTyped.length() / 5.0) / (elapsedSeconds / 60.0)`.
-   Normalized internal spaces and incorrect characters are included. The current character count
-   uses Java `String.length()` (UTF-16 code units), appropriate for the intended English challenges.
-3. Split normalized text into words. An empty submission has zero words.
-4. Compare words at the same index, counting exact matches and recording wrong, missing or extra words.
-5. Calculate accuracy as `matchingPositions * 100.0 / max(expectedWordCount, typedWordCount)`.
-   The nonempty challenge guarantees that the denominator is positive.
-6. Use a time damage multiplier of `0.8` when `elapsedSeconds > requiredSeconds`, and `1.0` otherwise.
-   Finishing exactly at the time limit has no penalty. Late submissions preserve WPM, accuracy and
-   word feedback, and combat reduces their calculated damage by 20%. Empty input still deals zero
-   damage because both WPM and accuracy are zero.
+`SkillResolver` calculates with full precision and rounds down once. At 50 WPM and 95% accuracy this
+is `floor(50 * 0.95^4) = 40`; at 50 WPM and 80% accuracy it is 20. The fourth power rewards accurate
+input and limits the benefit of entering fast, unrelated text. A skill still chooses passage
+difficulty. Its base damage continues to apply when the resolver receives no typing result for an
+automated enemy attack. This preserves existing enemy skill rotations.
 
-This deliberately uses positional matching. Missing or inserted middle words can cause later errors;
-the component does not attempt to realign the text. Only final submitted or captured text is evaluated, so
-previously corrected keystrokes are not available to this component.
+The countdown limits how long an attempt can remain open. `TypingChallengeFactory` computes:
 
-Null text inputs cause `NullPointerException`. Blank challenges and zero, negative, NaN or infinite
-elapsed or required times cause `IllegalArgumentException`. These indicate invalid integration data; empty player
-input is a valid result instead of an exception.
+```text
+minimumSeconds = 15 / 30 / 30 / 45 for Easy / Medium / Hard / Ultimate
+baselineSeconds = normalizedPrompt.length() * 60 / (5 * 50)
+requiredSeconds = max(minimumSeconds, ceil(baselineSeconds * 1.2))
+```
 
-`TypingResultFormatter.formatTypingSummary` uses `Locale.ROOT` for consistent decimal points and the system
-line separator for console output. It displays WPM, accuracy and both times to two decimal places, followed by
-`Damage penalty: 0%` or `Damage penalty: 20% (time limit exceeded)`. Gameplay prints this summary without word errors.
-The retained `formatTypingResult` method appends the word errors, or `None` when the input is correct.
-Formatting leaves the stored numeric values and error list unchanged;
-the time limit is checked using full precision rather than rounded display values.
+This gives a 50 WPM player a 20% time buffer while retaining the previous minimum allowances.
+The buffer increases available typing time; it is not a damage multiplier. Required time therefore
+varies by passage. `ChallengeClock` starts after prompt display. Skill selection and previous turn
+feedback are outside the measured duration.
+
+Both Enter and automatic expiry use the same evaluator. At expiry, `GamePlayState.update()` obtains
+`StateUi.takeCurrentInput()` before clearing the editable line and resolving the attempt. The actual
+elapsed duration is supplied, so captured partial text retains its measured WPM and accuracy.
+`isTimeLimitExceeded()` reports the strict comparison `elapsedSeconds > requiredSeconds`. It is
+metadata: overdue attempts receive no additional damage reduction. The retained compatibility getter
+`getTimeDamageMultiplier()` returns `1.0`; player damage does not depend on it.
+
+#### Validation and defensive checks
+
+Null text or dependency references cause `NullPointerException`. Blank normalized expected text,
+nonpositive or nonfinite times and out-of-range result metrics cause `IllegalArgumentException`.
+Empty player text is a valid zero-score attempt. Result fields are immutable; word error lists are
+copied and exposed as unmodifiable lists. `WordError` positions begin at 1 and use an empty string
+for an absent word.
+
+Assertions check computed accuracy bounds, finite nonnegative WPM, edit distance bounds and health
+updates. Public argument checks remain active without `-ea`. The state clears its active challenge
+before completing a turn, and the encounter requires exactly one pending skill before accepting a
+result. A duplicate result or invalid turn sequence causes `IllegalStateException`, preventing
+accidental double attacks. Existing `FINE` logging records combat events without cluttering gameplay.
+
+#### Design choices and alternatives
+
+| Choice | Rationale | Alternative considered |
+| --- | --- | --- |
+| Character edit distance | Local insertions and deletions produce local accuracy costs | Positional word matching can mark the rest of a passage wrong after one omitted word |
+| Two-row dynamic programming | Retains the exact score with bounded working memory | A full matrix stores every cell and is only useful if a later feature needs an edit trace |
+| Fourth-power accuracy factor | Makes careful typing matter while keeping one formula across skills | Linear accuracy penalizes fast inaccurate text less; skill base multipliers make equal typing performance deal different damage |
+| Length-based deadline with a minimum | Makes longer passages achievable at the balance target | One fixed deadline per skill can demand very different WPM from randomly selected passages |
+| Deadline as metadata | Capture still ends the turn, without a second score reduction | An extra late multiplier obscures the direct relationship between text, speed and damage |
+
+### Enhancement 8.2: Scenario progression and two-phase final boss
+
+#### Run structure and ownership
+
+A run starts with one `Player` at 100 HP, passes through five regular scenarios and ends with two
+phases of the Kernel Overlord. Defeating scenario 5 starts the boss rather than winning the run.
+Only victory against boss phase 2 triggers the run victory message and return to the main menu.
+Player defeat at any point ends the run immediately. A new `start` creates a new player and resets
+scenario, phase and challenge state.
+
+`GamePlayState` coordinates progression; `CombatEncounter` continues to resolve only one enemy at a
+time. This keeps the existing combat boundary intact. `scenarioIndex` tracks regular scenario
+progress, while `bossPhase` is `0` during regular scenarios and `1` or `2` during the boss. The private
+helpers `startScenario()`, `startBossPhase()` and `advanceAfterVictory()` separate encounter creation
+from transition decisions. `StateUi.showBossPhase(phase, total)` announces the phase without putting
+combat rules into the UI.
+
+The focused class diagram shows the run's references and factory dependencies. Multiplicities apply
+to active gameplay; old encounters are replaced during progression. The diagram omits unrelated UI,
+skill and clock classes.
+
+![Class diagram for scenario and boss progression](diagrams/run-progression.svg)
+
+[Editable PlantUML source](diagrams/run-progression.puml).
+
+`EnemyFactory.createRandomEnemy(random, scenarioNumber)` accepts a one-based number from 1 to 5.
+It chooses an existing enemy type and skill rotation, then sets health from the scenario table.
+Random names therefore retain variety without changing how many successful attacks the balance
+target needs. The overloads that create named or unrestricted random enemies remain usable by
+sample code and component tests.
+
+`EnemyFactory.createBossPhase(phase)` accepts only phase 1 or 2 and returns a fresh enemy named for
+that phase. Phase 1 has 50 HP and a fixed 10-damage attack; phase 2 has 70 HP and a fixed 20-damage
+attack. Each phase uses a new `CombatEncounter` with the existing player and shared prompt factory.
+The first phase's dead enemy object is not revived or repurposed.
+
+#### Transition ordering and phase boundaries
+
+`CombatEncounter.submitTypingResult(...)` resolves the player's attack first. If enemy HP reaches
+zero, it completes victory and returns before executing an enemy turn. Otherwise the enemy attacks;
+player defeat is checked before the next turn is offered. `GamePlayState` inspects the completed
+encounter and advances only on victory. It does not infer success merely because a challenge ended.
+
+The following sequence covers the boundary after a lethal attack against boss phase 1. The next
+encounter is created only after the first one has completed. Activation boxes show execution;
+dashed arrows show returns. The omitted health check is explained in the note.
+
+![Sequence diagram for moving from boss phase 1 to phase 2](diagrams/boss-phase-transition.svg)
+
+[Editable PlantUML source](diagrams/boss-phase-transition.puml).
+
+The same player reference carries remaining HP into the next encounter. Neither a regular scenario
+transition nor a boss phase transition heals the player or triggers an extra enemy attack. Damage
+is clamped at zero HP on the current target; any excess is discarded. For example, dealing 60 damage
+to a phase with 10 HP remaining defeats that phase, then phase 2 begins with its full 70 HP.
+A very strong attack cannot skip phase 2 or immediately win.
+
+A timeout uses this same sequence. Nonempty captured input can deal damage, including a lethal
+attack. An empty or inaccurate input can deal zero damage and still consume a turn. If the enemy
+survives and its response brings player HP to zero, the state returns to the menu without starting
+a later scenario or phase.
+
+#### Balance target and verification
+
+The balance target is 50 WPM and at least 95% character accuracy, yielding at least 40 damage per
+attempt. The table counts attacks and possible retaliation at exactly 40 damage. Regular enemies
+retain their usual skill rotation; the highest first attack among those rotations is 20 damage.
+Enemies requiring one attack do not retaliate, and those requiring two only use their first attack.
+
+| Encounter | HP | Player attacks | Maximum retaliation damage |
+| --- | --- | --- | --- |
+| Scenario 1 | 30 | 1 | 0 |
+| Scenario 2 | 35 | 1 | 0 |
+| Scenario 3 | 50 | 2 | 20 |
+| Scenario 4 | 60 | 2 | 20 |
+| Scenario 5 | 70 | 2 | 20 |
+| Boss phase 1 | 50 | 2 | 10 |
+| Boss phase 2 | 70 | 2 | 20 |
+| **Total** | | **12** | **90** |
+
+Thus a target-performance player finishes even the strongest possible regular enemy selection with
+at least 10 of the original 100 HP. Random enemy selection cannot invalidate this bound. It is a
+balance guarantee for the stated performance, not for arbitrary typing: an additional low-damage
+turn can expose a later, stronger enemy skill and lead to defeat. The HP progression introduces
+extra turns gradually, and the boss tests the same typing mechanics with a clear phase transition.
+
+#### Validation, invariants and alternatives
+
+The factory rejects invalid scenario numbers and boss phases with `IllegalArgumentException` and
+null random sources with `NullPointerException`. Generated enemies must have positive HP and usable
+skill loadouts. Combat entities reject invalid health, and the resolver clamps damage at zero HP.
+The encounter guards start/prepare/submit sequencing with exceptions and checks living-participant
+assumptions through assertions. State and combat diagnostics remain hidden at normal logging levels.
+
+Progression must preserve these invariants: one live player per run; at most one active challenge;
+only a completed victorious encounter advances; regular indices stay in the five-scenario range;
+boss phase remains 0, 1 or 2; and no run victory occurs before phase 2 is defeated. Resetting all
+progression state on entry prevents a new run from inheriting the previous boss phase.
+
+| Choice | Rationale | Alternative considered |
+| --- | --- | --- |
+| Keep progression in `GamePlayState` | The state already owns the run and its transitions | A separate campaign manager adds another coordinator for a short fixed sequence |
+| Reuse `CombatEncounter` per phase | Existing turn ordering and death checks apply unchanged | A special boss encounter subclass duplicates combat logic and increases testing scope |
+| Create a fresh enemy for each phase | Fresh HP and loadout have explicit phase boundaries | Mutating a dead enemy risks retaining death flags, pending skills or rotation indices |
+| Discard overkill and prohibit transition attacks | Every phase has a predictable initial state | Carrying overflow or adding a transition attack makes timing and difficulty less transparent |
+| Set HP by scenario and preserve random identities | Progression is reproducible while encounters remain varied | Unrestricted random HP makes some runs substantially harder at equal typing performance |
 
 ### Defensive programming and diagnostics
 
-Combat entities, skills, typing challenges and results validate their arguments before storing data. Null references cause
-`NullPointerException`; invalid values such as blank names, negative damage or health, and invalid
-typing metrics or times cause `IllegalArgumentException`. Invalid combat or state-machine sequencing causes
-`IllegalStateException`. These checks are active even when assertions are disabled. Empty player
-input remains valid and is evaluated normally.
+Assertions expose internal programming errors during development; public validation uses exceptions
+and remains active when assertions are disabled. Gradle enables assertions for `run` and `test`,
+and the gameplay launchers pass `-ea`. Direct IntelliJ Application configurations should add `-ea`
+in **VM options**. See the [README setup steps](../README.md#setting-up-in-intellij).
 
-Assertions check internal assumptions about computed metrics, health and gameplay state. They
-help expose programming errors during development and do not replace argument validation.
-`build.gradle` enables assertions for both `run` and `test`, and the gameplay launchers pass `-ea`.
-When IntelliJ uses a direct Application run configuration, add `-ea` to **VM options** through
-`Run > Edit Configurations > KeyboardWarrior >
-Modify options > Add VM options`; Gradle-delegated runs use the build configuration. See the
-[Gradle JavaExec reference](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html)
-and [IntelliJ Application configuration guide](https://www.jetbrains.com/help/idea/run-debug-configuration-java-application.html).
+Diagnostics use `java.util.logging`. Combat events and state transitions use `FINE`, hidden at the
+default level. Terminal initialization and input failures use warning or severe levels. This gives
+maintainers failure context without filling the typing area with routine debug messages.
 
-Diagnostics use `java.util.logging`. State transitions and combat events are logged at `FINE`,
-which is hidden at the default logging level. Terminal initialization and input failures are logged
-at warning or severe level to help diagnose failures without adding routine debug messages to gameplay.
+## Product scope and requirements
 
-## Product Scope
+The target users are players who want English typing practice through short combat encounters.
+Keyboard Warrior makes speed and accuracy visible through damage and provides a complete run with
+regular progression and a final boss.
 
-### Target user profile
+| Enhancement | As a player, I want to ... | So that ... |
+| --- | --- | --- |
+| 8.1 | receive character accuracy and WPM feedback | one local typo has a proportional accuracy cost |
+| 8.1 | deal damage from speed and accuracy across all skills | I can understand how my typing affects combat |
+| 8.1 | retain my current input when time expires | unfinished typing still contributes to my attempt |
+| 8.2 | face progressively tougher regular scenarios | the run builds up difficulty predictably |
+| 8.2 | fight a final boss with two phases | the run has a clear final challenge before victory |
 
-Players who want English typing practice with an adventure-game setting and feedback on speed and accuracy.
+Non-functional requirements:
 
-### Value proposition
+* Build, run and test with Java 25.
+* Return deterministic metrics and damage for the same texts and supplied times.
+* Keep evaluation independent of terminal input, timing and scenario progression.
+* Retain immutable results and reject invalid integration data before changing combat state.
+* Keep gameplay usable in a supported terminal while countdown updates preserve input.
 
-Keyboard Warrior makes typing practice engaging through five combat scenarios. Speed and accuracy
-show players how their typing affects attack damage.
+Glossary:
 
-## User Stories
-
-| Version | As a ... | I want to ... | So that I can ... |
-| --- | --- | --- | --- |
-| v1.0 | player | defeat enemies through timed typing attacks | progress through five scenarios and win |
-| v1.0 | player | see how many seconds remain while typing | submit my attack before its deadline |
-| v1.0 | player | see my WPM and accuracy after a typing test | understand my typing performance |
-| v1.0 | player | see feedback for my current text when time expires | understand my performance even without pressing Enter |
-| v1.0 | player | face varied enemies and passages | keep successive runs interesting |
-
-## Non-Functional Requirements
-
-* Use Java 25 when building, running and testing the application.
-* Given the same texts and time values, evaluation must return the same metrics, errors and time damage multiplier.
-* Keep feedback independent of console input, timing, scenario selection and file storage.
-
-## Glossary
-
-* **Gross WPM**: Typing speed based on five submitted characters per word, including incorrect characters.
-* **Word accuracy**: The percentage of matching word positions relative to the longer word list.
-* **Positional matching**: Comparing the first expected word to the first submitted word, and so on.
+* **Gross WPM**: Five normalized submitted UTF-16 code units count as one word, including incorrect input.
+* **Character accuracy**: One minus normalized character edit distance, expressed as a percentage.
+* **Edit distance**: Minimum count of character insertions, deletions and substitutions.
+* **Overkill**: Damage beyond the current target's remaining HP; discarded at encounter boundaries.
+* **Phase**: One boss enemy configuration with its own HP and attack, resolved as one combat encounter.
 
 ## Testing
 
-### Automated testing
+### Automated checks
 
-Run `./gradlew check` on macOS/Linux or `.\gradlew.bat check` in Windows PowerShell, using Java 25.
-This runs JUnit tests and Checkstyle. Tests are under `src/test/java/seedu/keyboardwarrior`.
-Combat, gameplay and terminal tests cover turn resolution, scenario progression, timeout damage
-and countdown output. Simulated terminals use JLine's `exec` provider for consistent stream-based
-input and output on every platform, avoiding paused POSIX output pumps in feedback assertions.
-Typing feedback tests include:
+Run `./gradlew check` on macOS/Linux or `.\gradlew.bat check` in Windows PowerShell with Java 25.
+This runs JUnit and Checkstyle. Tests live under `src/test/java/seedu/keyboardwarrior`.
 
-* `TypingEvaluatorTest.java` covers correct input, fractional WPM, wrong/missing/extra words, empty
-  submissions, whitespace normalization, case and punctuation, positional matching, repeated words,
-  invalid inputs, immutable errors and time damage multipliers before, at and after the time limit.
-* `TypingResultFormatterTest.java` covers summary formatting, retained word errors, detailed reports
-  and time-penalty reports.
+The relevant regression checks cover character substitution/insertion/deletion, normalization,
+capitalization and punctuation, empty input, invalid values and immutable diagnostic lists. Formatter
+tests check four summary metrics and retained detailed word reports without a timing penalty line.
+Damage tests check the fourth-power formula, rounding, skill independence, empty input and unchanged
+enemy base attacks. Factory and gameplay tests cover scenario HP, both boss loadouts, HP carryover,
+phase boundaries, defeat and restart. Clock and terminal tests cover countdown output and captured
+unfinished input. Simulated terminal tests select JLine's `exec` provider for consistent stream-based
+input/output on Windows, macOS and Linux.
 
-### Manual gameplay testing
+The progression regressions in `GamePlayStateTest` include:
 
-1. Run `sh ./run-game.sh` or `.\run-game.bat` with Java 25 in IntelliJ's Terminal or a native terminal.
-   Confirm that an unsupported basic/redirected console shows the launcher instructions before gameplay.
-2. Enter `start`; check that scenario 1 shows an enemy and the player has 100 HP.
-3. Select `Ping`; check that a 15-second countdown appears above the typing instructions and passage
-   and updates while typing.
-4. Submit a partly correct answer before expiry; check feedback, damage, the enemy response
-   and the next skill choice. Select another skill to confirm its configured time limit.
-5. Type part of a passage and let it expire without pressing Enter; check nonzero WPM for nonempty text,
-   accuracy for the captured input, a 20% damage penalty, an enemy turn and a clear next skill input.
-   Damage is calculated from the captured metrics and rounded down after the penalty; empty input deals zero damage.
-   Confirm that neither early submissions nor timeouts print a wrong-word list.
-6. Defeat an enemy; check automatic advancement and carried player HP. Clear scenario 5 to
-   check the win message and return to the menu.
-7. Lose a run; check the defeat message and return to the menu. Enter `start` to check fresh HP
-   and scenario 1. Check varied passages and enemies across several attacks and runs, allowing repeats.
-   Enter `exit` to check shutdown, including during an active prompt.
+* `normalPerformance_eachRepeatedEnemyType_survivesFiveScenariosAndBothBossPhases` checks the balance target across each regular enemy type.
+* `bossPhaseTransition_preservesPlayerHealthAndDiscardsOverkillWithoutRetaliation` checks the phase boundary.
+* `bossPhaseOne_playerDefeat_returnsToMenuWithoutStartingPhaseTwo` and `bossPhaseTwo_playerDefeat_returnsToMenuWithoutVictory` check defeat in either phase.
+* `update_liveCountdown_scoresUnsubmittedAnswerAndPreservesTimerOrder` checks unfinished input and countdown placement.
 
-### Manual component testing
+### Manual gameplay acceptance tests
 
-To exercise the evaluator directly without console gameplay:
+Use a supported terminal with Java 25 and `sh ./run-game.sh` or `.\run-game.bat`.
 
-1. Compile with `./gradlew classes` or `.\gradlew.bat classes`.
-2. Start Java 25's JShell from the project folder:
+| Test | Steps | Expected result |
+| --- | --- | --- |
+| Launch and setup | Start in an unsupported redirected console, then use the suggested terminal launcher | Unsupported console explains the launcher; supported terminal shows menu |
+| Countdown and skill allowance | Start a run; choose each skill across several passages | Timer stays above the passage, updates while typing and uses the displayed length-based allowance |
+| Early submission | Submit a partly correct passage before expiry | Four metrics and damage appear; no wrong-word list; surviving enemy retaliates once |
+| Timeout capture | Type part of a passage, correct a character, then let time expire without Enter | Final current input is scored; nonempty text has nonzero WPM; no separate late penalty; next input is clear |
+| Empty timeout | Enter no text before expiry | Zero WPM, accuracy and damage; a surviving enemy takes its turn |
+| Regular progression | Defeat enemies through scenarios 1 to 5 | Enemy HP follows 30, 35, 50, 60, 70; same player HP carries; scenario 5 starts boss phase 1 |
+| Boss boundary and overkill | Defeat phase 1 with damage exceeding its remaining HP | Phase 2 starts at 70 HP; player HP is unchanged by transition; no extra boss attack; no run victory yet |
+| Final victory | Defeat boss phase 2 | Run victory appears and returns to menu |
+| Phase-boundary defeat | Reach phase 2 with low HP, then make a nonlethal or empty attempt | Boss response can defeat player; no later phase or victory is announced |
+| Restart and exit | Start after victory/defeat; try `exit` during a prompt | New run begins with 100 HP at scenario 1; exit ends the game cleanly |
 
-   ```text
-   jshell --class-path build/classes/java/main
-   ```
+For a balance check, sustain at least 50 WPM and 95% character accuracy on each attempt. Confirm at
+least 40 damage per attack, at most two attacks per regular enemy or boss phase, and at least 10 HP
+remaining at victory. Use deterministic automated tests for the strongest regular enemy rotations;
+random manual runs demonstrate the flow but cannot establish the worst-case bound by themselves.
 
-3. Enter:
+### Manual evaluator checks
 
-   ```java
-   import seedu.keyboardwarrior.typing.TypingEvaluator;
-   import seedu.keyboardwarrior.typing.TypingResultFormatter;
-   var result = TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 10.0);
-   System.out.print(TypingResultFormatter.formatTypingResult(result));
-   ```
+Compile with the Gradle `classes` task, then start Java 25's JShell from the repository folder:
 
-   Expected: 34.00 WPM, 66.67% accuracy, `Damage penalty: 0%`, and word 2 expected `the` but typed `teh`.
+```text
+jshell --class-path build/classes/java/main
+```
 
-4. Try `"Strike the"` as the submitted text: expect 20.00 WPM, 66.67% accuracy, and missing word 3 `goblin`.
-5. Try `"Strike the goblin now"`: expect 42.00 WPM, 75.00% accuracy, and extra word 4 `now`.
-6. Try `""`: expect 0.00 WPM, 0.00% accuracy, and all three expected words listed as missing.
-7. Change the required time to `5.0`: expect `Damage penalty: 20% (time limit exceeded)`,
-   `result.isTimeLimitExceeded()` to return `true` and `result.getTimeDamageMultiplier()` to return `0.8`.
-8. Set both times to `6.0`: expect no penalty at the exact limit, `isTimeLimitExceeded()` to return
-   `false` and `getTimeDamageMultiplier()` to return `1.0`.
-9. Exit JShell with `/exit`.
+```java
+import seedu.keyboardwarrior.typing.TypingEvaluator;
+import seedu.keyboardwarrior.typing.TypingResultFormatter;
+var result = TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 10.0);
+System.out.print(TypingResultFormatter.formatTypingResult(result));
+```
+
+Expected: 34.00 WPM, 88.24% accuracy, elapsed 6.00 and required 10.00 seconds. The detailed formatter
+still identifies word 2 as expected `the`, typed `teh`. Its positional word diagnostic does not set
+the character score. The player damage formula yields 20 for this result.
+
+| Typed text (same expected text, six seconds) | WPM | Character accuracy | Player damage |
+| --- | --- | --- | --- |
+| `Strike the goblin` | 34.00 | 100.00% | 34 |
+| `Strike teh goblin` | 34.00 | 88.24% | 20 |
+| `Strike the` | 20.00 | 58.82% | 2 |
+| `Strike the goblin now` | 42.00 | 80.95% | 18 |
+| Empty string | 0.00 | 0.00% | 0 |
+
+Changing only required seconds to `5.0` makes `isTimeLimitExceeded()` true and leaves the metrics and
+damage unchanged. Setting required seconds to `6.0` is on time because the comparison is strict.
+Zero, negative, NaN and infinite time values should throw `IllegalArgumentException`; null text should
+throw `NullPointerException`. Exit JShell with `/exit`.
+
+## Maintaining diagrams and iteration traceability
+
+The diagrams are ordinary SVG images so GitHub and GitHub Pages display them without Mermaid support
+or a server-side renderer. Each image has a neighboring `.puml` source for editing with PlantUML.
+The checked-in SVGs were laid out from those sources; keep each source and rendered image aligned
+when changing the design. [Diagram maintenance notes](diagrams/README.md) describe their scope.
+
+The Week 10 course workflow also asks the team to record the iteration plan in its issue tracker,
+assign work and verify RepoSense attribution. Those external checks require the team's actual issue
+links, assignments and dashboard evidence. This document records enhancement design, alternatives,
+defensive contracts and tests; it does not claim tracker updates or invent ownership annotations.

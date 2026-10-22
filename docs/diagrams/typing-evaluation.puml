@@ -1,0 +1,37 @@
+@startuml
+' Focus: evaluation of a snapshot; terminal and combat calls are intentionally omitted.
+hide footbox
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "game:GamePlayState" as game
+participant "TypingEvaluator" as evaluator
+participant "AccuracyCalculator" as accuracy
+note over evaluator, accuracy
+  Evaluator and calculator operations are static.
+end note
+game -> evaluator : evaluateTyping(expected, typed, elapsed, required)
+activate evaluator
+evaluator -> evaluator : validate inputs and normalize text
+activate evaluator
+deactivate evaluator
+evaluator -> accuracy : calculate(normalizedExpected, normalizedTyped)
+activate accuracy
+accuracy -> accuracy : editDistance(codePoints)
+activate accuracy
+deactivate accuracy
+accuracy --> evaluator : accuracyPercent
+deactivate accuracy
+evaluator -> evaluator : calculate gross WPM and retained word diagnostics
+activate evaluator
+deactivate evaluator
+evaluator -> evaluator : create immutable TypingResult
+activate evaluator
+deactivate evaluator
+evaluator --> game : result
+deactivate evaluator
+note over game, evaluator
+  The state formats the result and submits it to the encounter.
+  Deadline status is metadata; it does not reduce damage.
+end note
+@enduml
