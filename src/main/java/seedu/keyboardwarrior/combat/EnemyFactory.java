@@ -1,5 +1,6 @@
 package seedu.keyboardwarrior.combat;
 
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 
@@ -83,7 +84,7 @@ public class EnemyFactory {
     public static Enemy createEnemy(String type) {
         Enemy enemy;
 
-        switch (type.toLowerCase()) {
+        switch (type.toLowerCase(Locale.ROOT)) {
         case "rogue_ai":
             enemy = new Enemy("Script Kiddie", 80);
             enemy.addSkill(SkillRegistry.getSkill("ping"));

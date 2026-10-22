@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
@@ -67,7 +68,7 @@ class GamePlayStateTest {
 
     @Test
     void mainMenu_start_entersFirstScenario() {
-        machine.start(new MainMenuState(machine));
+        machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
         machine.handleInput(" Start ");
 
         assertTrue(machine.nextState instanceof GamePlayState);
@@ -299,6 +300,23 @@ class GamePlayStateTest {
     }
 
     @Test
+    void handleInput_playerDefeated_recordsUsesSameHistoryStore() {
+        RecordingSaveStore history = new RecordingSaveStore(tempDir.resolve("history.txt"));
+        machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(), history));
+        for (int turn = 0; turn < 5; turn++) {
+            machine.handleInput("Ping");
+            submitAfterTenSeconds("");
+        }
+
+        machine.handleInput("Records");
+
+        assertEquals(1, history.loadCount, "The returned menu must read the gameplay history store.");
+        assertTrue(report().contains("Typing history (oldest to newest)"));
+        assertTrue(report().contains("0.00%"));
+        assertFalse(report().contains("No typing records saved yet"));
+    }
+
+    @Test
     void handleInput_exitDuringTyping_stopsWithoutTakingAnEnemyTurn() {
         startGame();
         machine.handleInput("Ping");
@@ -315,7 +333,8 @@ class GamePlayStateTest {
             machine = new RecordingStateMachine();
             clock = new ControlledClock();
             ui = new RecordingCombatUi();
-            machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(enemyType)));
+            machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(enemyType),
+                    new SaveStore(tempDir.resolve("history-" + enemyType + ".txt"))));
             int attempts = 0;
             while (!(machine.nextState instanceof MainMenuState) && attempts < 20) {
                 submitAtNormalPerformance();
@@ -454,6 +473,21 @@ class GamePlayStateTest {
 
     private String report() {
         return output.toString(StandardCharsets.UTF_8);
+    }
+
+    /** Observes history reads without replacing real persistence through the temporary file. */
+    private static class RecordingSaveStore extends SaveStore {
+        private int loadCount;
+
+        RecordingSaveStore(Path filePath) {
+            super(filePath);
+        }
+
+        @Override
+        public List<SavedRecord> load() throws IOException {
+            loadCount++;
+            return super.load();
+        }
     }
 
     /** Keeps the test enemy's health and skill sequence independent of random content. */

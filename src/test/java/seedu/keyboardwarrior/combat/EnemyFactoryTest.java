@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
@@ -122,6 +123,23 @@ class EnemyFactoryTest {
         assertEquals(2, enemy.getActiveSkills().size());
         assertSame(SkillRegistry.getSkill("ping"), enemy.getActiveSkills().get(0));
         assertSame(SkillRegistry.getSkill("brute_force"), enemy.getActiveSkills().get(1));
+    }
+
+    @Test
+    void createEnemy_uppercaseId_doesNotDependOnDefaultLocale() {
+        Locale previousLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            Enemy enemy = EnemyFactory.createEnemy("FIREWALL_GOLEM");
+
+            assertEquals("Firewall Golem", enemy.getName());
+            assertEquals(90, enemy.getHealth());
+            assertSame(SkillRegistry.getSkill("ping"), enemy.getActiveSkills().get(0));
+            assertSame(SkillRegistry.getSkill("buffer_overflow"), enemy.getActiveSkills().get(1));
+        } finally {
+            Locale.setDefault(previousLocale);
+        }
     }
 
     @Test

@@ -45,6 +45,9 @@ retaliation or healing during the transition. Clearing scenario 5 starts the fin
 requires defeating its second phase. `start` after victory or defeat begins a fresh run.
 Type `exit` at any phase to quit.
 
+At the main menu, type `records` to view the latest ten typing attempts, oldest first. WPM and
+accuracy are saved automatically and remain available after restarting the application.
+
 See the [User Guide](docs/UserGuide.md) for the scoring formula, time limits and progression.
 
 ## Build automation
