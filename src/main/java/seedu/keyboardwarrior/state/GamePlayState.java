@@ -3,6 +3,7 @@ package seedu.keyboardwarrior.state;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
+import java.util.logging.Logger;
 
 import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
@@ -18,15 +19,18 @@ import seedu.keyboardwarrior.ui.CombatUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
 /**
- * Runs five combat scenarios while the game loop keeps each typing countdown live.
+ * Runs five combat scenarios and a two-phase final boss while keeping typing countdowns live.
  */
 public class GamePlayState extends State {
     private static final int SCENARIO_COUNT = 5;
+    private static final int BOSS_PHASE_COUNT = 2;
+    /** Records progression without adding messages to normal gameplay output. */
+    private static final Logger LOGGER = Logger.getLogger(GamePlayState.class.getName());
     private final ChallengeClock clock;
     private final CombatUi combatUi;
     private final Random random;
     private final SaveStore saveStore;
-    /** Shares prompt selection history across all five scenarios in a run. */
+    /** Shares prompt selection history across regular scenarios and both boss phases. */
     private final TypingChallengeFactory challengeFactory = new TypingChallengeFactory();
     /** The same player's remaining health carries into the next scenario. */
     private Player player;
@@ -34,6 +38,8 @@ public class GamePlayState extends State {
     /** Null while choosing a skill; otherwise input is the current typing answer. */
     private TypingChallenge challenge;
     private int scenarioIndex;
+    /** Zero during regular scenarios, then one or two during the final boss. */
+    private int bossPhase;
     private int lastDisplayedSeconds;
 
     /**
@@ -71,6 +77,7 @@ public class GamePlayState extends State {
     public void enter() {
         player = new Player("Player", 100);
         scenarioIndex = 0;
+        bossPhase = 0;
         challenge = null;
         StateUi.showGameplayStart();
         startScenario();
@@ -124,7 +131,19 @@ public class GamePlayState extends State {
         assert scenarioIndex >= 0 && scenarioIndex < SCENARIO_COUNT : "Scenario index must be in the run";
         assert player != null && player.getHealth() > 0 : "A scenario needs a living player";
         StateUi.showScenario(scenarioIndex + 1, SCENARIO_COUNT);
-        encounter = new CombatEncounter(player, EnemyFactory.createRandomEnemy(random), combatUi, challengeFactory);
+        encounter = new CombatEncounter(player, EnemyFactory.createRandomEnemy(random, scenarioIndex + 1),
+                combatUi, challengeFactory);
+        encounter.begin();
+    }
+
+    /** Starts a fresh boss phase, retaining player health and discarding the previous attack's overkill. */
+    private void startBossPhase() {
+        assert scenarioIndex == SCENARIO_COUNT : "The boss follows all five regular scenarios";
+        assert bossPhase >= 1 && bossPhase <= BOSS_PHASE_COUNT : "Boss phase must be in the final fight";
+        assert player != null && player.getHealth() > 0 : "A boss phase needs a living player";
+        LOGGER.fine(() -> "Starting final boss phase " + bossPhase);
+        StateUi.showBossPhase(bossPhase, BOSS_PHASE_COUNT);
+        encounter = new CombatEncounter(player, EnemyFactory.createBossPhase(bossPhase), combatUi, challengeFactory);
         encounter.begin();
     }
 
@@ -164,9 +183,7 @@ public class GamePlayState extends State {
             return;
         }
         if (encounter.getEncounterOutcome().getIsVictory()) {
-            scenarioIndex++;
-            if (scenarioIndex < SCENARIO_COUNT) {
-                startScenario();
+            if (advanceAfterVictory()) {
                 return;
             }
             StateUi.showRunVictory();
@@ -174,5 +191,28 @@ public class GamePlayState extends State {
             StateUi.showRunDefeat();
         }
         stateMachine.transitState(new MainMenuState(stateMachine));
+    }
+
+    /**
+     * Advances regular encounters and boss phases without giving a transition an enemy turn.
+     *
+     * @return true when another encounter started, or false after the final boss phase
+     */
+    private boolean advanceAfterVictory() {
+        if (bossPhase == 0) {
+            scenarioIndex++;
+            if (scenarioIndex < SCENARIO_COUNT) {
+                startScenario();
+                return true;
+            }
+        }
+        if (bossPhase < BOSS_PHASE_COUNT) {
+            bossPhase++;
+            startBossPhase();
+            return true;
+        }
+        assert scenarioIndex == SCENARIO_COUNT && bossPhase == BOSS_PHASE_COUNT
+                : "Run victory requires all scenarios and both boss phases";
+        return false;
     }
 }

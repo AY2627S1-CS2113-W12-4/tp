@@ -19,8 +19,8 @@ class TypingResultFormatterTest {
 
         String summary = TypingResultFormatter.formatTypingSummary(result);
 
-        assertEquals(String.join(newline, "WPM: 34.00", "Accuracy: 66.67%",
-                "Elapsed time: 6.00 seconds", "Required time: 10.00 seconds", "Damage penalty: 0%", ""), summary);
+        assertEquals(String.join(newline, "WPM: 34.00", "Accuracy: 88.24%",
+                "Elapsed time: 6.00 seconds", "Required time: 10.00 seconds", ""), summary);
         assertFalse(summary.contains("Wrong words:"));
         assertEquals(1, result.getWordErrors().size());
         assertEquals("teh", result.getWordErrors().get(0).getTypedWord());
@@ -28,13 +28,15 @@ class TypingResultFormatterTest {
     }
 
     @Test
-    public void formatTypingSummary_overTimeLimit_reportsDamagePenaltyWithoutErrors() {
+    public void formatTypingSummary_overTimeLimit_keepsMetricsWithoutPenaltyOrErrors() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike", 6.0, 5.0);
 
         String summary = TypingResultFormatter.formatTypingSummary(result);
 
-        assertTrue(summary.contains("Damage penalty: 20% (time limit exceeded)"));
+        assertTrue(summary.contains("Elapsed time: 6.00 seconds"));
+        assertTrue(summary.contains("Required time: 5.00 seconds"));
+        assertFalse(summary.contains("penalty"));
         assertFalse(summary.contains("Wrong words:"));
         assertEquals(2, result.getWordErrors().size());
     }
@@ -51,8 +53,8 @@ class TypingResultFormatterTest {
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 10.0);
         String newline = System.lineSeparator();
 
-        assertEquals(String.join(newline, "WPM: 34.00", "Accuracy: 66.67%",
-                "Elapsed time: 6.00 seconds", "Required time: 10.00 seconds", "Damage penalty: 0%", "Wrong words:",
+        assertEquals(String.join(newline, "WPM: 34.00", "Accuracy: 88.24%",
+                "Elapsed time: 6.00 seconds", "Required time: 10.00 seconds", "Wrong words:",
                 "  Word 2: expected \"the\", typed \"teh\"", ""), TypingResultFormatter.formatTypingResult(result));
     }
 
@@ -74,20 +76,19 @@ class TypingResultFormatterTest {
         String newline = System.lineSeparator();
 
         assertEquals(String.join(newline, "WPM: 12.00", "Accuracy: 100.00%",
-                "Elapsed time: 6.00 seconds", "Required time: 10.00 seconds", "Damage penalty: 0%",
+                "Elapsed time: 6.00 seconds", "Required time: 10.00 seconds",
                 "Wrong words:", "  None", ""),
                 TypingResultFormatter.formatTypingResult(result));
     }
 
     @Test
-    public void formatTypingResult_overTimeLimit_reportsTwentyPercentPenalty() {
+    public void formatTypingResult_overTimeLimit_reportsMetricsAndRetainsDiagnostics() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike", "Strike", 6.0, 5.0);
         String newline = System.lineSeparator();
 
         assertEquals(String.join(newline, "WPM: 12.00", "Accuracy: 100.00%",
                 "Elapsed time: 6.00 seconds", "Required time: 5.00 seconds",
-                "Damage penalty: 20% (time limit exceeded)",
                 "Wrong words:", "  None", ""), TypingResultFormatter.formatTypingResult(result));
     }
 
@@ -96,7 +97,7 @@ class TypingResultFormatterTest {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike", "Strike", 6.0, 6.0);
 
-        assertTrue(TypingResultFormatter.formatTypingResult(result).contains("Damage penalty: 0%"));
+        assertFalse(TypingResultFormatter.formatTypingResult(result).contains("penalty"));
     }
 
     @Test

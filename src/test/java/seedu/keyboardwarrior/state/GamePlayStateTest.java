@@ -35,7 +35,7 @@ import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
-/** Tests timed attacks, five-scenario progression, defeat and quitting. */
+/** Tests timed attacks, five scenarios, both final-boss phases, defeat and quitting. */
 class GamePlayStateTest {
     @TempDir
     Path tempDir;
@@ -87,10 +87,10 @@ class GamePlayStateTest {
 
         machine.handleInput(" pInG ");
         assertEquals(1, clock.startCount);
-        assertEquals(15, clock.durationSeconds);
-        assertEquals(15, ui.challenge.getTime());
+        assertTrue(clock.durationSeconds >= 15);
+        assertEquals(clock.durationSeconds, ui.challenge.getTime());
         assertEquals(0, ui.enemyTurns);
-        assertTrue(report().contains("Time remaining: 15s"));
+        assertTrue(report().contains("Time remaining: " + clock.durationSeconds + "s"));
     }
 
     @Test
@@ -98,16 +98,16 @@ class GamePlayStateTest {
         startGame();
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
-        String typed = expected.substring(0, expected.lastIndexOf(' '));
-        TypingResult result = TypingEvaluator.evaluateTyping(expected, typed, 10.0, 15.0);
-        int damage = (int) (10 * (0.02 * result.getWpm() * (result.getAccuracyPercent() / 100.0)));
+        String typed = expected.substring(0, expected.length() / 2);
+        TypingResult result = TypingEvaluator.evaluateTyping(expected, typed, 10.0, clock.durationSeconds);
+        int damage = (int) (result.getWpm() * Math.pow(result.getAccuracyPercent() / 100.0, 4));
 
         submitAfterTenSeconds(typed);
 
         assertEquals(java.util.List.of(result.getWpm() + "," + result.getAccuracyPercent()),
                 Files.readAllLines(tempDir.resolve("history.txt")));
 
-        assertEquals(80 - damage, ui.enemy.getHealth());
+        assertEquals(30 - damage, ui.enemy.getHealth());
         assertTrue(ui.enemy.getHealth() > 0);
         assertTrue(damage > 0);
         assertEquals(90, ui.player.getHealth());
@@ -125,15 +125,15 @@ class GamePlayStateTest {
     void update_expiredEmptyAttempt_dealsZeroDamageAndRetaliatesOnce() {
         startGame();
         machine.handleInput("Ping");
-        clock.elapsedSeconds = 16.0;
+        clock.elapsedSeconds = clock.durationSeconds + 1.0;
         clock.remainingSeconds = 0;
         machine.update();
         machine.update();
 
-        assertEquals(80, ui.enemy.getHealth());
+        assertEquals(30, ui.enemy.getHealth());
         assertEquals(90, ui.player.getHealth());
         assertEquals(1, ui.enemyTurns);
-        assertTrue(report().contains("Damage penalty: 20% (time limit exceeded)"));
+        assertFalse(report().contains("Damage penalty:"));
         assertEquals(1, report().split("Time's up!", -1).length - 1);
 
         machine.handleInput("Ping");
@@ -152,7 +152,7 @@ class GamePlayStateTest {
             startGame();
             machine.handleInput("Ping");
             String expected = ui.challenge.getText();
-            String typed = expected.substring(0, expected.lastIndexOf(' '));
+            String typed = expected.substring(0, expected.length() / 2);
             reader.getBuffer().write(typed);
             clock.remainingSeconds = 10;
             clock.elapsedSeconds = 5.0;
@@ -165,72 +165,75 @@ class GamePlayStateTest {
             assertTrue(display.indexOf("Type the following") < display.indexOf(expected));
 
             clock.remainingSeconds = 0;
-            clock.elapsedSeconds = 16.0;
+            double elapsed = clock.durationSeconds + 1.0;
+            clock.elapsedSeconds = elapsed;
             machine.update();
             assertEquals("", reader.getBuffer().toString());
             assertFalse(reader.getDisplayedBufferWithPrompts(new ArrayList<>())
                     .toString().contains("Time remaining:"));
             assertEquals(1, ui.enemyTurns);
-            TypingResult timedOut = TypingEvaluator.evaluateTyping(expected, typed, 16.0, 15.0);
-            int damage = (int) (10 * (0.02 * timedOut.getWpm() * (timedOut.getAccuracyPercent() / 100.0)) * 0.8);
+            TypingResult timedOut = TypingEvaluator.evaluateTyping(expected, typed, elapsed, clock.durationSeconds);
+            int damage = (int) (timedOut.getWpm() * Math.pow(timedOut.getAccuracyPercent() / 100.0, 4));
             assertTrue(damage > 0);
-            assertEquals(80 - damage, ui.enemy.getHealth());
+            assertEquals(30 - damage, ui.enemy.getHealth());
             assertEquals(90, ui.player.getHealth());
             String feedback = terminalOutput.toString(StandardCharsets.UTF_8);
             assertTrue(feedback.contains(String.format(Locale.ROOT, "WPM: %.2f", timedOut.getWpm())));
             assertTrue(feedback.contains(String.format(Locale.ROOT,
                     "Accuracy: %.2f%%", timedOut.getAccuracyPercent())));
-            assertTrue(feedback.contains("Damage penalty: 20% (time limit exceeded)"));
+            assertFalse(feedback.contains("Damage penalty:"));
             assertFalse(feedback.contains("Wrong words:"));
 
             machine.handleInput("Ping");
             assertTrue(reader.getDisplayedBufferWithPrompts(new ArrayList<>())
-                    .toString().contains("Time remaining: 15s"));
+                    .toString().contains("Time remaining: " + clock.durationSeconds + "s"));
         } finally {
             StateUi.detachTerminal();
         }
     }
 
     @Test
-    void handleInput_lateCorrectAnswer_dealsReducedDamage() {
-        startGame();
+    void handleInput_lateCorrectAnswer_usesMetricsWithoutAnExtraPenalty() {
+        advanceToThirdScenario();
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
-        TypingResult result = TypingEvaluator.evaluateTyping(expected, expected, 16.0, 15.0);
-        int damage = (int) (10 * (0.02 * result.getWpm() * (result.getAccuracyPercent() / 100.0)) * 0.8);
-        clock.elapsedSeconds = 16.0;
+        double elapsed = clock.durationSeconds + 1.0;
+        TypingResult result = TypingEvaluator.evaluateTyping(expected, expected, elapsed, clock.durationSeconds);
+        int damage = (int) result.getWpm();
+        clock.elapsedSeconds = elapsed;
         clock.remainingSeconds = 0;
         machine.handleInput(expected);
 
         assertTrue(damage > 0);
-        assertEquals(80 - damage, ui.enemy.getHealth());
+        assertEquals(50 - damage, ui.enemy.getHealth());
         assertEquals(90, ui.player.getHealth());
         assertEquals(1, ui.enemyTurns);
         assertTrue(report().contains("Accuracy: 100.00%"));
-        assertTrue(report().contains("Damage penalty: 20% (time limit exceeded)"));
+        assertFalse(report().contains("Damage penalty:"));
     }
 
     @Test
     void handleInput_atExactLimit_appliesFullDamage() {
-        startGame();
+        advanceToThirdScenario();
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
-        TypingResult result = TypingEvaluator.evaluateTyping(expected, expected, 15.0, 15.0);
-        int damage = (int) (10 * (0.02 * result.getWpm() * (result.getAccuracyPercent() / 100.0)));
-        clock.elapsedSeconds = 15.0;
+        TypingResult result = TypingEvaluator.evaluateTyping(expected, expected,
+                clock.durationSeconds, clock.durationSeconds);
+        int damage = (int) result.getWpm();
+        clock.elapsedSeconds = clock.durationSeconds;
         clock.remainingSeconds = 0;
         machine.update();
         assertEquals(0, ui.enemyTurns);
         machine.handleInput(expected);
 
-        assertEquals(80 - damage, ui.enemy.getHealth());
+        assertEquals(50 - damage, ui.enemy.getHealth());
         assertEquals(1, ui.enemyTurns);
-        assertTrue(report().contains("Damage penalty: 0%"));
-        assertFalse(report().contains("Damage penalty: 20%"));
+        assertFalse(report().contains("Damage penalty:"));
+        assertFalse(report().contains("Time's up!"));
     }
 
     @Test
-    void handleInput_fiveVictories_advancesAutomaticallyThenReturnsToMenu() {
+    void handleInput_fiveVictoriesAndBothBossPhases_returnsToMenuOnlyAfterFinalVictory() {
         startGame();
         // Take one hit first to verify that remaining health carries into later scenarios.
         machine.handleInput("Ping");
@@ -249,10 +252,26 @@ class GamePlayStateTest {
             }
         }
 
-        assertEquals(5, ui.encounters);
+        assertEquals(6, ui.encounters);
+        assertTrue(machine.nextState == null);
+        assertTrue(report().contains("Final Boss - Phase 1/2"));
+        assertFalse(report().contains("You win!"));
+        for (int phase = 1; phase <= 2; phase++) {
+            assertEquals(90, ui.player.getHealth());
+            assertTrue(ui.player == originalPlayer);
+            machine.handleInput("SIGKILL");
+            submitAfterTenSeconds(ui.challenge.getText());
+            if (phase == 1) {
+                assertEquals(7, ui.encounters);
+                assertEquals(70, ui.enemy.getHealth());
+                assertFalse(report().contains("You win!"));
+                assertTrue(report().contains("Final Boss - Phase 2/2"));
+            }
+        }
+        assertEquals(7, ui.encounters);
         assertTrue(machine.nextState instanceof MainMenuState);
         assertTrue(machine.isRunning());
-        assertTrue(report().contains("You win! All 5 scenarios cleared."));
+        assertTrue(report().contains("You win! All 5 scenarios and both final boss phases cleared."));
         assertFalse(report().contains("Scenario 6/5"));
 
         machine.handleInput("start");
@@ -290,6 +309,136 @@ class GamePlayStateTest {
         assertFalse(report().contains("WPM:"));
     }
 
+    @Test
+    void normalPerformance_eachRepeatedEnemyType_survivesFiveScenariosAndBothBossPhases() {
+        for (int enemyType = 0; enemyType < 8; enemyType++) {
+            machine = new RecordingStateMachine();
+            clock = new ControlledClock();
+            ui = new RecordingCombatUi();
+            machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(enemyType)));
+            int attempts = 0;
+            while (!(machine.nextState instanceof MainMenuState) && attempts < 20) {
+                submitAtNormalPerformance();
+                attempts++;
+            }
+
+            assertEquals(12, attempts, "Normal performance should need eight regular and four boss attacks.");
+            assertEquals(7, ui.encounters);
+            assertFalse(ui.player.getIsDead());
+            assertTrue(ui.player.getHealth() >= 10, "Every enemy selection must leave a normal player alive.");
+            if (enemyType == 5 || enemyType == 7) {
+                assertEquals(10, ui.player.getHealth(), "The strongest first attacks must leave ten health.");
+            }
+        }
+    }
+
+    @Test
+    void bossPhaseTransition_preservesPlayerHealthAndDiscardsOverkillWithoutRetaliation() {
+        advanceToBoss();
+        assertEquals(50, ui.enemy.getHealth());
+        ui.player.setHealth(75);
+        Player originalPlayer = ui.player;
+        int enemyTurnsBefore = ui.enemyTurns;
+
+        oneShotCurrentEncounter();
+
+        assertEquals(7, ui.encounters);
+        assertEquals(70, ui.enemy.getHealth(), "Overkill from phase one must not damage phase two.");
+        assertEquals(75, ui.player.getHealth());
+        assertTrue(ui.player == originalPlayer);
+        assertEquals(enemyTurnsBefore, ui.enemyTurns);
+        assertFalse(report().contains("You win!"));
+        assertTrue(report().contains("Final Boss - Phase 2/2"));
+    }
+
+    @Test
+    void bossPhaseOne_playerDefeat_returnsToMenuWithoutStartingPhaseTwo() {
+        advanceToBoss();
+        ui.player.setHealth(10);
+        machine.handleInput("Ping");
+        submitAfterTenSeconds("");
+
+        assertTrue(machine.nextState instanceof MainMenuState);
+        assertTrue(ui.player.getIsDead());
+        assertEquals(6, ui.encounters);
+        assertFalse(report().contains("Final Boss - Phase 2/2"));
+        assertFalse(report().contains("You win!"));
+    }
+
+    @Test
+    void bossPhaseTwo_playerDefeat_returnsToMenuWithoutVictory() {
+        advanceToBoss();
+        oneShotCurrentEncounter();
+        ui.player.setHealth(20);
+        machine.handleInput("Ping");
+        submitAfterTenSeconds("");
+
+        assertTrue(machine.nextState instanceof MainMenuState);
+        assertTrue(ui.player.getIsDead());
+        assertEquals(7, ui.encounters);
+        assertFalse(report().contains("You win!"));
+    }
+
+    @Test
+    void bossPhaseTwo_exitDuringTyping_stopsWithoutAnEnemyTurn() {
+        advanceToBoss();
+        oneShotCurrentEncounter();
+        int turnsBefore = ui.enemyTurns;
+        machine.handleInput("Ping");
+        machine.handleInput("exit");
+
+        assertFalse(machine.isRunning());
+        assertEquals(turnsBefore, ui.enemyTurns);
+        assertFalse(report().contains("You win!"));
+    }
+
+    /** Reaches a fifty-health enemy so ordinary on-time and late submissions do not kill it. */
+    private void advanceToThirdScenario() {
+        startGame();
+        oneShotCurrentEncounter();
+        oneShotCurrentEncounter();
+    }
+
+    /** Defeats the regular encounters while keeping the boss available for phase-boundary tests. */
+    private void advanceToBoss() {
+        startGame();
+        for (int scenario = 0; scenario < 5; scenario++) {
+            oneShotCurrentEncounter();
+        }
+    }
+
+    /** Uses a deliberately large attack to exercise killing blows and discarded overkill. */
+    private void oneShotCurrentEncounter() {
+        machine.handleInput("Ping");
+        clock.elapsedSeconds = 1.0;
+        clock.remainingSeconds = clock.durationSeconds - 1;
+        machine.handleInput(ui.challenge.getText());
+    }
+
+    /** Types real prompts at fifty WPM with at least ninety-five percent character accuracy. */
+    private void submitAtNormalPerformance() {
+        machine.handleInput("Ping");
+        String expected = ui.challenge.getText();
+        char[] typed = expected.toCharArray();
+        int errorsRemaining = (int) (typed.length * 0.05);
+        for (int index = 0; errorsRemaining > 0; index++) {
+            if (typed[index] != ' ') {
+                typed[index] = '#';
+                errorsRemaining--;
+            }
+        }
+        String submission = new String(typed);
+        double elapsed = submission.length() * 60.0 / (5.0 * 50.0);
+        TypingResult result = TypingEvaluator.evaluateTyping(expected, submission, elapsed, clock.durationSeconds);
+        assertEquals(50.0, result.getWpm(), 0.000001);
+        assertTrue(result.getAccuracyPercent() >= 95.0 && result.getAccuracyPercent() < 100.0,
+                "The fixture should approximate ninety-five percent accuracy: " + result.getAccuracyPercent());
+        assertTrue(elapsed <= clock.durationSeconds, "The normal player must be able to finish the prompt.");
+        clock.elapsedSeconds = elapsed;
+        clock.remainingSeconds = (int) Math.ceil(clock.durationSeconds - elapsed);
+        machine.handleInput(submission);
+    }
+
     /** Starts gameplay with controllable timing and observed combat output. */
     private void startGame() {
         machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
@@ -309,9 +458,19 @@ class GamePlayStateTest {
 
     /** Keeps the test enemy's health and skill sequence independent of random content. */
     private static class FixedEnemyRandom extends Random {
+        private final int enemyIndex;
+
+        FixedEnemyRandom() {
+            this(0);
+        }
+
+        FixedEnemyRandom(int enemyIndex) {
+            this.enemyIndex = enemyIndex;
+        }
+
         @Override
         public int nextInt(int bound) {
-            return 0;
+            return enemyIndex;
         }
     }
 

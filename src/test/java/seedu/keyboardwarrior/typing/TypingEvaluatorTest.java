@@ -10,7 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests typing metrics, positional word errors and the damage time limit.
+ * Tests character accuracy, typing speed, retained word diagnostics and deadline metadata.
  */
 class TypingEvaluatorTest {
     @Test
@@ -33,7 +33,7 @@ class TypingEvaluatorTest {
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 10.0);
 
         assertEquals(34.0, result.getWpm(), 0.000001);
-        assertEquals(200.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(1500.0 / 17.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(1, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 2, "the", "teh", ErrorType.WRONG);
     }
@@ -62,7 +62,7 @@ class TypingEvaluatorTest {
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the", 6.0, 10.0);
 
         assertEquals(20.0, result.getWpm(), 0.000001);
-        assertEquals(200.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(1000.0 / 17.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(1, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 3, "goblin", "", ErrorType.MISSING);
     }
@@ -73,17 +73,17 @@ class TypingEvaluatorTest {
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the goblin now", 6.0, 10.0);
 
         assertEquals(42.0, result.getWpm(), 0.000001);
-        assertEquals(75.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(1700.0 / 21.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(1, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 4, "", "now", ErrorType.EXTRA);
     }
 
     @Test
-    public void evaluateTyping_missingMiddleWord_comparesByPosition() {
+    public void evaluateTyping_missingMiddleWord_doesNotShiftCharacterAccuracy() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike goblin", 6.0, 10.0);
 
-        assertEquals(100.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(1300.0 / 17.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(2, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 2, "the", "goblin", ErrorType.WRONG);
         assertWordError(result.getWordErrors().get(1), 3, "goblin", "", ErrorType.MISSING);
@@ -109,7 +109,7 @@ class TypingEvaluatorTest {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin!", "strike the goblin", 6.0, 10.0);
 
-        assertEquals(100.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(1600.0 / 18.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(2, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 1, "Strike", "strike", ErrorType.WRONG);
         assertWordError(result.getWordErrors().get(1), 3, "goblin!", "goblin", ErrorType.WRONG);
@@ -158,12 +158,12 @@ class TypingEvaluatorTest {
     }
 
     @Test
-    public void evaluateTyping_overTimeLimit_reducesDamageMultiplierDespitePerfectAccuracy() {
+    public void evaluateTyping_overTimeLimit_preservesPerformanceWithoutPenalty() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the goblin", 6.0, 5.0);
 
         assertTrue(result.isTimeLimitExceeded());
-        assertEquals(0.8, result.getTimeDamageMultiplier());
+        assertEquals(1.0, result.getTimeDamageMultiplier());
         assertEquals(34.0, result.getWpm(), 0.000001);
         assertEquals(100.0, result.getAccuracyPercent(), 0.000001);
         assertTrue(result.getWordErrors().isEmpty());
@@ -179,12 +179,12 @@ class TypingEvaluatorTest {
     }
 
     @Test
-    public void evaluateTyping_justOverTimeLimit_appliesDamagePenalty() {
+    public void evaluateTyping_justOverTimeLimit_hasNoDamagePenalty() {
         TypingResult result =
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike the goblin", Math.nextUp(6.0), 6.0);
 
         assertTrue(result.isTimeLimitExceeded());
-        assertEquals(0.8, result.getTimeDamageMultiplier());
+        assertEquals(1.0, result.getTimeDamageMultiplier());
     }
 
     @Test
@@ -193,8 +193,8 @@ class TypingEvaluatorTest {
                 TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 5.0);
 
         assertTrue(result.isTimeLimitExceeded());
-        assertEquals(0.8, result.getTimeDamageMultiplier());
-        assertEquals(200.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(1.0, result.getTimeDamageMultiplier());
+        assertEquals(1500.0 / 17.0, result.getAccuracyPercent(), 0.000001);
         assertEquals(1, result.getWordErrors().size());
         assertWordError(result.getWordErrors().get(0), 2, "the", "teh", ErrorType.WRONG);
     }
@@ -206,6 +206,49 @@ class TypingEvaluatorTest {
             assertThrows(IllegalArgumentException.class,
                     () -> TypingEvaluator.evaluateTyping("Strike", "Strike", 6.0, requiredSeconds));
         }
+    }
+
+    @Test
+    public void evaluateTyping_singleCharacterSubstitution_countsOneEdit() {
+        TypingResult result = TypingEvaluator.evaluateTyping("cat", "cut", 6.0, 10.0);
+
+        assertEquals(200.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+    }
+
+    @Test
+    public void evaluateTyping_singleCharacterInsertion_usesLongerTextAsDenominator() {
+        TypingResult result = TypingEvaluator.evaluateTyping("cat", "cart", 6.0, 10.0);
+
+        assertEquals(75.0, result.getAccuracyPercent(), 0.000001);
+    }
+
+    @Test
+    public void evaluateTyping_singleCharacterDeletion_countsOneEdit() {
+        TypingResult result = TypingEvaluator.evaluateTyping("cart", "cat", 6.0, 10.0);
+
+        assertEquals(75.0, result.getAccuracyPercent(), 0.000001);
+    }
+
+    @Test
+    public void evaluateTyping_missingSuffix_scoresCharactersAlreadyTyped() {
+        TypingResult result = TypingEvaluator.evaluateTyping("hello world", "hello", 6.0, 10.0);
+
+        assertEquals(500.0 / 11.0, result.getAccuracyPercent(), 0.000001);
+    }
+
+    @Test
+    public void evaluateTyping_allCharactersDifferent_returnsZeroAccuracy() {
+        TypingResult result = TypingEvaluator.evaluateTyping("cat", "dog", 6.0, 10.0);
+
+        assertEquals(0.0, result.getAccuracyPercent(), 0.000001);
+    }
+
+    @Test
+    public void evaluateTyping_supplementaryUnicodeCharacter_countsOneCharacterEdit() {
+        TypingResult result = TypingEvaluator.evaluateTyping("a\uD83D\uDE00b", "a\uD83D\uDE80b", 6.0, 10.0);
+
+        assertEquals(200.0 / 3.0, result.getAccuracyPercent(), 0.000001);
+        assertEquals(8.0, result.getWpm(), 0.000001);
     }
 
     /**
