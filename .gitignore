@@ -21,3 +21,6 @@ text-ui-test/EXPECTED-UNIX.TXT
 
 .vscode
 .settings
+
+# Local typing history
+/data/keyboardwarrior.txt

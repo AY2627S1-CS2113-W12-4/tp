@@ -1,6 +1,10 @@
 package seedu.keyboardwarrior.ui;
 
+import java.util.List;
+import java.util.Locale;
+
 import seedu.keyboardwarrior.CountdownReader;
+import seedu.keyboardwarrior.storage.SaveStore.SavedRecord;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.typing.TypingResultFormatter;
@@ -135,14 +139,30 @@ public final class StateUi {
     public static void showMainMenu() {
         showBanner();
         showSeparator();
-        printLine("Type Start to begin five combat scenarios and a two-phase final boss, or Exit to quit.");
+        printLine("Type Start to begin five combat scenarios and 2-phase final boss, Records to view typing history, or Exit to quit.");
     }
 
     /**
      * Explains which commands the main menu accepts.
      */
     public static void showInvalidOption() {
-        printLine("Invalid option. Please enter Start or Exit.");
+        printLine("Invalid option. Please enter Start, Records or Exit.");
+    }
+
+    /** Displays saved typing results in chronological order while remaining in the main menu. */
+    public static void showRecords(List<SavedRecord> records) {
+        printLine("Typing history (oldest to newest)");
+        if (records.isEmpty()) {
+            printLine("No typing records saved yet. Play a game to record your results.");
+        } else {
+            printLine(String.format(Locale.ROOT, "%3s  %10s  %10s", "#", "WPM", "Accuracy"));
+            for (int index = 0; index < records.size(); index++) {
+                SavedRecord record = records.get(index);
+                printLine(String.format(Locale.ROOT, "%3d  %10.2f  %9.2f%%",
+                        index + 1, record.wpm(), record.accuracyPercent()));
+            }
+        }
+        printLine("Type Start to play, Records to view typing history, or Exit to quit.");
     }
 
     /**

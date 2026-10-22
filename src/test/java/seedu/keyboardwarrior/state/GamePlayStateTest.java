@@ -7,7 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
@@ -18,11 +21,13 @@ import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import seedu.keyboardwarrior.CountdownReader;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
+import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.typing.ChallengeClock;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
@@ -32,6 +37,8 @@ import seedu.keyboardwarrior.ui.StateUi;
 
 /** Tests timed attacks, five scenarios, both final-boss phases, defeat and quitting. */
 class GamePlayStateTest {
+    @TempDir
+    Path tempDir;
     private ByteArrayOutputStream output;
     private PrintStream originalOutput;
     private PrintStream capturedOutput;
@@ -87,7 +94,7 @@ class GamePlayStateTest {
     }
 
     @Test
-    void handleInput_inaccurateAnswer_appliesMetricsDamageAndKeepsFighting() {
+    void handleInput_inaccurateAnswer_appliesMetricsDamageAndKeepsFighting() throws IOException {
         startGame();
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
@@ -96,6 +103,9 @@ class GamePlayStateTest {
         int damage = (int) (result.getWpm() * Math.pow(result.getAccuracyPercent() / 100.0, 4));
 
         submitAfterTenSeconds(typed);
+
+        assertEquals(java.util.List.of(result.getWpm() + "," + result.getAccuracyPercent()),
+                Files.readAllLines(tempDir.resolve("history.txt")));
 
         assertEquals(30 - damage, ui.enemy.getHealth());
         assertTrue(ui.enemy.getHealth() > 0);
@@ -431,7 +441,8 @@ class GamePlayStateTest {
 
     /** Starts gameplay with controllable timing and observed combat output. */
     private void startGame() {
-        machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom()));
+        machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
+                new SaveStore(tempDir.resolve("history.txt"))));
     }
 
     /** Submits an answer at a reproducible duration within every skill's limit. */
