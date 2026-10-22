@@ -135,7 +135,7 @@ public final class StateUi {
     public static void showMainMenu() {
         showBanner();
         showSeparator();
-        printLine("Type Start to begin five combat scenarios, or Exit to quit.");
+        printLine("Type Start to begin five combat scenarios and a two-phase final boss, or Exit to quit.");
     }
 
     /**
@@ -159,9 +159,18 @@ public final class StateUi {
         printLine("Scenario " + number + "/" + total);
     }
 
-    /** Announces victory after all five enemies have been defeated. */
+    /** Announces the current final-boss phase after the five regular scenarios. */
+    public static void showBossPhase(int phase, int total) {
+        showSeparator();
+        printLine("Final Boss - Phase " + phase + "/" + total);
+        if (phase == 2) {
+            printLine("The Kernel Overlord becomes enraged! Its attacks now deal 20 damage.");
+        }
+    }
+
+    /** Announces victory after all five scenarios and both final-boss phases. */
     public static void showRunVictory() {
-        printLine("You win! All 5 scenarios cleared.");
+        printLine("You win! All 5 scenarios and both final boss phases cleared.");
     }
 
     /** Announces that player defeat ended the run. */

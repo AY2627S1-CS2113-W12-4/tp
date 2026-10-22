@@ -135,9 +135,9 @@ public class CombatUi {
         return scanner.nextLine();
     }
 
-    /** Explains the damage reduction applied to an overdue typing attempt. */
+    /** Reports an overdue typing attempt without applying a separate damage penalty. */
     public void showTypingSlow() {
-        StateUi.printLine("Time limit exceeded: attack damage reduced by 20%.");
+        StateUi.printLine("Time limit exceeded: scoring the text captured at expiry.");
     }
 
     /**

@@ -16,7 +16,7 @@ public class SkillResolver {
     /**
      * Creates a resolver that reports combat results through the given interface.
      *
-     * @param ui interface used to display damage and time penalties
+     * @param ui interface used to display damage
      * @throws NullPointerException if the interface is null
      */
     public SkillResolver(CombatUi ui) {
@@ -25,10 +25,10 @@ public class SkillResolver {
 
     /**
      * Resolves one skill use against a target.
-     * Player damage is scaled by 0.02 times WPM times accuracy as a fraction,
-     * while a {@code null} result
-     * applies the base damage directly for automated enemy turns.
-     * Exceeding the time limit reduces player damage by twenty percent.
+     * Player damage is WPM multiplied by the fourth power of character accuracy
+     * as a fraction, rounded down once at the end. The selected skill's base
+     * damage and the time limit do not modify this result. A {@code null} result
+     * applies the skill's base damage directly for automated enemy turns.
      *
      * @param source entity using the skill
      * @param target entity receiving any damage
@@ -45,16 +45,12 @@ public class SkillResolver {
             return;
         }
 
-        if (result.isTimeLimitExceeded()) {
-            ui.showTypingSlow();
-        }
-
         double accuracy = result.getAccuracyPercent() / 100.0;
-        double multiplier = 0.02 * result.getWpm() * accuracy;
+        double damage = result.getWpm() * Math.pow(accuracy, 4);
         assert accuracy >= 0.0 && accuracy <= 1.0 : "Typing accuracy must be normalized";
-        assert Double.isFinite(multiplier) && multiplier >= 0.0 : "Damage multiplier must be valid";
-        // Apply the time penalty before rounding so fractional damage is retained until the end.
-        int calculatedDamage = (int) (chosenSkill.getBaseDamage() * multiplier * result.getTimeDamageMultiplier());
+        assert Double.isFinite(damage) && damage >= 0.0 : "Typing damage must be valid";
+        // Retain fractional precision until the final conversion; Java caps extreme values at Integer.MAX_VALUE.
+        int calculatedDamage = (int) damage;
         assert calculatedDamage >= 0 : "Calculated damage must not be negative";
         applyDamage(target, calculatedDamage);
     }

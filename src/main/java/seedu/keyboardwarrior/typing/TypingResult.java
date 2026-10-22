@@ -9,10 +9,10 @@ import java.util.Objects;
 public final class TypingResult {
     /** Gross words per minute, including incorrect submitted characters. */
     private final double wpm;
-    /** Percentage of matching word positions, from zero to one hundred. */
+    /** Character accuracy based on normalized edit distance, from zero to one hundred. */
     private final double accuracyPercent;
     private final double elapsedSeconds;
-    /** Maximum typing duration before the twenty-percent damage penalty applies. */
+    /** Duration allowed before the game automatically submits the current passage. */
     private final double requiredSeconds;
     private final List<WordError> wordErrors;
 
@@ -54,7 +54,7 @@ public final class TypingResult {
     }
 
     /**
-     * Returns the percentage of correctly matched word positions.
+     * Returns character accuracy after accounting for substitutions, insertions and deletions.
      *
      * @return accuracy from zero to one hundred
      */
@@ -72,7 +72,7 @@ public final class TypingResult {
     }
 
     /**
-     * Returns the maximum duration that avoids a combat damage penalty.
+     * Returns the duration allowed before automatic submission.
      *
      * @return time limit in seconds
      */
@@ -82,20 +82,20 @@ public final class TypingResult {
 
     /**
      * Returns whether the attempt exceeded its time limit.
-     * Finishing exactly at the limit does not incur a penalty.
+     * Timing is retained for feedback; exceeding the limit does not reduce damage.
      */
     public boolean isTimeLimitExceeded() {
         return elapsedSeconds > requiredSeconds;
     }
 
     /**
-     * Returns the factor applied to WPM/accuracy damage for this attempt's timing.
-     * Late attempts retain eighty percent of their calculated damage.
+     * Returns the neutral timing factor retained for compatibility with existing combat callers.
+     * Damage depends on typing performance without an additional deadline penalty.
      *
-     * @return 0.8 when the limit was exceeded, otherwise 1.0
+     * @return 1.0 for every attempt
      */
     public double getTimeDamageMultiplier() {
-        return isTimeLimitExceeded() ? 0.8 : 1.0;
+        return 1.0;
     }
 
     /**

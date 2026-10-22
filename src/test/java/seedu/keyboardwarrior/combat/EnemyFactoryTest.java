@@ -49,6 +49,59 @@ class EnemyFactoryTest {
     }
 
     @Test
+    void createRandomEnemy_regularScenarios_useProgressiveHealthAndOriginalLoadouts() {
+        int[] expectedHealth = {30, 35, 50, 60, 70};
+
+        for (int scenario = 1; scenario <= expectedHealth.length; scenario++) {
+            for (int seed = 0; seed < 25; seed++) {
+                Enemy original = EnemyFactory.createRandomEnemy(new Random(seed));
+                Enemy scenarioEnemy = EnemyFactory.createRandomEnemy(new Random(seed), scenario);
+
+                assertEquals(expectedHealth[scenario - 1], scenarioEnemy.getHealth());
+                assertEquals(original.getName(), scenarioEnemy.getName());
+                assertEquals(original.getActiveSkills(), scenarioEnemy.getActiveSkills());
+                assertNotSame(original, scenarioEnemy);
+            }
+        }
+    }
+
+    @Test
+    void createRandomEnemy_invalidScenarioOrRandom_rejectsConfiguration() {
+        for (int scenario : new int[] {Integer.MIN_VALUE, -1, 0, 6, Integer.MAX_VALUE}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> EnemyFactory.createRandomEnemy(new Random(42), scenario));
+        }
+        assertThrows(NullPointerException.class, () -> EnemyFactory.createRandomEnemy(null, 1));
+    }
+
+    @Test
+    void createBossPhase_configuredPhases_haveIndependentHealthAndFixedAttacks() {
+        Enemy first = EnemyFactory.createBossPhase(1);
+        Enemy second = EnemyFactory.createBossPhase(2);
+
+        assertEquals("Kernel Overlord (Phase 1)", first.getName());
+        assertEquals("Kernel Overlord (Phase 2)", second.getName());
+        assertEquals(50, first.getHealth());
+        assertEquals(70, second.getHealth());
+        assertEquals(1, first.getActiveSkills().size());
+        assertEquals(1, second.getActiveSkills().size());
+        assertSame(SkillRegistry.getSkill("ping"), first.getActiveSkills().get(0));
+        assertSame(SkillRegistry.getSkill("brute_force"), second.getActiveSkills().get(0));
+        assertEquals(10, first.getActiveSkills().get(0).getBaseDamage());
+        assertEquals(20, second.getActiveSkills().get(0).getBaseDamage());
+        first.setHealth(0);
+        assertEquals(70, second.getHealth());
+        assertEquals(50, EnemyFactory.createBossPhase(1).getHealth());
+    }
+
+    @Test
+    void createBossPhase_invalidPhase_rejectsConfiguration() {
+        for (int phase : new int[] {Integer.MIN_VALUE, -1, 0, 3, Integer.MAX_VALUE}) {
+            assertThrows(IllegalArgumentException.class, () -> EnemyFactory.createBossPhase(phase));
+        }
+    }
+
+    @Test
     void createEnemy_rogueAi_returnsConfiguredEnemy() {
         Enemy enemy = EnemyFactory.createEnemy("rogue_ai");
 
