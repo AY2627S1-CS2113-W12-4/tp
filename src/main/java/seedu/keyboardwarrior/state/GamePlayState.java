@@ -1,5 +1,6 @@
 package seedu.keyboardwarrior.state;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
 
@@ -7,6 +8,7 @@ import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
+import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.typing.ChallengeClock;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingChallengeFactory;
@@ -23,6 +25,7 @@ public class GamePlayState extends State {
     private final ChallengeClock clock;
     private final CombatUi combatUi;
     private final Random random;
+    private final SaveStore saveStore;
     /** Shares prompt selection history across all five scenarios in a run. */
     private final TypingChallengeFactory challengeFactory = new TypingChallengeFactory();
     /** The same player's remaining health carries into the next scenario. */
@@ -51,10 +54,17 @@ public class GamePlayState extends State {
 
     /** Accepts controlled enemy selection so gameplay tests remain reproducible. */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi, Random random) {
+        this(stateMachine, clock, combatUi, random, new SaveStore());
+    }
+
+    /** Accepts a save location so tests do not overwrite the player's history. */
+    GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi,
+            Random random, SaveStore saveStore) {
         super("Gameplay", stateMachine);
         this.clock = Objects.requireNonNull(clock, "Challenge clock must not be null");
         this.combatUi = Objects.requireNonNull(combatUi, "Combat interface must not be null");
         this.random = Objects.requireNonNull(random, "Random generator must not be null");
+        this.saveStore = Objects.requireNonNull(saveStore, "Save store must not be null");
     }
 
     @Override
@@ -144,6 +154,11 @@ public class GamePlayState extends State {
         challenge = null;
         StateUi.clearCountdown();
         StateUi.showTypingResult(result);
+        try {
+            saveStore.save(result);
+        } catch (IOException e) {
+            StateUi.printLine("Could not save typing history: " + e.getMessage());
+        }
         encounter.submitTypingResult(result);
         if (!encounter.getIsCompleted()) {
             return;
