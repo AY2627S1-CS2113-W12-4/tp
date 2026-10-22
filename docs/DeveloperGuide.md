@@ -31,6 +31,24 @@ input avoids Gradle `run` and IDE Run console stream redirection, which can prev
 unsubmitted keystrokes. On Windows, the entry point selects the native Windows terminal type even
 when the launcher supplies `TERM=dumb`.
 
+### Typing history and state transitions
+
+`SaveStore` saves each completed typing attempt as a UTF-8 line containing WPM and accuracy
+percentage. It retains the latest ten entries in chronological order and reads existing records
+before appending, so history survives application restarts. The default file is
+`data/keyboardwarrior.txt`, relative to the launch directory. A missing file means empty history;
+unreadable files and invalid loaded metrics produce `IOException`.
+
+`MainMenuState` handles `records` by loading that store and passing its records to
+`StateUi.showRecords(...)`. It passes the same store into `GamePlayState` on `start`, and gameplay
+passes it back to the menu after victory or defeat. This preserves the selected history location
+throughout the session. Tests inject stores under `@TempDir`, including the full balance simulation,
+so running the test suite does not replace the player's history.
+
+`GamePlayState` saves the evaluated result before resolving combat. An `IOException` is reported
+without discarding the attack or ending the game. Loading errors are likewise reported while
+leaving the main menu usable. The store records typing metrics, not a resumable game state.
+
 ### Enhancement 8.1: Character feedback and accuracy-based damage
 
 #### Responsibilities and data flow
@@ -315,6 +333,11 @@ phase boundaries, defeat and restart. Clock and terminal tests cover countdown o
 unfinished input. Simulated terminal tests select JLine's `exec` provider for consistent stream-based
 input/output on Windows, macOS and Linux.
 
+Storage tests verify both file contents and loaded records, retention after reopening, and invalid
+metric rejection. State integration tests check that starting and finishing a run retain the same
+history store. Enemy lookup is also tested under a Turkish default locale so case normalization
+cannot depend on the operating system's language.
+
 The progression regressions in `GamePlayStateTest` include:
 
 * `normalPerformance_eachRepeatedEnemyType_survivesFiveScenariosAndBothBossPhases` checks the balance target across each regular enemy type.
@@ -338,6 +361,7 @@ Use a supported terminal with Java 25 and `sh ./run-game.sh` or `.\run-game.bat`
 | Final victory | Defeat boss phase 2 | Run victory appears and returns to menu |
 | Phase-boundary defeat | Reach phase 2 with low HP, then make a nonlethal or empty attempt | Boss response can defeat player; no later phase or victory is announced |
 | Restart and exit | Start after victory/defeat; try `exit` during a prompt | New run begins with 100 HP at scenario 1; exit ends the game cleanly |
+| History and restart | Complete an attempt, return to the menu, enter `records`, then restart from the same folder | Saved WPM and accuracy remain visible; at most the latest ten attempts appear, oldest first |
 
 For a balance check, sustain at least 50 WPM and 95% character accuracy on each attempt. Confirm at
 least 40 damage per attack, at most two attacks per regular enemy or boss phase, and at least 10 HP

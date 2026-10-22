@@ -27,6 +27,8 @@ class SaveStoreTest {
         new SaveStore(file).save(result);
 
         assertEquals(List.of(result.getWpm() + "," + result.getAccuracyPercent()), Files.readAllLines(file));
+        assertEquals(List.of(new SaveStore.SavedRecord(result.getWpm(), result.getAccuracyPercent())),
+                new SaveStore(file).load());
     }
 
     @Test
@@ -37,10 +39,26 @@ class SaveStoreTest {
         }
 
         List<String> lines = Files.readAllLines(file);
+        List<SaveStore.SavedRecord> loaded = new SaveStore(file).load();
         assertEquals(10, lines.size());
+        assertEquals(10, loaded.size());
         for (int index = 0; index < 10; index++) {
             TypingResult expected = TypingEvaluator.evaluateTyping("hello", "hello", index + 3, 15);
             assertEquals(expected.getWpm() + ",100.0", lines.get(index));
+            assertEquals(new SaveStore.SavedRecord(expected.getWpm(), 100.0), loaded.get(index));
+        }
+    }
+
+    @Test
+    void load_invalidMetrics_reportsIoFailureWithoutChangingHistory() throws IOException {
+        Path file = tempDir.resolve("history.txt");
+        for (String invalid : List.of("NaN,95", "Infinity,95", "-1,95", "50,NaN",
+                "50,Infinity", "50,-1", "50,101", "50", "50,95,extra")) {
+            String contents = "40,90\n" + invalid + "\n";
+            Files.writeString(file, contents);
+
+            assertThrows(IOException.class, () -> new SaveStore(file).load(), invalid);
+            assertEquals(contents, Files.readString(file));
         }
     }
 

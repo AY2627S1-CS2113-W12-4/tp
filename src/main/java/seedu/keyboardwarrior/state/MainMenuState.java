@@ -39,7 +39,7 @@ public class MainMenuState extends State {
     @Override
     public void handleInput(String input) {
         if (input.trim().equalsIgnoreCase("start")) {
-            stateMachine.transitState(new GamePlayState(stateMachine));
+            stateMachine.transitState(new GamePlayState(stateMachine, saveStore));
         } else if (input.trim().equalsIgnoreCase("records")) {
             try {
                 StateUi.showRecords(saveStore.load());

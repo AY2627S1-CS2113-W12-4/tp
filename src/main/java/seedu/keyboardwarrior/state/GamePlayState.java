@@ -51,6 +51,11 @@ public class GamePlayState extends State {
         this(stateMachine, new ChallengeClock(), new CombatUi());
     }
 
+    /** Retains the menu's history store when starting a new run. */
+    GamePlayState(StateMachine stateMachine, SaveStore saveStore) {
+        this(stateMachine, new ChallengeClock(), new CombatUi(), new Random(), saveStore);
+    }
+
     /**
      * Accepts a controllable clock and interface for testing turns and scenario progression.
      */
@@ -190,7 +195,7 @@ public class GamePlayState extends State {
         } else {
             StateUi.showRunDefeat();
         }
-        stateMachine.transitState(new MainMenuState(stateMachine));
+        stateMachine.transitState(new MainMenuState(stateMachine, saveStore));
     }
 
     /**

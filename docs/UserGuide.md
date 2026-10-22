@@ -28,6 +28,20 @@ supported terminal:
 java -ea --enable-native-access=ALL-UNNAMED -jar KeyboardWarrior.jar
 ```
 
+## Saved typing history
+
+At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
+first. Each entry shows WPM and accuracy. Viewing records keeps you in the main menu, where you
+can enter `start`, `records` or `exit`.
+
+Every submitted attempt is saved automatically, including partial or empty text captured when
+the timer expires. History survives restarting the application. The file is
+`data/keyboardwarrior.txt`, relative to the folder from which the game is launched.
+
+If there is no history yet, the menu displays an empty-history message. If the file cannot be read
+or contains an invalid record, it displays an error. A saving error is reported while the current
+combat turn continues.
+
 ## Skills and countdown
 
 Each turn begins with a skill choice. Names are case-insensitive.

@@ -1,5 +1,6 @@
 package seedu.keyboardwarrior.state;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -8,6 +9,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -18,6 +20,28 @@ import seedu.keyboardwarrior.storage.SaveStore;
 class MainMenuStateTest {
     @TempDir
     Path tempDir;
+
+    @Test
+    void start_customHistory_savesAttemptsToTheSameFile() throws IOException {
+        Path history = tempDir.resolve("history.txt");
+        Files.writeString(history, "42.5,87.25\n");
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(history)));
+
+            machine.handleInput("start");
+            machine.handleInput("Ping");
+            machine.handleInput("");
+
+            assertEquals(List.of("42.5,87.25", "0.0,0.0"), Files.readAllLines(history));
+            machine.handleInput("exit");
+        } finally {
+            System.setOut(original);
+        }
+    }
 
     @Test
     void records_savedHistory_displaysMetricsAndStaysInMenu() throws IOException {

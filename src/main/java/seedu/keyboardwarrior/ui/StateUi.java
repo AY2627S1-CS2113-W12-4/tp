@@ -139,7 +139,8 @@ public final class StateUi {
     public static void showMainMenu() {
         showBanner();
         showSeparator();
-        printLine("Type Start to begin five combat scenarios and 2-phase final boss, Records to view typing history, or Exit to quit.");
+        printLine("Type Start to begin five combat scenarios and 2-phase final boss, "
+                + "Records to view typing history, or Exit to quit.");
     }
 
     /**
