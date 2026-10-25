@@ -14,6 +14,9 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
  * Tests the state and skill data exposed by combat entities.
  */
 class CombatModelTest {
+    /**
+     * Checks that enemy construction and updates preserve the supplied combat data.
+     */
     @Test
     void enemy_newAndUpdated_preservesCombatState() {
         Enemy enemy = new Enemy("Training Bot", 50);
@@ -34,6 +37,9 @@ class CombatModelTest {
         assertSame(skill, enemy.getActiveSkills().get(0));
     }
 
+    /**
+     * Checks that a new player receives all four standard skills in order.
+     */
     @Test
     void player_new_hasDefaultSkillsInOrder() {
         Player player = new Player("Player", 100);
@@ -48,6 +54,9 @@ class CombatModelTest {
         assertSame(SkillRegistry.getSkill("sigkill"), player.getActiveSkills().get(3));
     }
 
+    /**
+     * Checks that a skill exposes its configured name, damage and difficulty.
+     */
     @Test
     void skill_new_exposesConfiguredValues() {
         Skill skill = new Skill("Test Strike", 12, Difficulty.HARD);
@@ -57,6 +66,9 @@ class CombatModelTest {
         assertEquals(Difficulty.HARD, skill.getDifficulty());
     }
 
+    /**
+     * Checks that invalid entity names and negative health are rejected.
+     */
     @Test
     void entity_invalidNameOrHealth_rejectsConstruction() {
         assertThrows(NullPointerException.class, () -> new Enemy(null, 50));
@@ -65,6 +77,9 @@ class CombatModelTest {
         assertThrows(IllegalArgumentException.class, () -> new Enemy("Target", -1));
     }
 
+    /**
+     * Checks that rejected entity updates leave existing values unchanged.
+     */
     @Test
     void entity_invalidUpdates_preservePreviousState() {
         Enemy enemy = new Enemy("Target", 50);
@@ -78,6 +93,9 @@ class CombatModelTest {
         assertTrue(enemy.getActiveSkills().isEmpty());
     }
 
+    /**
+     * Checks that zero health is allowed without automatically changing the defeated flag.
+     */
     @Test
     void entity_zeroHealth_isAllowedWithoutChangingDefeatedFlag() {
         Enemy enemy = new Enemy("Target", 0);
@@ -90,6 +108,9 @@ class CombatModelTest {
         assertFalse(enemy.getIsDead());
     }
 
+    /**
+     * Checks that invalid skill names, damage and difficulties are rejected.
+     */
     @Test
     void skill_invalidArguments_rejectsConstruction() {
         assertThrows(NullPointerException.class, () -> new Skill(null, 12, Difficulty.EASY));
@@ -99,6 +120,9 @@ class CombatModelTest {
         assertThrows(NullPointerException.class, () -> new Skill("Strike", 12, null));
     }
 
+    /**
+     * Checks that a skill may have zero base damage.
+     */
     @Test
     void skill_zeroDamage_isAllowed() {
         Skill skill = new Skill("Wait", 0, Difficulty.EASY);

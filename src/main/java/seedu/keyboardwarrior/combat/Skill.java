@@ -4,7 +4,9 @@ import java.util.Objects;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Defines a combat action and the typing challenge required to use it. */
+/**
+ * Defines a combat action and the typing challenge required to use it.
+ */
 public class Skill {
     private String name;
     private int baseDamage;

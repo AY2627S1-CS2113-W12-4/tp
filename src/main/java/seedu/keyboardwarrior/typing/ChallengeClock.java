@@ -12,6 +12,7 @@ public class ChallengeClock {
      * Creates a clock with no active countdown.
      */
     public ChallengeClock() {
+        
         startTimeNanos = 0L;
         durationNanos = 0L;
     }
@@ -37,10 +38,12 @@ public class ChallengeClock {
      * @return zero before starting or after expiry, otherwise the seconds remaining
      */
     public int getRemainingSeconds() {
+        assert durationNanos >= 0 : "Stored timer duration must not be negative";
         if (durationNanos == 0) {
             return 0;
         }
         long elapsedNanos = System.nanoTime() - startTimeNanos;
+        assert elapsedNanos >= 0 : "Elapsed time must not be negative";
         long remainingNanos = Math.max(0L, durationNanos - elapsedNanos);
         return (int) ((remainingNanos + NANOS_PER_SECOND - 1) / NANOS_PER_SECOND);
     }
@@ -51,6 +54,12 @@ public class ChallengeClock {
      * @return elapsed seconds, or zero when no positive-duration timer was started
      */
     public double getElapsedSeconds() {
-        return durationNanos == 0 ? 0.0 : (System.nanoTime() - startTimeNanos) / (double) NANOS_PER_SECOND;
+        assert durationNanos >= 0 : "Stored timer duration must not be negative";
+        if (durationNanos == 0) {
+            return 0.0;
+        }
+        long elapsedNanos = System.nanoTime() - startTimeNanos;
+        assert elapsedNanos >= 0 : "Elapsed time must not be negative";
+        return elapsedNanos / (double) NANOS_PER_SECOND;
     }
 }

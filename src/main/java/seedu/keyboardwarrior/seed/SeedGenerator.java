@@ -3,15 +3,16 @@ package seedu.keyboardwarrior.seed;
 import java.util.Random;
 
 /**
- * SeedGenerator
+ * Converts optional numeric or text input into a seed for reproducible random choices.
  */
 public class SeedGenerator {
 
     /**
-     * Converts a user's input string into a usable numeric seed.
-     * 
-     * @param input The seed string (can be null, empty, numeric, or text)
-     * @return A 64-bit long to be used for java.util.Random
+     * Parses a trimmed signed long, or uses the trimmed text's hash code when parsing fails.
+     * Null or blank input produces a newly generated random seed.
+     *
+     * @param input optional numeric or text seed
+     * @return seed suitable for {@link Random}
      */
     public static long parseSeed(String input) {
         if (input == null || input.isBlank()) {

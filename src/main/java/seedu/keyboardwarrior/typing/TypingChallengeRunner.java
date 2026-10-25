@@ -2,7 +2,9 @@ package seedu.keyboardwarrior.typing;
 
 import seedu.keyboardwarrior.ui.CombatUi;
 
-/** Presents one typing challenge and evaluates the player's submitted text. */
+/**
+ * Presents one typing challenge and evaluates the player's submitted text.
+ */
 public class TypingChallengeRunner {
 
     private String expectedText;
@@ -19,7 +21,12 @@ public class TypingChallengeRunner {
         this(ui, new ChallengeClock());
     }
 
-    /** Accepts a controllable clock so tests can verify timing without waiting. */
+    /**
+     * Accepts a controllable clock so tests can verify timing without waiting.
+     *
+     * @param ui interface used to display the prompt and read a submission
+     * @param clock clock used to measure typing duration
+     */
     TypingChallengeRunner(CombatUi ui, ChallengeClock clock) {
         this.clock = clock;
         this.ui = ui;
@@ -36,7 +43,9 @@ public class TypingChallengeRunner {
     }
 
     /**
-     * Presents and evaluates the initialized challenge.
+     * Presents the initialized challenge and blocks until one line is submitted.
+     * Measures elapsed time and scores late answers without automatically submitting
+     * unfinished input at the deadline.
      *
      * @return evaluated typing performance
      */

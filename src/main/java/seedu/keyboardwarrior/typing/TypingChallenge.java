@@ -2,18 +2,30 @@ package seedu.keyboardwarrior.typing;
 
 import java.util.Objects;
 
-/** Stores the target text and time limit for one typing challenge. */
+/**
+ * Stores the target text and time limit for one typing challenge.
+ */
 public class TypingChallenge {
 
-    /** Available challenge levels used by skills and prompt selection. */
+    /**
+     * Available challenge levels used by skills and prompt selection.
+     */
     public enum Difficulty {
-        /** Shortest and simplest challenge level. */
+        /**
+         * Shortest and simplest challenge level.
+         */
         EASY,
-        /** Intermediate challenge level. */
+        /**
+         * Intermediate challenge level.
+         */
         MEDIUM,
-        /** Advanced challenge level. */
+        /**
+         * Advanced challenge level.
+         */
         HARD,
-        /** Most demanding challenge level. */
+        /**
+         * Most demanding challenge level.
+         */
         ULTIMATE
     }
 

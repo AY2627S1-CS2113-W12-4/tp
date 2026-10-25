@@ -1,6 +1,8 @@
 package seedu.keyboardwarrior.combat;
 
-/** Represents the player and initializes the skills available to them. */
+/**
+ * Represents the player and initializes the skills available to them.
+ */
 public class Player extends Entity {
     /**
      * Creates a player with all skills from the standard player loadout.
@@ -15,5 +17,8 @@ public class Player extends Entity {
         addSkill(SkillRegistry.getSkill("brute_force"));
         addSkill(SkillRegistry.getSkill("buffer_overflow"));
         addSkill(SkillRegistry.getSkill("sigkill"));
+
+        assert activeSkills.size() == 4 && !activeSkills.contains(null)
+                : "Players must receive the complete standard skill loadout";
     }
 }

@@ -7,16 +7,20 @@ import java.util.logging.Logger;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
-/** Calculates and applies the damage produced by a selected combat skill. */
+/**
+ * Calculates and applies the damage produced by a selected combat skill.
+ */
 public class SkillResolver {
-    /** Optional combat diagnostics; FINE messages do not appear in normal gameplay. */
+    /**
+     * Optional combat diagnostics; FINE messages do not appear in normal gameplay.
+     */
     private static final Logger LOGGER = Logger.getLogger(SkillResolver.class.getName());
     private CombatUi ui;
 
     /**
      * Creates a resolver that reports combat results through the given interface.
      *
-     * @param ui interface used to display damage and time penalties
+     * @param ui interface used to display damage
      * @throws NullPointerException if the interface is null
      */
     public SkillResolver(CombatUi ui) {
@@ -25,10 +29,10 @@ public class SkillResolver {
 
     /**
      * Resolves one skill use against a target.
-     * Player damage is scaled by 0.02 times WPM times accuracy as a fraction,
-     * while a {@code null} result
-     * applies the base damage directly for automated enemy turns.
-     * Exceeding the time limit reduces player damage by twenty percent.
+     * Player damage is WPM multiplied by the fourth power of character accuracy
+     * as a fraction, rounded down once at the end. The selected skill's base
+     * damage and the time limit do not modify this result. A {@code null} result
+     * applies the skill's base damage directly for automated enemy turns.
      *
      * @param source entity using the skill
      * @param target entity receiving any damage
@@ -45,24 +49,29 @@ public class SkillResolver {
             return;
         }
 
-        if (result.isTimeLimitExceeded()) {
-            ui.showTypingSlow();
-        }
-
         double accuracy = result.getAccuracyPercent() / 100.0;
-        double multiplier = 0.02 * result.getWpm() * accuracy;
-        // Apply the time penalty before rounding so fractional damage is retained until the end.
-        int calculatedDamage = (int) (chosenSkill.getBaseDamage() * multiplier * result.getTimeDamageMultiplier());
+        double damage = result.getWpm() * Math.pow(accuracy, 4);
+        assert accuracy >= 0.0 && accuracy <= 1.0 : "Typing accuracy must be normalized";
+        assert Double.isFinite(damage) && damage >= 0.0 : "Typing damage must be valid";
+        // Retain fractional precision until the final conversion; Java caps extreme values at Integer.MAX_VALUE.
+        int calculatedDamage = (int) damage;
+        assert calculatedDamage >= 0 : "Calculated damage must not be negative";
         applyDamage(target, calculatedDamage);
     }
 
-    /** Applies damage without allowing the target's health to fall below zero. */
+    /**
+     * Applies damage without allowing the target's health to fall below zero.
+     *
+     * @param target entity receiving the damage
+     * @param damage nonnegative damage to apply
+     */
     private void applyDamage(Entity target, int damage) {
         assert damage >= 0 : "Resolved damage must not be negative";
         int currentHealth = target.getHealth();
         int newHealth = Math.max(0, currentHealth - damage);
         assert newHealth >= 0 && newHealth <= currentHealth : "Damage must not increase or make health negative";
         target.setHealth(newHealth);
+        assert target.getHealth() == newHealth : "Target health must reflect the resolved damage";
 
         LOGGER.log(Level.FINE, "Applied {0} damage to {1}; health changed from {2} to {3}",
                 new Object[] {damage, target.getName(), currentHealth, newHealth});

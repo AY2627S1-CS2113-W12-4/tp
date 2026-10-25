@@ -2,20 +2,30 @@ package seedu.keyboardwarrior.encounter;
 
 // import seedu.keyboardwarrior.typing.TypingResult;
 
-/** Defines the lifecycle and result shared by all game encounters. */
+/**
+ * Defines the lifecycle and result shared by all game encounters.
+ */
 public abstract class Encounter {
-    /** Whether the encounter has reached a final outcome. */
+    /**
+     * Whether the encounter has reached a final outcome.
+     */
     protected boolean isCompleted;
-    /** Result populated when the encounter completes. */
+    /**
+     * Result populated when the encounter completes.
+     */
     protected EncounterOutcome outcome;
 
-    /** Creates an incomplete encounter with a default outcome container. */
+    /**
+     * Creates an incomplete encounter with a default outcome container.
+     */
     public Encounter() {
         this.isCompleted = false;
         this.outcome = new EncounterOutcome();
     }
 
-    /** Runs the encounter until it reaches a final outcome. */
+    /**
+     * Runs the encounter until it reaches a final outcome.
+     */
     public abstract void start();
 
     /**
@@ -47,6 +57,7 @@ public abstract class Encounter {
             throw new IllegalStateException("Cannot get outcome before encounter is complete!");
         }
 
+        assert outcome != null : "A completed encounter must have an outcome";
         return outcome;
     }
 }

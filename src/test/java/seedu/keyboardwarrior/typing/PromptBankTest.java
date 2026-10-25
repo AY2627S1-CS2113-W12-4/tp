@@ -12,8 +12,13 @@ import org.junit.jupiter.api.Test;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Tests varied prompt selection and avoidance of consecutive repeated passages. */
+/**
+ * Tests varied prompt selection and avoidance of consecutive repeated passages.
+ */
 class PromptBankTest {
+    /**
+     * Checks prompt variety without consecutive repeats at every difficulty.
+     */
     @Test
     void getRandomPrompt_eachDifficulty_hasVarietyWithoutConsecutiveRepeats() {
         PromptBank bank = new PromptBank(new Random(42));
@@ -32,6 +37,9 @@ class PromptBankTest {
         }
     }
 
+    /**
+     * Checks that switching difficulty retains the previous selection for each level.
+     */
     @Test
     void getRandomPrompt_switchingDifficulty_preservesPreviousSelectionForEachLevel() {
         PromptBank bank = new PromptBank(new Random(17));

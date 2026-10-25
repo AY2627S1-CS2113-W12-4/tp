@@ -8,12 +8,18 @@ import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 
-/** Handles console input and output for interactive combat encounters. */
+/**
+ * Handles console input and output for interactive combat encounters.
+ */
 public class CombatUi {
-    /** Reads skill choices and typing submissions from standard input. */
+    /**
+     * Reads skill choices and typing submissions from standard input.
+     */
     private Scanner scanner;
 
-    /** Creates a combat interface connected to standard input. */
+    /**
+     * Creates a combat interface connected to standard input.
+     */
     public CombatUi() {
         this.scanner = new Scanner(System.in);
     }
@@ -109,17 +115,25 @@ public class CombatUi {
         }
     }
 
-    /** Tells the player to prepare for the typing challenge. */
+    /**
+     * Tells the player to prepare for the typing challenge.
+     */
     public void showTypingPrep() {
         StateUi.printLine("\nGet ready!");
     }
 
-    /** Explains how to select one of the displayed skills. */
+    /**
+     * Explains how to select one of the displayed skills.
+     */
     public void showInvalidSkill() {
         StateUi.printLine("Invalid skill. Type the name of a displayed skill, or Exit to quit.");
     }
 
-    /** Displays the target text and limit before the live countdown starts. */
+    /**
+     * Displays the target text and limit before the live countdown starts.
+     *
+     * @param challenge typing challenge to display
+     */
     public void showTypingChallenge(TypingChallenge challenge) {
         StateUi.showTypingChallenge(challenge);
     }
@@ -135,9 +149,11 @@ public class CombatUi {
         return scanner.nextLine();
     }
 
-    /** Explains the damage reduction applied to an overdue typing attempt. */
+    /**
+     * Reports an overdue typing attempt without applying a separate damage penalty.
+     */
     public void showTypingSlow() {
-        StateUi.printLine("Time limit exceeded: attack damage reduced by 20%.");
+        StateUi.printLine("Time limit exceeded: scoring the text captured at expiry.");
     }
 
     /**
@@ -159,7 +175,9 @@ public class CombatUi {
         StateUi.printLine("\n" + enemy.getName() + " has been defeated!");
     }
 
-    /** Announces that the player was defeated. */
+    /**
+     * Announces that the player was defeated.
+     */
     public void showDefeat() {
         StateUi.printLine("\nYou have been defeated...");
     }

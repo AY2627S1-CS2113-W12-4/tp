@@ -27,6 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Simulated terminals use stream-based output consistently across operating systems.
  */
 class StateUiTerminalTest {
+    /**
+     * Checks that countdown redraws preserve the editable input and update the displayed seconds.
+     */
     @Test
     void countdown_reusesStatusRowAndPreservesInput() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -47,6 +50,9 @@ class StateUiTerminalTest {
         }
     }
 
+    /**
+     * Checks that timeout capture clears the current answer before the next line is submitted.
+     */
     @Test
     void takeCurrentInput_activeReader_returnsPassageAndClearsNextSubmission() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -81,6 +87,9 @@ class StateUiTerminalTest {
         }
     }
 
+    /**
+     * Checks that basic terminals do not append countdown digits to the answer.
+     */
     @Test
     void countdown_basicConsoleDoesNotAppendTimerDigits() throws Exception {
         for (String terminalType : new String[] {Terminal.TYPE_DUMB, Terminal.TYPE_DUMB_COLOR}) {
@@ -96,6 +105,9 @@ class StateUiTerminalTest {
         }
     }
 
+    /**
+     * Checks that terminals with unknown dimensions do not append countdown digits to the answer.
+     */
     @Test
     void countdown_unknownTerminalSizeDoesNotAppendTimerDigits() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -108,7 +120,13 @@ class StateUiTerminalTest {
         }
     }
 
-    /** Verifies that unsupported countdown redraws leave an active answer undisturbed. */
+    /**
+     * Verifies that unsupported countdown redraws leave an active answer undisturbed.
+     *
+     * @param terminal terminal used for input and output
+     * @param keyboard pipe used to simulate terminal keystrokes
+     * @param output buffer receiving terminal output
+     */
     private void assertCountdownLeavesTypingUntouched(Terminal terminal, PipedOutputStream keyboard,
             ByteArrayOutputStream output) throws Exception {
         ExecutorService inputExecutor = Executors.newSingleThreadExecutor();
@@ -140,7 +158,12 @@ class StateUiTerminalTest {
         }
     }
 
-    /** Waits briefly for background terminal input without leaving a test blocked. */
+    /**
+     * Waits briefly for background terminal input without leaving a test blocked.
+     *
+     * @param condition condition to poll until satisfied or timed out
+     * @return whether the condition became true before the polling finished
+     */
     private boolean waitUntil(BooleanSupplier condition) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
         while (!condition.getAsBoolean() && System.nanoTime() < deadline) {

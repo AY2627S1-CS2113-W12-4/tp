@@ -10,7 +10,9 @@ import seedu.keyboardwarrior.ui.StateUi;
  * it.
  */
 public class StateMachine {
-    /** Diagnostic state changes; FINE messages are hidden by default. */
+    /**
+     * Diagnostic state changes; FINE messages are hidden by default.
+     */
     private static final Logger LOGGER = Logger.getLogger(StateMachine.class.getName());
     private State currentState;
     private boolean isRunning = true;
@@ -19,7 +21,7 @@ public class StateMachine {
      * Activates the first state of the application.
      *
      * @param initialState the first state to enter
-     * @throws NullPointerException  if the initial state is null
+     * @throws NullPointerException if the initial state is null
      * @throws IllegalStateException if this machine was already started or stopped
      */
     public void start(State initialState) {
@@ -36,7 +38,7 @@ public class StateMachine {
      * Leaves the active state and enters the next one.
      *
      * @param nextState the state to activate
-     * @throws NullPointerException  if the next state is null
+     * @throws NullPointerException if the next state is null
      * @throws IllegalStateException if the machine has not started or has stopped
      */
     public void transitState(State nextState) {
@@ -53,7 +55,7 @@ public class StateMachine {
      * state.
      *
      * @param input the player's input
-     * @throws NullPointerException  if input is null
+     * @throws NullPointerException if input is null
      * @throws IllegalStateException if the machine has not started or has stopped
      */
     public void handleInput(String input) {
@@ -89,7 +91,9 @@ public class StateMachine {
         }
     }
 
-    /** Rejects lifecycle operations before startup or after shutdown. */
+    /**
+     * Rejects lifecycle operations before startup or after shutdown.
+     */
     private void requireActiveState() {
         if (currentState == null || !isRunning) {
             throw new IllegalStateException("State machine must be started and running.");

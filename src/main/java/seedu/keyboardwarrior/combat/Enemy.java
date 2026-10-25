@@ -1,6 +1,8 @@
 package seedu.keyboardwarrior.combat;
 
-/** Represents an opponent that can participate in a combat encounter. */
+/**
+ * Represents an opponent that can participate in a combat encounter.
+ */
 public class Enemy extends Entity {
     /**
      * Creates an enemy without any active skills.

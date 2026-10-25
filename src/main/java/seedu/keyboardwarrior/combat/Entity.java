@@ -3,15 +3,25 @@ package seedu.keyboardwarrior.combat;
 import java.util.ArrayList;
 import java.util.Objects;
 
-/** Represents a combat participant with health and a collection of usable skills. */
+/**
+ * Represents a combat participant with health and a collection of usable skills.
+ */
 public abstract class Entity {
-    /** Name displayed by the combat interface. */
+    /**
+     * Name displayed by the combat interface.
+     */
     protected String name;
-    /** Current health points; combat damage does not reduce this below zero. */
+    /**
+     * Current health points; combat damage does not reduce this below zero.
+     */
     protected int health;
-    /** Whether this entity has been defeated. */
+    /**
+     * Whether this entity has been defeated.
+     */
     protected Boolean isDead;
-    /** Skills currently available to this entity. */
+    /**
+     * Skills currently available to this entity.
+     */
     protected ArrayList<Skill> activeSkills;
 
     /**
@@ -74,6 +84,7 @@ public abstract class Entity {
      * @return entity name
      */
     public String getName() {
+        assert name != null && !name.isBlank() : "Entity name must remain valid";
         return name;
     }
 
@@ -93,6 +104,7 @@ public abstract class Entity {
      * @return {@code true} if the entity is dead
      */
     public boolean getIsDead() {
+        assert isDead != null : "Entity defeated state must remain defined";
         return isDead;
     }
 
@@ -102,6 +114,7 @@ public abstract class Entity {
      * @return active skills
      */
     public ArrayList<Skill> getActiveSkills() {
+        assert activeSkills != null : "Entity skill collection must remain available";
         return activeSkills;
     }
 }

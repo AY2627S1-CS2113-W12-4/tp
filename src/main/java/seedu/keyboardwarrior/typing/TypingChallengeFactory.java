@@ -9,9 +9,19 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
  * difficulty.
  */
 public class TypingChallengeFactory {
+    /**
+     * Baseline speed used to give each passage a realistic completion window.
+     */
+    private static final double TARGET_WPM = 50.0;
+    /**
+     * Allows twenty percent extra time beyond the baseline passage completion time.
+     */
+    private static final double TIME_ALLOWANCE = 1.2;
     private final PromptBank bank;
 
-    /** Creates a factory backed by a new prompt bank. */
+    /**
+     * Creates a factory backed by a new prompt bank.
+     */
     public TypingChallengeFactory() {
         this(new PromptBank());
     }
@@ -27,20 +37,30 @@ public class TypingChallengeFactory {
     }
 
     /**
-     * Generates a challenge for the requested difficulty.
+     * Generates a challenge with a random prompt for the requested difficulty.
+     * The deadline is the larger of the difficulty minimum and the rounded-up time
+     * for fifty WPM plus twenty percent, using normalized UTF-16 text length.
      *
      * @param difficulty desired challenge difficulty
      * @return challenge containing a matching prompt and time limit
      */
     public TypingChallenge generate(Difficulty difficulty) {
+        Objects.requireNonNull(difficulty, "Challenge difficulty must not be null");
         String selectedText = bank.getRandomPrompt(difficulty);
-        int timeLimit = getTimeLimit(difficulty);
+        int characterCount = selectedText.trim().replaceAll("\\s+", " ").length();
+        int passageTime = (int) Math.ceil(characterCount * 60.0 / (5.0 * TARGET_WPM) * TIME_ALLOWANCE);
+        int timeLimit = Math.max(getMinimumTimeLimit(difficulty), passageTime);
 
         return new TypingChallenge(selectedText, timeLimit);
     }
 
-    /** Returns the configured time limit for a difficulty. */
-    private int getTimeLimit(Difficulty difficulty) {
+    /**
+     * Returns the difficulty's minimum; longer passages receive a length-aware allowance.
+     *
+     * @param difficulty difficulty whose minimum deadline is requested
+     * @return minimum allowed duration in seconds
+     */
+    private int getMinimumTimeLimit(Difficulty difficulty) {
         switch (difficulty) {
         case EASY:
             return 15;
