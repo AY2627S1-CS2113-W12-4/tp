@@ -117,7 +117,9 @@ public class CountdownReader extends LineReaderImpl {
         }
         String challengeDisplay = challengeText == null ? ""
                 : "Time limit: " + timeLimitSeconds + " seconds\n"
-                + "Type the following text and press Enter to attack:\n" + challengeText + "\n";
+                // JLine expands percent markers in prompts, so passage symbols must be escaped.
+                + "Type the following text and press Enter to attack:\n"
+                + challengeText.replace("%", "%%") + "\n";
         return "Time remaining: " + remainingSeconds + "s\n" + challengeDisplay + "Your input: ";
     }
 }
