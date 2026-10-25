@@ -19,7 +19,7 @@ public class StateMachine {
      * Activates the first state of the application.
      *
      * @param initialState the first state to enter
-     * @throws NullPointerException if the initial state is null
+     * @throws NullPointerException  if the initial state is null
      * @throws IllegalStateException if this machine was already started or stopped
      */
     public void start(State initialState) {
@@ -36,7 +36,7 @@ public class StateMachine {
      * Leaves the active state and enters the next one.
      *
      * @param nextState the state to activate
-     * @throws NullPointerException if the next state is null
+     * @throws NullPointerException  if the next state is null
      * @throws IllegalStateException if the machine has not started or has stopped
      */
     public void transitState(State nextState) {
@@ -53,7 +53,7 @@ public class StateMachine {
      * state.
      *
      * @param input the player's input
-     * @throws NullPointerException if input is null
+     * @throws NullPointerException  if input is null
      * @throws IllegalStateException if the machine has not started or has stopped
      */
     public void handleInput(String input) {

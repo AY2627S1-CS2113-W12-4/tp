@@ -1,11 +1,16 @@
 package seedu.keyboardwarrior.state;
 
+import java.util.Random;
+
+import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.ui.StateUi;
 
 /**
  * Displays the main menu and responds to the player's menu choices.
  */
 public class MainMenuState extends State {
+    private boolean isWaitingForSeed = false;
+
     /**
      * Creates the main-menu state.
      *
@@ -26,8 +31,19 @@ public class MainMenuState extends State {
 
     @Override
     public void handleInput(String input) {
+        if (isWaitingForSeed) {
+            long seed = SeedGenerator.parseSeed(input);
+            StateUi.showSeed(seed);
+
+            Random masterRandom = new Random(seed);
+
+            stateMachine.transitState(new GamePlayState(stateMachine, masterRandom));
+            return;
+        }
+
         if (input.trim().equalsIgnoreCase("start")) {
-            stateMachine.transitState(new GamePlayState(stateMachine));
+            isWaitingForSeed = true;
+            StateUi.showSeedPrompt();
         } else if (input.trim().equalsIgnoreCase("exit")) {
             stateMachine.stop();
         } else {

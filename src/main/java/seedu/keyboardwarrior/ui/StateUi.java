@@ -57,7 +57,9 @@ public final class StateUi {
         }
     }
 
-    /** Returns and clears the unfinished passage for automatic timeout evaluation. */
+    /**
+     * Returns and clears the unfinished passage for automatic timeout evaluation.
+     */
     public static String takeCurrentInput() {
         return reader == null ? "" : reader.takeCurrentInput();
     }
@@ -84,7 +86,8 @@ public final class StateUi {
 
     /**
      * Prints output above any input currently being edited, or directly in tests.
-     * Combat output uses this same terminal so it does not overwrite the editable line.
+     * Combat output uses this same terminal so it does not overwrite the editable
+     * line.
      */
     public static void printLine(String text) {
         if (reader == null) {
@@ -145,6 +148,14 @@ public final class StateUi {
         printLine("Invalid option. Please enter Start or Exit.");
     }
 
+    public static void showSeedPrompt() {
+        printLine("Enter a seed (or press Enter for a random seed):");
+    }
+
+    public static void showSeed(long seed) {
+        printLine("Starting run with seed: " + seed);
+    }
+
     /**
      * Announces entry into gameplay.
      */
@@ -170,7 +181,8 @@ public final class StateUi {
     }
 
     /**
-     * Displays evaluated metrics while retaining individual word errors in the result.
+     * Displays evaluated metrics while retaining individual word errors in the
+     * result.
      */
     public static void showTypingResult(TypingResult result) {
         printLine(TypingResultFormatter.formatTypingSummary(result));

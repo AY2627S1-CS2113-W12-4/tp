@@ -16,7 +16,8 @@ import seedu.keyboardwarrior.ui.CombatUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
 /**
- * Runs five combat scenarios while the game loop keeps each typing countdown live.
+ * Runs five combat scenarios while the game loop keeps each typing countdown
+ * live.
  */
 public class GamePlayState extends State {
     private static final int SCENARIO_COUNT = 5;
@@ -28,7 +29,9 @@ public class GamePlayState extends State {
     /** The same player's remaining health carries into the next scenario. */
     private Player player;
     private CombatEncounter encounter;
-    /** Null while choosing a skill; otherwise input is the current typing answer. */
+    /**
+     * Null while choosing a skill; otherwise input is the current typing answer.
+     */
     private TypingChallenge challenge;
     private int scenarioIndex;
     private int lastDisplayedSeconds;
@@ -42,8 +45,13 @@ public class GamePlayState extends State {
         this(stateMachine, new ChallengeClock(), new CombatUi());
     }
 
+    public GamePlayState(StateMachine stateMachine, Random masterRandom) {
+        this(stateMachine, new ChallengeClock(), new CombatUi(), masterRandom);
+    }
+
     /**
-     * Accepts a controllable clock and interface for testing turns and scenario progression.
+     * Accepts a controllable clock and interface for testing turns and scenario
+     * progression.
      */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi) {
         this(stateMachine, clock, combatUi, new Random());
