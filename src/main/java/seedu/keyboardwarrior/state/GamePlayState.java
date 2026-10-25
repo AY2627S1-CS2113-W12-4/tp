@@ -8,6 +8,7 @@ import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
 import seedu.keyboardwarrior.typing.ChallengeClock;
+import seedu.keyboardwarrior.typing.PromptBank;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingChallengeFactory;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
@@ -25,7 +26,7 @@ public class GamePlayState extends State {
     private final CombatUi combatUi;
     private final Random random;
     /** Shares prompt selection history across all five scenarios in a run. */
-    private final TypingChallengeFactory challengeFactory = new TypingChallengeFactory();
+    private final TypingChallengeFactory challengeFactory;
     /** The same player's remaining health carries into the next scenario. */
     private Player player;
     private CombatEncounter encounter;
@@ -63,6 +64,9 @@ public class GamePlayState extends State {
         this.clock = Objects.requireNonNull(clock, "Challenge clock must not be null");
         this.combatUi = Objects.requireNonNull(combatUi, "Combat interface must not be null");
         this.random = Objects.requireNonNull(random, "Random generator must not be null");
+
+        PromptBank seededBank = new PromptBank(random);
+        this.challengeFactory = new TypingChallengeFactory(seededBank);
     }
 
     @Override

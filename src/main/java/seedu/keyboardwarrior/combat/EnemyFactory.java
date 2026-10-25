@@ -3,7 +3,9 @@ package seedu.keyboardwarrior.combat;
 import java.util.Objects;
 import java.util.Random;
 
-/** Creates predefined enemies with their health and skill loadouts configured. */
+/**
+ * Creates predefined enemies with their health and skill loadouts configured.
+ */
 public class EnemyFactory {
     /** Enemy types available when a scenario randomly chooses its opponent. */
     private static final String[] ENEMY_TYPES = {

@@ -16,11 +16,14 @@ import seedu.keyboardwarrior.ui.CombatUi;
 
 /**
  * Runs turn-based combat between a player and an enemy.
- * Player skills are resolved through typing challenges, while enemy skills apply
+ * Player skills are resolved through typing challenges, while enemy skills
+ * apply
  * their base damage automatically.
  */
 public class CombatEncounter extends Encounter {
-    /** Diagnostic encounter lifecycle events, hidden at the default logging level. */
+    /**
+     * Diagnostic encounter lifecycle events, hidden at the default logging level.
+     */
     private static final Logger LOGGER = Logger.getLogger(CombatEncounter.class.getName());
     private Player player;
     private Enemy enemy;
@@ -32,15 +35,17 @@ public class CombatEncounter extends Encounter {
     private Skill pendingSkill;
     /** Index of the enemy skill to use on its next turn. */
     private int enemySkillIndex;
-    /** Whether combat has begun; prevents attacks before setup and repeated starts. */
+    /**
+     * Whether combat has begun; prevents attacks before setup and repeated starts.
+     */
     private boolean isStarted;
 
     /**
      * Creates a combat encounter for the supplied participants and interface.
      *
      * @param player player taking part in the encounter
-     * @param enemy enemy taking part in the encounter
-     * @param ui interface used for combat input and output
+     * @param enemy  enemy taking part in the encounter
+     * @param ui     interface used for combat input and output
      * @throws NullPointerException if a participant or interface is null
      */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui) {
@@ -50,10 +55,11 @@ public class CombatEncounter extends Encounter {
     /**
      * Creates an encounter using a prompt factory shared by the current run.
      *
-     * @param player player taking part in the encounter
-     * @param enemy enemy taking part in the encounter
-     * @param ui combat interface
-     * @param challengeFactory factory retaining prompt selection history between encounters
+     * @param player           player taking part in the encounter
+     * @param enemy            enemy taking part in the encounter
+     * @param ui               combat interface
+     * @param challengeFactory factory retaining prompt selection history between
+     *                         encounters
      * @throws NullPointerException if any dependency is null
      */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui, TypingChallengeFactory challengeFactory) {
@@ -84,7 +90,8 @@ public class CombatEncounter extends Encounter {
      * Announces combat and the first player turn without reading console input.
      * The application can then collect input while continuing timer updates.
      *
-     * @throws IllegalStateException if combat already began or a living enemy cannot take a turn
+     * @throws IllegalStateException if combat already began or a living enemy
+     *                               cannot take a turn
      */
     public void begin() {
         if (isStarted) {
@@ -110,9 +117,10 @@ public class CombatEncounter extends Encounter {
      *
      * @param chosenSkill skill selected by the player
      * @return challenge to display and time before submitting its result
-     * @throws NullPointerException if the chosen skill is null
+     * @throws NullPointerException     if the chosen skill is null
      * @throws IllegalArgumentException if the player does not have the chosen skill
-     * @throws IllegalStateException if combat has not begun, ended or a result is already pending
+     * @throws IllegalStateException    if combat has not begun, ended or a result
+     *                                  is already pending
      */
     public TypingChallenge preparePlayerTurn(Skill chosenSkill) {
         if (!isStarted || isCompleted || pendingSkill != null) {
@@ -131,10 +139,11 @@ public class CombatEncounter extends Encounter {
 
     /**
      * Resolves the pending attack and the enemy response, then opens the next turn.
-     * A defeated enemy does not retaliate, and a late attempt still consumes a turn.
+     * A defeated enemy does not retaliate, and a late attempt still consumes a
+     * turn.
      *
      * @param result evaluated result of the pending typing challenge
-     * @throws NullPointerException if the result is null
+     * @throws NullPointerException  if the result is null
      * @throws IllegalStateException if there is no pending player turn
      */
     public void submitTypingResult(TypingResult result) {

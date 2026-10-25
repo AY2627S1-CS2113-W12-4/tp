@@ -4,7 +4,10 @@ import java.util.Objects;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Creates typing challenges with prompts and time limits suited to a difficulty. */
+/**
+ * Creates typing challenges with prompts and time limits suited to a
+ * difficulty.
+ */
 public class TypingChallengeFactory {
     private final PromptBank bank;
 
@@ -14,7 +17,8 @@ public class TypingChallengeFactory {
     }
 
     /**
-     * Creates a factory using a shared prompt bank, retaining selections across encounters.
+     * Creates a factory using a shared prompt bank, retaining selections across
+     * encounters.
      *
      * @param bank prompt bank used to generate challenges
      */
