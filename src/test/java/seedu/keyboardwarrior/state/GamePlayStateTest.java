@@ -62,6 +62,7 @@ class GamePlayStateTest {
     void mainMenu_start_entersFirstScenario() {
         machine.start(new MainMenuState(machine));
         machine.handleInput(" Start ");
+        machine.handleInput("");
 
         assertTrue(machine.nextState instanceof GamePlayState);
         assertTrue(report().contains("Scenario 1/5"));
@@ -133,7 +134,8 @@ class GamePlayStateTest {
     @Test
     void update_liveCountdown_scoresUnsubmittedAnswerAndPreservesTimerOrder() throws Exception {
         ByteArrayOutputStream terminalOutput = new ByteArrayOutputStream();
-        // Use stream-based output on every OS; a paused POSIX PTY also pauses its output pump.
+        // Use stream-based output on every OS; a paused POSIX PTY also pauses its
+        // output pump.
         try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
                 .streams(new ByteArrayInputStream(new byte[0]), terminalOutput).paused(true).build()) {
             terminal.setSize(new Size(80, 24));
@@ -222,7 +224,8 @@ class GamePlayStateTest {
     @Test
     void handleInput_fiveVictories_advancesAutomaticallyThenReturnsToMenu() {
         startGame();
-        // Take one hit first to verify that remaining health carries into later scenarios.
+        // Take one hit first to verify that remaining health carries into later
+        // scenarios.
         machine.handleInput("Ping");
         submitAfterTenSeconds("");
         Player originalPlayer = ui.player;
@@ -246,6 +249,7 @@ class GamePlayStateTest {
         assertFalse(report().contains("Scenario 6/5"));
 
         machine.handleInput("start");
+        machine.handleInput("");
         assertTrue(machine.nextState instanceof GamePlayState);
         assertEquals(2, report().split("Scenario 1/5", -1).length - 1);
         assertTrue(report().substring(report().lastIndexOf("Scenario 1/5")).contains("HP: 100"));
@@ -296,7 +300,10 @@ class GamePlayStateTest {
         return output.toString(StandardCharsets.UTF_8);
     }
 
-    /** Keeps the test enemy's health and skill sequence independent of random content. */
+    /**
+     * Keeps the test enemy's health and skill sequence independent of random
+     * content.
+     */
     private static class FixedEnemyRandom extends Random {
         @Override
         public int nextInt(int bound) {
@@ -330,7 +337,9 @@ class GamePlayStateTest {
         }
     }
 
-    /** Observes real combat participants and guards against blocking console reads. */
+    /**
+     * Observes real combat participants and guards against blocking console reads.
+     */
     private static class RecordingCombatUi extends CombatUi {
         private Enemy enemy;
         private Player player;
