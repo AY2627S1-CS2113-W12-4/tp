@@ -25,6 +25,21 @@ import seedu.keyboardwarrior.ui.CombatUi;
  */
 class CombatEncounterTest {
     @Test
+    void preparePlayerTurn_encryption_usesSymbolPassageAndSixtySeconds() {
+        Player player = new Player("Player", 100);
+        Enemy enemy = new Enemy("Training Bot", 100);
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        Skill encryption = SkillRegistry.getSkill("encryption");
+        CombatEncounter encounter = new CombatEncounter(player, enemy, new RecordingCombatUi(encryption));
+        encounter.begin();
+
+        TypingChallenge challenge = encounter.preparePlayerTurn(encryption);
+
+        assertEquals(60, challenge.getTime());
+        assertFalse(challenge.getText().chars().anyMatch(Character::isLetterOrDigit));
+    }
+
+    @Test
     void constructor_nullDependencies_rejectsInvalidEncounter() {
         Player player = new Player("Player", 100);
         Enemy enemy = new Enemy("Training Bot", 100);

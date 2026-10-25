@@ -12,10 +12,42 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.keyboardwarrior.combat.SkillRegistry;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Tests length-aware deadlines, difficulty minimums and shared passage history. */
 class TypingChallengeFactoryTest {
+    @Test
+    void generateForSkill_encryption_usesRandomSymbolsAndFixedDeadline() {
+        TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("a".repeat(420)));
+        Set<String> passages = new HashSet<>();
+        String allowedSymbols = "!@#$%^&*()\\_+/*{}|:\"<>?";
+
+        assertEquals(Difficulty.ULTIMATE, SkillRegistry.getSkill("encryption").getDifficulty());
+        for (int attempt = 0; attempt < 100; attempt++) {
+            TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("encryption"));
+            assertEquals(60, challenge.getTime());
+            assertTrue(challenge.getText().length() >= 420 && challenge.getText().length() <= 426);
+            for (String word : challenge.getText().split(" ", -1)) {
+                assertTrue(word.length() >= 1 && word.length() <= 6);
+                assertTrue(word.chars().allMatch(character -> allowedSymbols.indexOf(character) >= 0));
+            }
+            passages.add(challenge.getText());
+        }
+        assertEquals(100, passages.size(), "Encryption should generate fresh random passages.");
+    }
+
+    @Test
+    void generateForSkill_sigkill_keepsUltimatePassageAndLengthAwareDeadline() {
+        TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("a".repeat(420)));
+
+        TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("sigkill"));
+
+        assertEquals("a".repeat(420), challenge.getText());
+        assertEquals(121, challenge.getTime());
+        assertThrows(NullPointerException.class, () -> factory.generateForSkill(null));
+    }
+
     @Test
     void generate_eachDifficulty_allowsFiftyWpmWithTwentyPercentExtraTime() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new PromptBank(new Random(42)));

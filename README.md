@@ -32,9 +32,12 @@ can redirect input, preventing the live countdown and capture of text before Ent
 terminal capabilities at startup and shows the launcher command when the console is unsupported.
 On Windows, try Windows Terminal if IntelliJ's Terminal remains unsupported.
 
-Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow` or `SIGKILL`), then type its
+Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow`, `SIGKILL` or `Encryption`), then type its
 passage as one line. Skills select different passage difficulties; the same typing performance gives
 the same player damage for every skill. At 50 WPM and 95% character accuracy, an attack deals 40 damage.
+
+`Encryption` gives exactly 60 seconds to type random special characters in groups of at most six,
+with a passage approximately as long as `SIGKILL`.
 
 The timer appears above the passage. Press Enter to submit, or let the deadline submit the text
 currently in the input line. Feedback shows WPM, character accuracy, elapsed time and required time;

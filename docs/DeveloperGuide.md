@@ -68,7 +68,7 @@ The encounter delegates damage to `SkillResolver`, preserving the boundary betwe
 | `TypingResult` | Store full-precision metrics, supplied times and a defensive copy of word errors |
 | `TypingResultFormatter` | Produce the short gameplay summary or optional detailed word report |
 | `SkillResolver` | Convert WPM and character accuracy into player damage and apply health changes |
-| `TypingChallengeFactory` | Select a difficulty-appropriate prompt and derive a suitable deadline |
+| `TypingChallengeFactory` | Select a skill's prompt and deadline, including Encryption's fixed 60 seconds |
 
 The sequence below focuses on evaluation. The calls to `TypingEvaluator` and `AccuracyCalculator`
 are static operations; formatting and combat happen after the result returns.
@@ -125,7 +125,8 @@ input and limits the benefit of entering fast, unrelated text. A skill still cho
 difficulty. Its base damage continues to apply when the resolver receives no typing result for an
 automated enemy attack. This preserves existing enemy skill rotations.
 
-The countdown limits how long an attempt can remain open. `TypingChallengeFactory` computes:
+The countdown limits how long an attempt can remain open. For skills other than Encryption,
+`TypingChallengeFactory` computes:
 
 ```text
 minimumSeconds = 15 / 30 / 30 / 45 for Easy / Medium / Hard / Ultimate
@@ -137,6 +138,13 @@ This gives a 50 WPM player a 20% time buffer while retaining the previous minimu
 The buffer increases available typing time; it is not a damage multiplier. Required time therefore
 varies by passage. `ChallengeClock` starts after prompt display. Skill selection and previous turn
 feedback are outside the measured duration.
+
+`CombatEncounter` calls `TypingChallengeFactory.generateForSkill(...)` so skills sharing a difficulty
+can use different passages. Encryption remains Ultimate, but receives exactly 60 seconds.
+`PromptBank.getEncryptionPrompt()` uses a randomly selected Ultimate passage's character count as
+its target length, then generates random special characters in space-separated groups of one to six.
+The resulting passage is between the target length and six characters longer. Other skills continue
+to use the difficulty-based generator above.
 
 Both Enter and automatic expiry use the same evaluator. At expiry, `GamePlayState.update()` obtains
 `StateUi.takeCurrentInput()` before clearing the editable line and resolving the attempt. The actual

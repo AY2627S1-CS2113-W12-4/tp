@@ -52,8 +52,13 @@ Each turn begins with a skill choice. Names are case-insensitive.
 | `Brute Force` | Medium | 30 seconds |
 | `Buffer Overflow` | Hard | 30 seconds |
 | `SIGKILL` | Ultimate | 45 seconds |
+| `Encryption` | Ultimate (random special characters) | Exactly 60 seconds |
 
-The selected passage can increase that limit: the game allows enough time to type its normalized
+`Encryption` generates a fresh random sequence using the symbols `!@#$%^&*()\_+/*{}|:"<>?`.
+Spaces separate groups of one to six characters. The passage is approximately the same length as
+a `SIGKILL` passage, but its time limit is always exactly 60 seconds.
+
+For the other skills, the selected passage can increase that limit: the game allows enough time to type its normalized
 character count at 50 WPM, adds a 20% time buffer and rounds up to a whole second. It uses whichever
 is larger: that allowance or the skill's minimum. Check the displayed time limit for each attempt.
 

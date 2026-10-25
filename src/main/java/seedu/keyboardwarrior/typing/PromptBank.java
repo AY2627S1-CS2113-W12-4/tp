@@ -10,6 +10,8 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Stores typing prompts by difficulty and selects prompts for new challenges. */
 public class PromptBank {
+    /** Characters available in Encryption passages; spaces separate groups of at most six. */
+    private static final String ENCRYPTION_CHARACTERS = "!@#$%^&*()\\_+/*{}|:\"<>?";
     private final HashMap<Difficulty, List<String>> prompts;
     /** Last selection for each difficulty, so repeated attacks receive different passages. */
     private final HashMap<Difficulty, Integer> previousPromptIndices;
@@ -104,6 +106,27 @@ public class PromptBank {
                 + "vulnerable connection. Only after verifying each recovered service did they restore "
                 + "access and document the changes needed to prevent another intrusion.");
         prompts.put(Difficulty.ULTIMATE, ultimate);
+    }
+
+    /**
+     * Generates random symbols, matching an Ultimate passage's length within six characters.
+     * Each space-separated group contains between one and six symbols.
+     *
+     * @return a freshly generated Encryption passage
+     */
+    public String getEncryptionPrompt() {
+        int targetLength = getRandomPrompt(Difficulty.ULTIMATE).length();
+        StringBuilder text = new StringBuilder();
+        while (text.length() < targetLength) {
+            if (!text.isEmpty()) {
+                text.append(' ');
+            }
+            int groupLength = random.nextInt(6) + 1;
+            for (int index = 0; index < groupLength; index++) {
+                text.append(ENCRYPTION_CHARACTERS.charAt(random.nextInt(ENCRYPTION_CHARACTERS.length())));
+            }
+        }
+        return text.toString();
     }
 
     /**

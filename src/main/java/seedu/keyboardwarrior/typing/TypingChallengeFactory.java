@@ -2,6 +2,7 @@ package seedu.keyboardwarrior.typing;
 
 import java.util.Objects;
 
+import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Creates typing challenges with prompts and time limits suited to a difficulty. */
@@ -24,6 +25,21 @@ public class TypingChallengeFactory {
      */
     public TypingChallengeFactory(PromptBank bank) {
         this.bank = Objects.requireNonNull(bank);
+    }
+
+    /**
+     * Creates a skill's challenge, giving Encryption random symbols and exactly sixty seconds.
+     * Other skills retain their difficulty-based passages and length-aware deadlines.
+     *
+     * @param skill selected player skill
+     * @return challenge for the selected skill
+     */
+    public TypingChallenge generateForSkill(Skill skill) {
+        Objects.requireNonNull(skill, "Skill must not be null");
+        if (skill.getName().equalsIgnoreCase("Encryption")) {
+            return new TypingChallenge(bank.getEncryptionPrompt(), 60);
+        }
+        return generate(skill.getDifficulty());
     }
 
     /**

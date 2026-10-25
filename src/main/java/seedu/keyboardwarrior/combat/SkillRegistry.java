@@ -14,7 +14,8 @@ public class SkillRegistry {
         SKILL_DATABASE.put("brute_force", new Skill("Brute Force", 20, Difficulty.MEDIUM));
         SKILL_DATABASE.put("buffer_overflow", new Skill("Buffer Overflow", 40, Difficulty.HARD));
         SKILL_DATABASE.put("sigkill", new Skill("SIGKILL", 80, Difficulty.ULTIMATE));
-        assert SKILL_DATABASE.size() == 4 : "Every standard skill must have a unique identifier";
+        SKILL_DATABASE.put("encryption", new Skill("Encryption", 80, Difficulty.ULTIMATE));
+        assert SKILL_DATABASE.size() == 5 : "Every standard skill must have a unique identifier";
     }
 
     /**

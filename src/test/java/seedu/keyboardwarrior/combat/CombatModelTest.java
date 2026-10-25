@@ -41,11 +41,12 @@ class CombatModelTest {
         assertEquals("Player", player.getName());
         assertEquals(100, player.getHealth());
         assertFalse(player.getIsDead());
-        assertEquals(4, player.getActiveSkills().size());
+        assertEquals(5, player.getActiveSkills().size());
         assertSame(SkillRegistry.getSkill("ping"), player.getActiveSkills().get(0));
         assertSame(SkillRegistry.getSkill("brute_force"), player.getActiveSkills().get(1));
         assertSame(SkillRegistry.getSkill("buffer_overflow"), player.getActiveSkills().get(2));
         assertSame(SkillRegistry.getSkill("sigkill"), player.getActiveSkills().get(3));
+        assertSame(SkillRegistry.getSkill("encryption"), player.getActiveSkills().get(4));
     }
 
     @Test
