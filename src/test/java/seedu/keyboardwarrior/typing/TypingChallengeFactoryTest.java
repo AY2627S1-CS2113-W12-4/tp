@@ -12,11 +12,36 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.SkillRegistry;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Tests length-aware deadlines, difficulty minimums and shared passage history. */
 class TypingChallengeFactoryTest {
+    @Test
+    void generateForSkill_eachGameDifficulty_scalesAllSkillDeadlines() {
+        String[] skillIds = {"ping", "brute_force", "buffer_overflow", "sigkill", "encryption"};
+        int[][] expectedSeconds = {
+            {60, 120, 120, 180, 240},
+            {30, 60, 60, 90, 120},
+            {15, 30, 30, 45, 60},
+            {12, 24, 24, 36, 48}
+        };
+        GameDifficulty[] difficulties = GameDifficulty.values();
+        for (int mode = 0; mode < difficulties.length; mode++) {
+            TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("short"),
+                    difficulties[mode]);
+            for (int skill = 0; skill < skillIds.length; skill++) {
+                assertEquals(expectedSeconds[mode][skill],
+                        factory.generateForSkill(SkillRegistry.getSkill(skillIds[skill])).getTime());
+            }
+        }
+        TypingChallengeFactory coderFactory = new TypingChallengeFactory(
+                new FixedPromptBank("a".repeat(420)), GameDifficulty.CODER);
+        assertEquals(97, coderFactory.generateForSkill(SkillRegistry.getSkill("sigkill")).getTime(),
+                "Coder scales the full base deadline, then rounds 96.8 seconds up.");
+    }
+
     @Test
     void generateForSkill_encryption_usesRandomSymbolsAndFixedDeadline() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("a".repeat(420)));

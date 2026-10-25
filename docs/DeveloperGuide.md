@@ -24,6 +24,24 @@ current encounter, clock and challenge factory. The same player and prompt selec
 scenario and boss phase transitions. `exit` stops the application from the menu, skill selection or
 an active typing challenge.
 
+### Game difficulty selection
+
+`GameDifficulty` is separate from `TypingChallenge.Difficulty`: it describes run modifiers rather
+than passage content. Easy, Normal, Hard and Coder use multipliers 4, 2, 1 and 0.8 for player damage,
+starting health and countdowns. Hard is the default to preserve the original balance.
+
+`MainMenuState` accepts numbers 1-4 or the names Start, Records, Exit and Choose Difficulty.
+`DifficultySelectionState` accepts a mode number or name, then returns to a new menu with the same
+`SaveStore` and selected mode. Invalid input leaves the selection menu active. Gameplay passes that
+mode back to the menu after victory or defeat, preserving it for the session. The mode is not saved
+to disk, and changing it requires returning to the menu.
+
+`GamePlayState` creates the player with 400, 200, 100 or 80 HP and supplies the mode to the shared
+`TypingChallengeFactory` and every `CombatEncounter`, including both boss phases. The factory applies
+the countdown multiplier after calculating the normal base deadline and rounds up. Encryption uses
+a base of 60 seconds, becoming 240, 120, 60 or 48 seconds. `SkillResolver` multiplies typing damage
+before rounding down once. Automated enemy attacks keep their original base damage.
+
 `run-game.bat` and `run-game.sh` first invoke Gradle's `prepareTerminalRun` task. That task depends on
 `classes`, writes the runtime classpath and the build JVM's Java home, and does not create a JAR.
 The launcher starts Java in the foreground with `-ea` and native access enabled. Direct terminal
@@ -68,7 +86,7 @@ The encounter delegates damage to `SkillResolver`, preserving the boundary betwe
 | `TypingResult` | Store full-precision metrics, supplied times and a defensive copy of word errors |
 | `TypingResultFormatter` | Produce the short gameplay summary or optional detailed word report |
 | `SkillResolver` | Convert WPM and character accuracy into player damage and apply health changes |
-| `TypingChallengeFactory` | Select a skill's prompt and deadline, including Encryption's fixed 60 seconds |
+| `TypingChallengeFactory` | Select a skill's prompt and base deadline, then scale by the run difficulty |
 
 The sequence below focuses on evaluation. The calls to `TypingEvaluator` and `AccuracyCalculator`
 are static operations; formatting and combat happen after the result returns.
@@ -116,10 +134,10 @@ Player damage is now independent of the chosen skill's base damage:
 
 ```text
 accuracyFraction = accuracyPercent / 100
-playerDamage = floor(wpm * accuracyFraction^4)
+playerDamage = floor(wpm * accuracyFraction^4 * gameDifficultyMultiplier)
 ```
 
-`SkillResolver` calculates with full precision and rounds down once. At 50 WPM and 95% accuracy this
+`SkillResolver` calculates with full precision and rounds down once. On Hard, at 50 WPM and 95% accuracy this
 is `floor(50 * 0.95^4) = 40`; at 50 WPM and 80% accuracy it is 20. The fourth power rewards accurate
 input and limits the benefit of entering fast, unrelated text. A skill still chooses passage
 difficulty. Its base damage continues to apply when the resolver receives no typing result for an
@@ -132,6 +150,7 @@ The countdown limits how long an attempt can remain open. For skills other than 
 minimumSeconds = 15 / 30 / 30 / 45 for Easy / Medium / Hard / Ultimate
 baselineSeconds = normalizedPrompt.length() * 60 / (5 * 50)
 requiredSeconds = max(minimumSeconds, ceil(baselineSeconds * 1.2))
+finalSeconds = ceil(requiredSeconds * gameDifficultyMultiplier)
 ```
 
 This gives a 50 WPM player a 20% time buffer while retaining the previous minimum allowances.
@@ -140,7 +159,8 @@ varies by passage. `ChallengeClock` starts after prompt display. Skill selection
 feedback are outside the measured duration.
 
 `CombatEncounter` calls `TypingChallengeFactory.generateForSkill(...)` so skills sharing a difficulty
-can use different passages. Encryption remains Ultimate, but receives exactly 60 seconds.
+can use different passages. Encryption remains Ultimate, with a base deadline of exactly 60 seconds
+before applying the game difficulty multiplier.
 `PromptBank.getEncryptionPrompt()` uses a randomly selected Ultimate passage's character count as
 its target length, then generates random special characters in space-separated groups of one to six.
 The resulting passage is between the target length and six characters longer. Other skills continue
@@ -181,7 +201,8 @@ accidental double attacks. Existing `FINE` logging records combat events without
 
 #### Run structure and ownership
 
-A run starts with one `Player` at 100 HP, passes through five regular scenarios and ends with two
+A run starts with one `Player` at the selected mode's starting HP (100 on Hard), passes through five regular
+scenarios and ends with two
 phases of the Kernel Overlord. Defeating scenario 5 starts the boss rather than winning the run.
 Only victory against boss phase 2 triggers the run victory message and return to the main menu.
 Player defeat at any point ends the run immediately. A new `start` creates a new player and resets
@@ -241,7 +262,7 @@ a later scenario or phase.
 
 #### Balance target and verification
 
-The balance target is 50 WPM and at least 95% character accuracy, yielding at least 40 damage per
+The Hard-mode balance target is 50 WPM and at least 95% character accuracy, yielding at least 40 damage per
 attempt. The table counts attacks and possible retaliation at exactly 40 damage. Regular enemies
 retain their usual skill rotation; the highest first attack among those rotations is 20 damage.
 Enemies requiring one attack do not retaliate, and those requiring two only use their first attack.
@@ -368,7 +389,8 @@ Use a supported terminal with Java 25 and `sh ./run-game.sh` or `.\run-game.bat`
 | Boss boundary and overkill | Defeat phase 1 with damage exceeding its remaining HP | Phase 2 starts at 70 HP; player HP is unchanged by transition; no extra boss attack; no run victory yet |
 | Final victory | Defeat boss phase 2 | Run victory appears and returns to menu |
 | Phase-boundary defeat | Reach phase 2 with low HP, then make a nonlethal or empty attempt | Boss response can defeat player; no later phase or victory is announced |
-| Restart and exit | Start after victory/defeat; try `exit` during a prompt | New run begins with 100 HP at scenario 1; exit ends the game cleanly |
+| Restart and exit | Start after victory/defeat; try `exit` during a prompt | New run begins at scenario 1 with the selected mode's starting HP; exit ends the game cleanly |
+| Game difficulty | Choose each mode by number or name, then Start | HP is 400/200/100/80; Encryption countdown is 240/120/60/48 seconds; selection persists after a run |
 | History and restart | Complete an attempt, return to the menu, enter `records`, then restart from the same folder | Saved WPM and accuracy remain visible; at most the latest ten attempts appear, oldest first |
 
 For a balance check, sustain at least 50 WPM and 95% character accuracy on each attempt. Confirm at

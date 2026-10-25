@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import seedu.keyboardwarrior.CountdownReader;
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
@@ -46,6 +47,58 @@ class GamePlayStateTest {
     private RecordingStateMachine machine;
     private ControlledClock clock;
     private RecordingCombatUi ui;
+
+    @Test
+    void difficulty_eachMode_scalesHealthAndEncryptionAndRetainsSelectionAfterDefeat() {
+        int[] expectedHealth = {400, 200, 100, 80};
+        int[] expectedSeconds = {240, 120, 60, 48};
+        GameDifficulty[] difficulties = GameDifficulty.values();
+        for (int index = 0; index < difficulties.length; index++) {
+            machine = new RecordingStateMachine();
+            ui = new RecordingCombatUi();
+            machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
+                    new SaveStore(tempDir.resolve("history.txt")), difficulties[index]));
+            assertEquals(expectedHealth[index], ui.player.getHealth());
+            machine.handleInput("Encryption");
+            assertEquals(expectedSeconds[index], clock.durationSeconds);
+            submitAfterTenSeconds("");
+            assertEquals(expectedHealth[index] - 10, ui.player.getHealth());
+
+            ui.player.setHealth(1);
+            machine.handleInput("Ping");
+            submitAfterTenSeconds("");
+            assertTrue(machine.nextState instanceof MainMenuState);
+            assertTrue(report().contains("Current difficulty: " + difficulties[index].getDisplayName()));
+            output.reset();
+            machine.handleInput("1");
+            assertTrue(report().contains("HP: " + expectedHealth[index]));
+            machine.stop();
+        }
+    }
+
+    @Test
+    void difficulty_coder_retainsDamageAndCountdownAcrossScenariosAndBossPhases() {
+        machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
+                new SaveStore(tempDir.resolve("history.txt")), GameDifficulty.CODER));
+        for (int encounterIndex = 0; encounterIndex < 7; encounterIndex++) {
+            assertEquals(80, ui.player.getHealth(), "Killing blows must not heal or allow retaliation.");
+            machine.handleInput("Encryption");
+            assertEquals(48, clock.durationSeconds);
+            String text = ui.challenge.getText();
+            double elapsed = text.length() * 60.0 / (5.0 * 10.25);
+            clock.elapsedSeconds = elapsed;
+            machine.handleInput(text);
+            assertTrue(report().contains("Dealt 8 damage to"), "10.25 WPM in Coder must deal eight damage.");
+            assertEquals(encounterIndex == 6 ? 60 : 70, ui.player.getHealth());
+            ui.player.setHealth(80);
+            oneShotCurrentEncounter();
+            output.reset();
+        }
+        assertTrue(machine.nextState instanceof MainMenuState);
+        machine.handleInput("1");
+        assertTrue(report().contains("Difficulty: Coder"));
+        assertTrue(report().contains("HP: 80"));
+    }
 
     @BeforeEach
     void setUp() {

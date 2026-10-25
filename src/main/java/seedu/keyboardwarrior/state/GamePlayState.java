@@ -5,12 +5,14 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.logging.Logger;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
 import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.typing.ChallengeClock;
+import seedu.keyboardwarrior.typing.PromptBank;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingChallengeFactory;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
@@ -30,8 +32,9 @@ public class GamePlayState extends State {
     private final CombatUi combatUi;
     private final Random random;
     private final SaveStore saveStore;
+    private final GameDifficulty difficulty;
     /** Shares prompt selection history across regular scenarios and both boss phases. */
-    private final TypingChallengeFactory challengeFactory = new TypingChallengeFactory();
+    private final TypingChallengeFactory challengeFactory;
     /** The same player's remaining health carries into the next scenario. */
     private Player player;
     private CombatEncounter encounter;
@@ -56,6 +59,11 @@ public class GamePlayState extends State {
         this(stateMachine, new ChallengeClock(), new CombatUi(), new Random(), saveStore);
     }
 
+    /** Starts a run using the menu's selected difficulty and history location. */
+    GamePlayState(StateMachine stateMachine, SaveStore saveStore, GameDifficulty difficulty) {
+        this(stateMachine, new ChallengeClock(), new CombatUi(), new Random(), saveStore, difficulty);
+    }
+
     /**
      * Accepts a controllable clock and interface for testing turns and scenario progression.
      */
@@ -71,20 +79,29 @@ public class GamePlayState extends State {
     /** Accepts a save location so tests do not overwrite the player's history. */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi,
             Random random, SaveStore saveStore) {
+        this(stateMachine, clock, combatUi, random, saveStore, GameDifficulty.HARD);
+    }
+
+    /** Accepts controlled dependencies and run settings for testing difficulty effects and progression. */
+    GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi,
+            Random random, SaveStore saveStore, GameDifficulty difficulty) {
         super("Gameplay", stateMachine);
         this.clock = Objects.requireNonNull(clock, "Challenge clock must not be null");
         this.combatUi = Objects.requireNonNull(combatUi, "Combat interface must not be null");
         this.random = Objects.requireNonNull(random, "Random generator must not be null");
         this.saveStore = Objects.requireNonNull(saveStore, "Save store must not be null");
+        this.difficulty = Objects.requireNonNull(difficulty, "Game difficulty must not be null");
+        this.challengeFactory = new TypingChallengeFactory(new PromptBank(), difficulty);
     }
 
     @Override
     public void enter() {
-        player = new Player("Player", 100);
+        player = new Player("Player", difficulty.getStartingHealth());
         scenarioIndex = 0;
         bossPhase = 0;
         challenge = null;
         StateUi.showGameplayStart();
+        StateUi.printLine("Difficulty: " + difficulty.getDisplayName());
         startScenario();
     }
 
@@ -137,7 +154,7 @@ public class GamePlayState extends State {
         assert player != null && player.getHealth() > 0 : "A scenario needs a living player";
         StateUi.showScenario(scenarioIndex + 1, SCENARIO_COUNT);
         encounter = new CombatEncounter(player, EnemyFactory.createRandomEnemy(random, scenarioIndex + 1),
-                combatUi, challengeFactory);
+                combatUi, challengeFactory, difficulty);
         encounter.begin();
     }
 
@@ -148,7 +165,8 @@ public class GamePlayState extends State {
         assert player != null && player.getHealth() > 0 : "A boss phase needs a living player";
         LOGGER.fine(() -> "Starting final boss phase " + bossPhase);
         StateUi.showBossPhase(bossPhase, BOSS_PHASE_COUNT);
-        encounter = new CombatEncounter(player, EnemyFactory.createBossPhase(bossPhase), combatUi, challengeFactory);
+        encounter = new CombatEncounter(player, EnemyFactory.createBossPhase(bossPhase), combatUi,
+                challengeFactory, difficulty);
         encounter.begin();
     }
 
@@ -195,7 +213,7 @@ public class GamePlayState extends State {
         } else {
             StateUi.showRunDefeat();
         }
-        stateMachine.transitState(new MainMenuState(stateMachine, saveStore));
+        stateMachine.transitState(new MainMenuState(stateMachine, saveStore, difficulty));
     }
 
     /**

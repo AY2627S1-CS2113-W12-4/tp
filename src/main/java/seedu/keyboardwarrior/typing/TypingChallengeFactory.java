@@ -2,6 +2,7 @@ package seedu.keyboardwarrior.typing;
 
 import java.util.Objects;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
@@ -12,6 +13,7 @@ public class TypingChallengeFactory {
     /** Allows twenty percent extra time beyond the baseline passage completion time. */
     private static final double TIME_ALLOWANCE = 1.2;
     private final PromptBank bank;
+    private final GameDifficulty gameDifficulty;
 
     /** Creates a factory backed by a new prompt bank. */
     public TypingChallengeFactory() {
@@ -24,11 +26,17 @@ public class TypingChallengeFactory {
      * @param bank prompt bank used to generate challenges
      */
     public TypingChallengeFactory(PromptBank bank) {
+        this(bank, GameDifficulty.HARD);
+    }
+
+    /** Retains passage selection history and applies the selected run's countdown multiplier. */
+    public TypingChallengeFactory(PromptBank bank, GameDifficulty gameDifficulty) {
         this.bank = Objects.requireNonNull(bank);
+        this.gameDifficulty = Objects.requireNonNull(gameDifficulty);
     }
 
     /**
-     * Creates a skill's challenge, giving Encryption random symbols and exactly sixty seconds.
+     * Creates a skill's challenge, giving Encryption random symbols and a base time of sixty seconds.
      * Other skills retain their difficulty-based passages and length-aware deadlines.
      *
      * @param skill selected player skill
@@ -37,7 +45,7 @@ public class TypingChallengeFactory {
     public TypingChallenge generateForSkill(Skill skill) {
         Objects.requireNonNull(skill, "Skill must not be null");
         if (skill.getName().equalsIgnoreCase("Encryption")) {
-            return new TypingChallenge(bank.getEncryptionPrompt(), 60);
+            return new TypingChallenge(bank.getEncryptionPrompt(), gameDifficulty.scaleCountdown(60));
         }
         return generate(skill.getDifficulty());
     }
@@ -55,7 +63,7 @@ public class TypingChallengeFactory {
         int passageTime = (int) Math.ceil(characterCount * 60.0 / (5.0 * TARGET_WPM) * TIME_ALLOWANCE);
         int timeLimit = Math.max(getMinimumTimeLimit(difficulty), passageTime);
 
-        return new TypingChallenge(selectedText, timeLimit);
+        return new TypingChallenge(selectedText, gameDifficulty.scaleCountdown(timeLimit));
     }
 
     /** Returns the difficulty's minimum; longer passages receive a length-aware allowance. */

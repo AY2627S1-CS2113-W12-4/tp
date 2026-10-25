@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.logging.Logger;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
@@ -57,11 +58,17 @@ public class CombatEncounter extends Encounter {
      * @throws NullPointerException if any dependency is null
      */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui, TypingChallengeFactory challengeFactory) {
+        this(player, enemy, ui, challengeFactory, GameDifficulty.HARD);
+    }
+
+    /** Creates an encounter with the run's shared prompt factory and player damage multiplier. */
+    public CombatEncounter(Player player, Enemy enemy, CombatUi ui, TypingChallengeFactory challengeFactory,
+            GameDifficulty difficulty) {
         super();
         this.player = Objects.requireNonNull(player, "Player must not be null");
         this.enemy = Objects.requireNonNull(enemy, "Enemy must not be null");
         this.ui = Objects.requireNonNull(ui, "Combat interface must not be null");
-        this.skillResolver = new SkillResolver(ui);
+        this.skillResolver = new SkillResolver(ui, difficulty);
         this.challengeRunner = new TypingChallengeRunner(ui);
         this.challengeFactory = Objects.requireNonNull(challengeFactory, "Challenge factory must not be null");
     }

@@ -3,7 +3,21 @@
 Keyboard Warrior is a terminal typing combat game. Type `start`, choose a skill and type its
 passage while a live countdown shows the time remaining. Character accuracy and typing speed
 determine your damage. Survive five regular scenarios, then defeat both phases of the Kernel
-Overlord to win. Your 100 starting HP carries through the whole run without healing.
+Overlord to win. Your starting HP depends on the selected game difficulty and carries through
+the whole run without healing.
+
+The main menu accepts numbers or names: `1. Start`, `2. Records`, `3. Exit`, and `4. Choose Difficulty`.
+Choose a game difficulty before starting a run:
+
+| Mode | Damage and countdown multiplier | Starting HP |
+| --- | --- | --- |
+| Easy | x4 | 400 |
+| Normal | x2 | 200 |
+| Hard (default) | x1 | 100 |
+| Coder | x0.8 | 80 |
+
+The selected mode stays active between runs in the current session. Restarting the application
+resets it to Hard. Skill choices still determine passage difficulty.
 
 ## Setting up in IntelliJ
 
@@ -34,10 +48,11 @@ On Windows, try Windows Terminal if IntelliJ's Terminal remains unsupported.
 
 Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow`, `SIGKILL` or `Encryption`), then type its
 passage as one line. Skills select different passage difficulties; the same typing performance gives
-the same player damage for every skill. At 50 WPM and 95% character accuracy, an attack deals 40 damage.
+the same player damage for every skill. On Hard, 50 WPM and 95% character accuracy deal 40 damage.
 
-`Encryption` gives exactly 60 seconds to type random special characters in groups of at most six,
-with a passage approximately as long as `SIGKILL`.
+`Encryption` gives a base 60 seconds to type random special characters in groups of at most six,
+with a passage approximately as long as `SIGKILL`. After the game difficulty multiplier, its
+countdown is 240 seconds on Easy, 120 on Normal, 60 on Hard, or 48 on Coder.
 
 The timer appears above the passage. Press Enter to submit, or let the deadline submit the text
 currently in the input line. Feedback shows WPM, character accuracy, elapsed time and required time;
