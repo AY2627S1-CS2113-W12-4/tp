@@ -50,10 +50,34 @@ public class EnemyFactory {
         if (scenarioNumber < 1 || scenarioNumber > SCENARIO_HEALTH.length) {
             throw new IllegalArgumentException("Regular scenario number must be from 1 to 5");
         }
-        Enemy enemy = createRandomEnemy(random);
-        enemy.setHealth(SCENARIO_HEALTH[scenarioNumber - 1]);
+        Enemy enemy = createScenarioEnemy(ENEMY_TYPES[random.nextInt(ENEMY_TYPES.length)], scenarioNumber);
         assert enemy.getHealth() > 0 : "A regular scenario opponent must start with health";
         return enemy;
+    }
+
+    /** Recreates a particular regular opponent with the health allowed by its scenario. */
+    public static Enemy createScenarioEnemy(String type, int scenarioNumber) {
+        if (scenarioNumber < 1 || scenarioNumber > SCENARIO_HEALTH.length) {
+            throw new IllegalArgumentException("Regular scenario number must be from 1 to 5");
+        }
+        Enemy enemy = createEnemy(type);
+        enemy.setHealth(SCENARIO_HEALTH[scenarioNumber - 1]);
+        return enemy;
+    }
+
+    /** Returns a stable save-file identifier for a configured opponent. */
+    public static String getTypeId(Enemy enemy) {
+        Objects.requireNonNull(enemy);
+        for (String type : ENEMY_TYPES) {
+            if (createEnemy(type).getName().equals(enemy.getName())) {
+                return type;
+            }
+        }
+        if (enemy.getName().equals("Kernel Overlord (Phase 1)")
+                || enemy.getName().equals("Kernel Overlord (Phase 2)")) {
+            return "kernel_overlord";
+        }
+        throw new IllegalArgumentException("Unknown enemy: " + enemy.getName());
     }
 
     /**

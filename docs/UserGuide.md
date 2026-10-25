@@ -33,7 +33,7 @@ java -ea --enable-native-access=ALL-UNNAMED -jar KeyboardWarrior.jar
 
 At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
 first. Each entry shows WPM and accuracy. Viewing records keeps you in the main menu, where you
-can enter `start`, `records`, `exit` or `choose difficulty`.
+can enter `start`, `records`, `exit`, `choose difficulty` or `continue`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
 the timer expires. History survives restarting the application. The file is
@@ -45,12 +45,13 @@ combat turn continues.
 
 ## Main menu and game difficulty
 
-The main menu has four options. Enter a number or its name (names are case-insensitive):
+The main menu has five options. Enter a number or its name (names are case-insensitive):
 
 1. Start
 2. Records
 3. Exit
 4. Choose Difficulty
+5. Continue
 
 Choose Difficulty opens a menu with `1. Easy`, `2. Normal`, `3. Hard` and `4. Coder`.
 Enter a number or difficulty name to select it and return to the main menu. Invalid input keeps
@@ -65,11 +66,41 @@ you in the selection menu; `exit` quits the application.
 
 The current difficulty appears in the main menu and at the start of a run. It applies throughout
 all five scenarios and both boss phases. Returning to the menu after winning or losing keeps the
-selection for your next run. Restarting the application resets it to Hard.
+selection for your next run. Restarting the application defaults new runs to Hard; Continue uses
+the difficulty stored in the saved run, even if the menu currently shows another difficulty.
 
 Starting health is multiplied once at the start of a run; health is not restored between fights.
 Enemy health and attacks are unchanged. Game difficulty does not change the passages selected by skills
 or your recorded WPM and accuracy.
+
+## Saving and continuing a run
+
+The game uses one save slot at `data/game-save.properties`, relative to the launch folder.
+It saves automatically at the start of every encounter and after the player attack and any enemy
+retaliation finish. The save contains your remaining HP, difficulty, scenario or boss phase,
+enemy identity and remaining HP, and the enemy's next attack in its rotation.
+
+To leave and return later:
+
+1. Type `exit` to quit the application.
+2. Launch it again from the same folder with `run-game.bat` or `run-game.sh`.
+3. Enter `5` or `continue` at the main menu.
+
+You return to skill selection without healing or an extra enemy attack. Progress saves automatically;
+no save command is needed.
+
+Quitting or closing the terminal during typing retains the previous stable turn. The unfinished
+answer and timer are not saved, and you can select a skill again after continuing. Future random
+enemies and passages are selected afresh; previous passage selection history is not restored.
+
+Start begins a new run and replaces the previous slot after encounter setup succeeds. Winning or
+losing deletes the active run save, while your typing history remains available through Records.
+Choosing a different difficulty in the menu does not alter a saved run; Continue restores its original mode.
+
+If no save exists, Continue displays a message and keeps you in the menu. Invalid, unsupported or
+unreadable saves display an error without starting a run. Saving failures are reported but combat
+continues; until a later save succeeds, the previous saved turn remains the latest resume point.
+A failure to remove a finished save is also reported.
 
 ## Skills and countdown
 

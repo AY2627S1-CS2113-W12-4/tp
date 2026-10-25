@@ -14,12 +14,67 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import seedu.keyboardwarrior.GameDifficulty;
+import seedu.keyboardwarrior.GameSave;
+import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 
 /** Tests the records command against real temporary history files. */
 class MainMenuStateTest {
     @TempDir
     Path tempDir;
+
+    @Test
+    void continue_savedRun_restoresSavedDifficultyAndSharesHistoryLocation() throws IOException {
+        GameSaveStore runStore = new GameSaveStore(tempDir.resolve("game-save.properties"));
+        GameSave save = new GameSave(1, GameDifficulty.CODER, 65, 2, 0, "cipher_serpent", 23, 1);
+        runStore.save(save);
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt")),
+                    GameDifficulty.EASY));
+            machine.handleInput("5");
+            String report = output.toString(StandardCharsets.UTF_8);
+            assertTrue(report.contains("Resuming saved run. Difficulty: Coder"));
+            assertTrue(report.contains("Scenario 3/5"));
+            assertTrue(report.contains("Cipher Serpent | HP: 23"));
+            assertTrue(report.contains("HP: 65"));
+            machine.handleInput("Encryption");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Time limit: 48 seconds"));
+            machine.handleInput("");
+            assertEquals(1, Files.readAllLines(tempDir.resolve("history.txt")).size());
+            machine.handleInput("exit");
+        } finally {
+            System.setOut(original);
+        }
+    }
+
+    @Test
+    void continue_missingOrInvalidSave_leavesMenuUsableAndDoesNotOverwriteFile() throws IOException {
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        Path path = tempDir.resolve("game-save.properties");
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            machine.handleInput("continue");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("No saved game to continue"));
+            Files.writeString(path, "version=broken");
+            machine.handleInput(" CoNtInUe ");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Could not load game"));
+            assertEquals("version=broken", Files.readString(path));
+            machine.handleInput("records");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("No typing records saved yet"));
+            assertTrue(machine.isRunning());
+            machine.stop();
+        } finally {
+            System.setOut(original);
+        }
+    }
 
     @Test
     void chooseDifficulty_numbersAndNames_returnToMenuAndAffectNextRun() {

@@ -2,8 +2,11 @@ package seedu.keyboardwarrior.state;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 
 import seedu.keyboardwarrior.GameDifficulty;
+import seedu.keyboardwarrior.GameSave;
+import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.ui.StateUi;
 
@@ -59,6 +62,19 @@ public class MainMenuState extends State {
             stateMachine.stop();
         } else if (choice.equalsIgnoreCase("choose difficulty") || choice.equals("4")) {
             stateMachine.transitState(new DifficultySelectionState(stateMachine, saveStore));
+        } else if (choice.equalsIgnoreCase("continue") || choice.equals("5")) {
+            try {
+                GameSaveStore gameSaveStore = new GameSaveStore(
+                        saveStore.getDirectory().resolve("game-save.properties"));
+                Optional<GameSave> save = gameSaveStore.load();
+                if (save.isPresent()) {
+                    stateMachine.transitState(new GamePlayState(stateMachine, saveStore, save.get()));
+                } else {
+                    StateUi.printLine("No saved game to continue. Choose Start to begin a new run.");
+                }
+            } catch (IOException exception) {
+                StateUi.printLine("Could not load game: " + exception.getMessage());
+            }
         } else {
             StateUi.showInvalidOption();
         }

@@ -6,7 +6,8 @@ determine your damage. Survive five regular scenarios, then defeat both phases o
 Overlord to win. Your starting HP depends on the selected game difficulty and carries through
 the whole run without healing.
 
-The main menu accepts numbers or names: `1. Start`, `2. Records`, `3. Exit`, and `4. Choose Difficulty`.
+The main menu accepts numbers or names: `1. Start`, `2. Records`, `3. Exit`, `4. Choose Difficulty`,
+and `5. Continue`.
 Choose a game difficulty before starting a run:
 
 | Mode | Damage and countdown multiplier | Starting HP |
@@ -17,7 +18,8 @@ Choose a game difficulty before starting a run:
 | Coder | x0.8 | 80 |
 
 The selected mode stays active between runs in the current session. Restarting the application
-resets it to Hard. Skill choices still determine passage difficulty.
+defaults new runs to Hard; Continue restores the saved run's difficulty. Skill choices still
+determine passage difficulty.
 
 ## Setting up in IntelliJ
 
@@ -62,6 +64,13 @@ An enemy that survives the attack retaliates. Defeating an enemy advances automa
 retaliation or healing during the transition. Clearing scenario 5 starts the final boss; victory
 requires defeating its second phase. `start` after victory or defeat begins a fresh run.
 Type `exit` at any phase to quit.
+
+Your run saves automatically when an encounter starts and after each completed turn. To resume,
+launch the game again and choose `5` or `continue`. Player HP, difficulty, progression, enemy HP,
+and the next enemy attack are restored at skill selection. An unfinished typing challenge is retried
+from the last saved turn; its text and remaining time are not saved.
+The single save slot is `data/game-save.properties`; Start replaces it with a new
+run, and victory or defeat removes it. Save/load errors are reported while keeping the game usable.
 
 At the main menu, type `records` to view the latest ten typing attempts, oldest first. WPM and
 accuracy are saved automatically and remain available after restarting the application.

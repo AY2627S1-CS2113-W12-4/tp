@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 
 import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.Enemy;
+import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.combat.SkillResolver;
@@ -21,6 +22,10 @@ import seedu.keyboardwarrior.ui.CombatUi;
  * their base damage automatically.
  */
 public class CombatEncounter extends Encounter {
+    /** Stable opponent data needed to resume at the next player turn. */
+    public record CombatSnapshot(String enemyType, int enemyHealth, int nextEnemySkillIndex) {
+    }
+
     /** Diagnostic encounter lifecycle events, hidden at the default logging level. */
     private static final Logger LOGGER = Logger.getLogger(CombatEncounter.class.getName());
     private Player player;
@@ -94,6 +99,11 @@ public class CombatEncounter extends Encounter {
      * @throws IllegalStateException if combat already began or a living enemy cannot take a turn
      */
     public void begin() {
+        begin(0);
+    }
+
+    /** Starts a restored encounter at its saved enemy attack without taking an enemy turn. */
+    public void begin(int nextEnemySkillIndex) {
         if (isStarted) {
             throw new IllegalStateException("Combat has already begun.");
         }
@@ -101,7 +111,11 @@ public class CombatEncounter extends Encounter {
         assert pendingSkill == null && enemySkillIndex == 0 : "New combat must start with a clean turn state";
         if (player.getHealth() > 0 && enemy.getHealth() > 0) {
             requireEnemySkills();
+            if (nextEnemySkillIndex < 0 || nextEnemySkillIndex >= enemy.getActiveSkills().size()) {
+                throw new IllegalArgumentException("Enemy attack index must identify an available skill");
+            }
         }
+        enemySkillIndex = nextEnemySkillIndex;
         isStarted = true;
         LOGGER.fine(() -> "Beginning combat against " + enemy.getName());
         ui.showCombatStart(enemy);
@@ -112,6 +126,17 @@ public class CombatEncounter extends Encounter {
         } else {
             ui.showPlayerTurn(player, enemy);
         }
+    }
+
+    /** Captures opponent data only between turns, when no unfinished typing attack exists. */
+    public CombatSnapshot snapshot() {
+        if (!isStarted || isCompleted || pendingSkill != null) {
+            throw new IllegalStateException("Combat can only be saved between active turns");
+        }
+        assert player.getHealth() > 0 && enemy.getHealth() > 0 : "Saved combat must have living participants";
+        assert enemySkillIndex >= 0 && enemySkillIndex < enemy.getActiveSkills().size()
+                : "Saved combat must identify a valid next enemy attack";
+        return new CombatSnapshot(EnemyFactory.getTypeId(enemy), enemy.getHealth(), enemySkillIndex);
     }
 
     /**

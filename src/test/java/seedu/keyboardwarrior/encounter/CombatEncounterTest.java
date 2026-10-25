@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
 import seedu.keyboardwarrior.combat.Enemy;
+import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.combat.SkillRegistry;
@@ -24,6 +25,24 @@ import seedu.keyboardwarrior.ui.CombatUi;
  * Tests complete victory and defeat paths through a combat encounter.
  */
 class CombatEncounterTest {
+    @Test
+    void snapshot_onlyAllowsStableActiveTurnsAndBeginValidatesSavedRotation() {
+        Player player = new Player("Player", 100);
+        Enemy enemy = EnemyFactory.createScenarioEnemy("rogue_ai", 1);
+        Skill skill = SkillRegistry.getSkill("ping");
+        CombatEncounter encounter = new CombatEncounter(player, enemy, new RecordingCombatUi(skill));
+        assertThrows(IllegalStateException.class, encounter::snapshot);
+        assertThrows(IllegalArgumentException.class, () -> encounter.begin(-1));
+        assertThrows(IllegalArgumentException.class, () -> encounter.begin(3));
+        encounter.begin(1);
+        assertEquals(new CombatEncounter.CombatSnapshot("rogue_ai", 30, 1), encounter.snapshot());
+        encounter.preparePlayerTurn(skill);
+        assertThrows(IllegalStateException.class, encounter::snapshot);
+        encounter.submitTypingResult(TypingEvaluator.evaluateTyping("abcde", "abcde", 0.1, 15));
+        assertTrue(encounter.getIsCompleted());
+        assertThrows(IllegalStateException.class, encounter::snapshot);
+    }
+
     @Test
     void preparePlayerTurn_encryption_usesSymbolPassageAndSixtySeconds() {
         Player player = new Player("Player", 100);

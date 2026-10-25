@@ -141,7 +141,7 @@ public final class StateUi {
         showMainMenu(GameDifficulty.HARD);
     }
 
-    /** Displays the four menu choices and the difficulty that the next run will use. */
+    /** Displays the five menu choices and the difficulty that the next new run will use. */
     public static void showMainMenu(GameDifficulty difficulty) {
         showBanner();
         showSeparator();
@@ -150,6 +150,7 @@ public final class StateUi {
         printLine("2. Records");
         printLine("3. Exit");
         printLine("4. Choose Difficulty");
+        printLine("5. Continue");
         printLine("Enter a number or option name.");
     }
 
@@ -169,7 +170,7 @@ public final class StateUi {
      * Explains which commands the main menu accepts.
      */
     public static void showInvalidOption() {
-        printLine("Invalid option. Please enter Start, Records, Exit or Choose Difficulty (1-4).");
+        printLine("Invalid option. Please enter Start, Records, Exit, Choose Difficulty or Continue (1-5).");
     }
 
     /** Displays saved typing results in chronological order while remaining in the main menu. */
@@ -185,7 +186,7 @@ public final class StateUi {
                         index + 1, record.wpm(), record.accuracyPercent()));
             }
         }
-        printLine("Enter Start, Records, Exit or Choose Difficulty (1-4).");
+        printLine("Enter Start, Records, Exit, Choose Difficulty or Continue (1-5).");
     }
 
     /**

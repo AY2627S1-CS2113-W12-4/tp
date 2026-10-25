@@ -30,11 +30,11 @@ an active typing challenge.
 than passage content. Easy, Normal, Hard and Coder use multipliers 4, 2, 1 and 0.8 for player damage,
 starting health and countdowns. Hard is the default to preserve the original balance.
 
-`MainMenuState` accepts numbers 1-4 or the names Start, Records, Exit and Choose Difficulty.
+`MainMenuState` accepts numbers 1-5 or the names Start, Records, Exit, Choose Difficulty and Continue.
 `DifficultySelectionState` accepts a mode number or name, then returns to a new menu with the same
 `SaveStore` and selected mode. Invalid input leaves the selection menu active. Gameplay passes that
-mode back to the menu after victory or defeat, preserving it for the session. The mode is not saved
-to disk, and changing it requires returning to the menu.
+mode back to the menu after victory or defeat, preserving it for the session. The menu selection is
+not saved separately, but the active run save includes its mode. Continue restores that mode.
 
 `GamePlayState` creates the player with 400, 200, 100 or 80 HP and supplies the mode to the shared
 `TypingChallengeFactory` and every `CombatEncounter`, including both boss phases. The factory applies
@@ -66,6 +66,46 @@ so running the test suite does not replace the player's history.
 `GamePlayState` saves the evaluated result before resolving combat. An `IOException` is reported
 without discarding the attack or ending the game. Loading errors are likewise reported while
 leaving the main menu usable. The store records typing metrics, not a resumable game state.
+
+### Active run saves
+
+`GameSave` is an immutable record of a stable player turn: format version, game difficulty, current
+player HP, zero-based scenario index, boss phase, enemy type identifier, current enemy HP and next
+enemy skill index. Its constructor validates version, progression combinations, health bounds and
+attack rotation against `EnemyFactory`. Regular encounters use scenario indices 0-4 with boss phase 0;
+the boss uses index 5 and phase 1 or 2. Dead participants cannot be saved.
+
+`CombatEncounter.snapshot()` rejects calls before combat starts, during a pending typing attack,
+or after completion. `begin(savedAttackIndex)` restores rotation without taking a turn.
+`EnemyFactory.getTypeId(...)` supplies stable identifiers; loading recreates the exact enemy type
+with its standard skills instead of rerolling it. `GameSave.restoreEnemy()` applies the saved HP.
+
+`GameSaveStore` uses UTF-8 Java properties at `data/game-save.properties`, independently of typing
+history. For alternate history locations, run storage shares `SaveStore.getDirectory()`, allowing
+tests to use `@TempDir` throughout. Writes go to a temporary file in that directory, then replace
+the slot with an atomic move where supported, falling back to a regular replacement move otherwise.
+Invalid/missing fields and unsupported versions become `IOException`; an absent file means no run.
+Runtime saves and temporary files are excluded from Git.
+
+`GamePlayState.enter()` separates fresh-run initialization from restoration. The latter creates
+fresh runtime objects, directly restores player HP and progression, then begins the restored
+encounter at its saved rotation. It does not reapply the health multiplier or restore an active
+timer. Clock state, terminal objects, random generator state and passage selection history are not
+serialized. Resuming an interrupted challenge returns to its previous skill-selection point.
+
+Autosaves occur after encounter setup (including scenario/boss transitions) and after a surviving
+enemy's response. No manual save command is exposed. Continue loads before transitioning states, so invalid saves
+leave the menu usable. Start replaces the previous slot once the initial encounter is ready.
+Victory and defeat remove it; Exit retains it. IO errors are reported while gameplay remains usable.
+
+Regression tests cover reopening stores, all modes and boss phases, corrupt values, temporary-file
+cleanup, exact enemy rotation after resume, interrupted attempts, new-run replacement,
+progression, deletion after completion and combat continuing when storage fails.
+
+Assertions check the internal save/restore boundaries: autosaves require a living player, an active
+encounter, valid progression and no pending typing challenge. Combat snapshots check living participants
+and attack rotation. Restoration asserts that health, opponent and next attack match the saved data.
+File validation still uses exceptions because malformed saves must be rejected even without `-ea`.
 
 ### Enhancement 8.1: Character feedback and accuracy-based damage
 

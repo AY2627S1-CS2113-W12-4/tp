@@ -26,9 +26,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import seedu.keyboardwarrior.CountdownReader;
 import seedu.keyboardwarrior.GameDifficulty;
+import seedu.keyboardwarrior.GameSave;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
+import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.typing.ChallengeClock;
 import seedu.keyboardwarrior.typing.TypingChallenge;
@@ -47,6 +49,103 @@ class GamePlayStateTest {
     private RecordingStateMachine machine;
     private ControlledClock clock;
     private RecordingCombatUi ui;
+
+    @Test
+    void save_resume_restoresHealthDamageAndNextEnemyAttackWithoutReplayingATurn() throws IOException {
+        GameSaveStore runStore = new GameSaveStore(tempDir.resolve("game-save.properties"));
+        startGame();
+        assertEquals(100, runStore.load().orElseThrow().playerHealth());
+        machine.handleInput("Ping");
+        String answer = ui.challenge.getText();
+        clock.elapsedSeconds = answer.length() * 60.0 / (5.0 * 5.25);
+        machine.handleInput(answer);
+        GameSave saved = runStore.load().orElseThrow();
+        assertEquals(90, saved.playerHealth());
+        assertEquals(25, saved.enemyHealth());
+        assertEquals(1, saved.nextEnemySkillIndex());
+        machine.handleInput("save");
+        assertEquals(1, ui.invalidSkills, "Save is no longer a skill-selection command.");
+        assertEquals(saved, runStore.load().orElseThrow());
+        machine.handleInput("Encryption");
+        machine.handleInput("exit");
+        assertEquals(saved, runStore.load().orElseThrow(), "Exiting mid-challenge must retain the stable turn.");
+
+        machine = new RecordingStateMachine();
+        ui = new RecordingCombatUi();
+        machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
+                new SaveStore(tempDir.resolve("history.txt")), saved.difficulty(), runStore, saved));
+        assertEquals(90, ui.player.getHealth());
+        assertEquals("Script Kiddie", ui.enemy.getName());
+        assertEquals(25, ui.enemy.getHealth());
+        assertEquals(0, ui.enemyTurns);
+        machine.handleInput("Ping");
+        submitAfterTenSeconds("");
+        assertEquals(70, ui.player.getHealth(), "The restored opponent must use its second, 20-damage attack.");
+        assertEquals(2, runStore.load().orElseThrow().nextEnemySkillIndex());
+    }
+
+    @Test
+    void save_progressionOverwritesSlotAndVictoryRemovesIt() throws IOException {
+        GameSaveStore runStore = new GameSaveStore(tempDir.resolve("game-save.properties"));
+        runStore.save(new GameSave(1, GameDifficulty.CODER, 25, 5, 2, "kernel_overlord", 17, 0));
+        startGame();
+        assertEquals(GameDifficulty.HARD, runStore.load().orElseThrow().difficulty(),
+                "Starting a fresh run must replace the previous slot with the selected difficulty.");
+        for (int scenario = 0; scenario < 5; scenario++) {
+            GameSave save = runStore.load().orElseThrow();
+            assertEquals(scenario, save.scenarioIndex());
+            assertEquals(0, save.bossPhase());
+            oneShotCurrentEncounter();
+        }
+        assertEquals(1, runStore.load().orElseThrow().bossPhase());
+        oneShotCurrentEncounter();
+        assertEquals(2, runStore.load().orElseThrow().bossPhase());
+        oneShotCurrentEncounter();
+        assertTrue(runStore.load().isEmpty());
+    }
+
+    @Test
+    void save_resumeBothBossPhases_preservesDifficultyCountdownAndFixedEnemyAttack() throws IOException {
+        GameSaveStore runStore = new GameSaveStore(tempDir.resolve("game-save.properties"));
+        for (int phase = 1; phase <= 2; phase++) {
+            machine = new RecordingStateMachine();
+            ui = new RecordingCombatUi();
+            GameSave save = new GameSave(1, GameDifficulty.CODER, 55, 5, phase, "kernel_overlord", 17, 0);
+            runStore.save(save);
+            machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
+                    new SaveStore(tempDir.resolve("history.txt")), save.difficulty(), runStore, save));
+            assertEquals(55, ui.player.getHealth(), "Saved health must not be multiplied again.");
+            assertEquals(17, ui.enemy.getHealth());
+            assertEquals(0, ui.enemyTurns);
+            machine.handleInput("Encryption");
+            assertEquals(48, clock.durationSeconds);
+            submitAfterTenSeconds("");
+            assertEquals(phase == 1 ? 45 : 35, ui.player.getHealth());
+            assertEquals(0, runStore.load().orElseThrow().nextEnemySkillIndex());
+            ui.player.setHealth(1);
+            machine.handleInput("Ping");
+            submitAfterTenSeconds("");
+            assertTrue(runStore.load().isEmpty(), "Defeat must remove the active save.");
+        }
+    }
+
+    @Test
+    void save_storageFailure_reportsErrorWithoutDiscardingCombatTurn() {
+        GameSaveStore failingStore = new GameSaveStore(tempDir.resolve("game-save.properties")) {
+            @Override
+            public void save(GameSave save) throws IOException {
+                throw new IOException("Storage unavailable");
+            }
+        };
+        machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
+                new SaveStore(tempDir.resolve("history.txt")), GameDifficulty.HARD, failingStore, null));
+        assertTrue(report().contains("Could not save game: Storage unavailable"));
+        machine.handleInput("Ping");
+        submitAfterTenSeconds("");
+        assertEquals(90, ui.player.getHealth());
+        assertEquals(1, ui.enemyTurns);
+        assertTrue(machine.isRunning());
+    }
 
     @Test
     void difficulty_eachMode_scalesHealthAndEncryptionAndRetainsSelectionAfterDefeat() {
