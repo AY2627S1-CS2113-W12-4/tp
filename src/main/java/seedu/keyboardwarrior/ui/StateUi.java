@@ -171,11 +171,6 @@ public final class StateUi {
                 + "Continue or Leaderboard (1-6).");
     }
 
-    /** Reminds the player of the available commands after displaying saved results. */
-    public static void showMenuOptionsPrompt() {
-        printLine("Enter Start, Records, Exit, Choose Difficulty, Continue or Leaderboard (1-6).");
-    }
-
     /**
      * Displays saved typing results in chronological order while remaining in the main menu.
      *
@@ -193,7 +188,6 @@ public final class StateUi {
                         index + 1, record.wpm(), record.accuracyPercent()));
             }
         }
-        showMenuOptionsPrompt();
     }
 
     /**
@@ -308,14 +302,12 @@ public final class StateUi {
         printLine(String.format(Locale.ROOT, "%10s  %10s", "WPM", "Accuracy"));
         printLine(String.format(Locale.ROOT, "%10.2f  %9.2f%%",
                 highScore.wpm(), highScore.accuracyPercent()));
-        showMenuOptionsPrompt();
     }
 
     /** Displays the leaderboard before any typing attempts have been recorded. */
     public static void showEmptyLeaderboard() {
         showLeaderboardHeading();
         printLine("No typing records saved yet. Play a game to appear on the leaderboard.");
-        showMenuOptionsPrompt();
     }
 
     /** Displays the shared heading and scoring rule for either leaderboard view. */

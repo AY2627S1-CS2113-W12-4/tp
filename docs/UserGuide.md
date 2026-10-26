@@ -41,7 +41,7 @@ java -ea -jar KeyboardWarrior.jar
 ## Saved typing history
 
 At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
-first. Each entry shows WPM and accuracy. Viewing records keeps you in the main menu, where you
+first. Each entry shows WPM and accuracy. The full main menu appears again after the records, where you
 can enter `start`, `records`, `exit`, `choose difficulty`, `continue` or `leaderboard`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
@@ -61,7 +61,7 @@ The high score is saved separately in `data/keyboardwarrior.txt.high-score` and 
 the game and removal of older attempts from the ten-entry history. Only a better attempt replaces it.
 On first use, existing typing history supplies the initial best score; attempts already discarded
 before this feature was added cannot be recovered.
-Viewing it keeps you in the main menu and leaves the chronological Records view unchanged.
+The full main menu appears again after the leaderboard. The chronological Records view remains unchanged.
 If no attempts are saved, an empty message appears. Unreadable or invalid high-score data displays an error.
 
 ## Main menu and game difficulty

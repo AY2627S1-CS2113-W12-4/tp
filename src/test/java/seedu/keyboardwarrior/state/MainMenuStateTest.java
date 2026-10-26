@@ -16,7 +16,10 @@ import seedu.keyboardwarrior.GameSave;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests menu history display and persistence using real temporary files.
@@ -228,7 +231,9 @@ class MainMenuStateTest {
             System.setOut(capture);
             StateMachine machine = new StateMachine();
             machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            output.reset();
             machine.handleInput(" ReCoRdS ");
+            assertMainMenuDisplayed(output.toString(StandardCharsets.UTF_8));
             assertTrue(machine.isRunning());
             machine.handleInput("unknown");
             assertTrue(output.toString(StandardCharsets.UTF_8).contains("Please enter Start, Records, Exit"));
@@ -285,6 +290,7 @@ class MainMenuStateTest {
             output.reset();
             machine.handleInput(command);
             String report = output.toString(StandardCharsets.UTF_8);
+            assertMainMenuDisplayed(report);
             assertTrue(machine.isRunning());
             machine.handleInput("start");
             assertTrue(output.toString(StandardCharsets.UTF_8).contains("Enter a seed"));
@@ -293,5 +299,13 @@ class MainMenuStateTest {
         } finally {
             System.setOut(original);
         }
+    }
+
+    /** Checks that the complete menu follows the result or error, ready for the next command. */
+    private void assertMainMenuDisplayed(String report) {
+        String menu = String.join(System.lineSeparator(), "Current difficulty: Hard", "1. Start",
+                "2. Records", "3. Exit", "4. Choose Difficulty", "5. Continue", "6. Leaderboard",
+                "Enter a number or option name.") + System.lineSeparator();
+        assertTrue(report.endsWith(menu));
     }
 }

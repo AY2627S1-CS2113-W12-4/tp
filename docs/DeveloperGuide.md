@@ -37,7 +37,7 @@ active typing challenge.
 than passage content. Easy, Normal, Hard and Coder use multipliers 4, 2, 1 and 0.8 for player damage,
 starting health and countdowns. Hard is the default to preserve the original balance.
 
-`MainMenuState` accepts numbers 1-5 or the names Start, Records, Exit, Choose Difficulty and Continue.
+`MainMenuState` accepts numbers 1-6 or the names Start, Records, Exit, Choose Difficulty, Continue and Leaderboard.
 `DifficultySelectionState` accepts a mode number or name, then returns to a new menu with the same
 `SaveStore` and selected mode. Invalid input leaves the selection menu active. Gameplay passes that
 mode back to the menu after victory or defeat, preserving it for the session. The menu selection is
@@ -61,23 +61,97 @@ Windows, macOS and Linux and must start with Java 25 using `java -jar KeyboardWa
 Gradle or repository scripts. Its manifest includes `Enable-Native-Access: ALL-UNNAMED` for JLine's
 bundled native support; this removes Java 25's native-access warning but does not create a terminal.
 
-### Typing history and state transitions
+### Records and all-time leaderboard
 
-`SaveStore` saves each completed typing attempt as a UTF-8 line containing WPM and accuracy
-percentage. It retains the latest ten entries in chronological order and reads existing records
-before appending, so history survives application restarts. The default file is
-`data/keyboardwarrior.txt`, relative to the launch directory. A missing file means empty history;
-unreadable files and invalid loaded metrics produce `IOException`.
+#### Responsibilities and stored data
 
-`MainMenuState` handles `records` by loading that store and passing its records to
-`StateUi.showRecords(...)`. It passes the same store into `GamePlayState` on `start`, and gameplay
-passes it back to the menu after victory or defeat. This preserves the selected history location
-throughout the session. Tests inject stores under `@TempDir`, including the full balance simulation,
-so running the test suite does not replace the player's history.
+Records shows the latest ten typing attempts, oldest first. Leaderboard shows one all-time best
+attempt, even after that attempt leaves the ten-entry history. Both contain WPM and character
+accuracy rather than combat damage, player names or whole-run scores. Evaluated partial and empty
+attempts are eligible too; the first zero-score attempt creates a high score if none exists.
 
-`GamePlayState` saves the evaluated result before resolving combat. An `IOException` is reported
-without discarding the attack or ending the game. Loading errors are likewise reported while
-leaving the main menu usable. The store records typing metrics, not a resumable game state.
+| Class | Responsibility |
+| --- | --- |
+| `state.MainMenuState` | Handle Records and Leaderboard commands, report loading errors and redisplay the main menu |
+| `state.GamePlayState` | Save each evaluated attempt before resolving its combat effects |
+| `storage.SaveStore` | Retain the latest ten records and coordinate high-score initialization and updates |
+| `storage.SaveStore.SavedRecord` | Hold one immutable pair of WPM and accuracy values |
+| `storage.LeaderboardStore` | Load the all-time best and replace it only when a candidate ranks higher |
+| `storage.FileStore` | Share absolute file locations and safe replacement through a temporary file |
+| `ui.StateUi` | Format records, the best attempt or an empty message using the shared terminal output |
+
+`SaveStore` and `LeaderboardStore` extend `FileStore`. `SaveStore` owns a `LeaderboardStore` whose
+path is derived from the history filename, so an injected history location also isolates its high score.
+The default files are relative to the directory from which the game is launched:
+
+| File | Contents | Retention |
+| --- | --- | --- |
+| `data/keyboardwarrior.txt` | UTF-8 lines in `wpm,accuracyPercent` format | Latest ten attempts, oldest first |
+| `data/keyboardwarrior.txt.high-score` | Exactly one UTF-8 line in the same format | Best attempt until a better one is saved |
+
+For example, a custom history path `test-data/history.txt` uses `test-data/history.txt.high-score`.
+Neither file contains resumable game state; that belongs to `GameSaveStore`.
+
+#### Saving attempts and preserving the best score
+
+After evaluating an attempt, `GamePlayState` displays its typing summary and calls
+`SaveStore.save(result)` before `CombatEncounter.submitTypingResult(result)`. Saving follows this order:
+
+1. Call `loadHighScore()` to preserve the best existing history entry if no high-score file exists.
+2. Pass the new `SavedRecord` to `LeaderboardStore.saveIfHigher(...)`.
+3. Read the existing history, append the new attempt and write only the latest ten entries.
+
+`LeaderboardStore.SCORE_ORDER` compares full-precision WPM first, then accuracy. Higher WPM wins
+regardless of accuracy; higher accuracy wins when WPM is equal. Lower scores and exact ties leave
+the high-score file untouched. For example, after `60,95`, an attempt of `50,100` cannot replace it,
+`60,98` can, and `70,80` then becomes the best. The UI rounds values to two decimal places only for display.
+
+`loadHighScore()` returns `Optional<SavedRecord>`. If the high-score file is missing, it finds the
+maximum among the available history records and persists it before returning. This supports existing
+installations and happens both when viewing the leaderboard and before saving another attempt.
+Initializing before history rotation prevents the oldest record from being discarded before it can
+become the initial high score. Attempts discarded before this feature existed cannot be recovered.
+Once a valid high-score file exists, loading it does not depend on the history file.
+
+Both stores use `FileStore.writeSafely(...)`: write a complete temporary file in the destination
+directory, then replace the destination with an atomic move where supported, or a regular replacement
+move otherwise. Temporary files are cleaned up in `finally`. These are separate file writes, not a
+transaction across both files. If updating the high score fails, history is not appended; if history
+writing fails after the high score succeeds, the new best can remain saved without its history entry.
+The gameplay state reports the `IOException` as a typing-history saving error and still resolves combat.
+
+#### Menu display and error handling
+
+`MainMenuState` trims commands and accepts option names case-insensitively:
+
+| Command | Load and display flow |
+| --- | --- |
+| `2` or `records` | `SaveStore.load()` returns an immutable list, passed to `StateUi.showRecords(...)` |
+| `6` or `leaderboard` | `SaveStore.loadHighScore()` selects `StateUi.showLeaderboard(SavedRecord)` or `StateUi.showEmptyLeaderboard()` through `ifPresentOrElse(...)` |
+
+After either result, empty message or loading error, the state calls `StateUi.showMainMenu(difficulty)`.
+The full menu appears below the output and accepts the next command immediately. No separate Records
+or Leaderboard state is created: the existing `MainMenuState`, selected difficulty and `SaveStore`
+remain active. The UI accepts a concrete `SavedRecord`; handling the optional result belongs to the state.
+
+The same `SaveStore` is passed into gameplay and back to the menu after victory or defeat, preserving
+the file location across runs. `StateUi.printLine(...)` routes output through the attached terminal
+or standard output, so these views work with both live and plain input modes.
+
+A missing history file produces an empty list. A missing high-score file triggers initialization;
+if there is also no history, the leaderboard shows its empty message. Loaded WPM must be finite and
+nonnegative, and accuracy must be finite and within 0-100. Each record needs exactly two fields, and
+the high-score file must contain exactly one line. Malformed loaded data and unreadable files produce
+`IOException`; an invalid high-score file is not silently overwritten or replaced from history.
+Records reports `Could not load typing history: ...`; Leaderboard reports `Could not load leaderboard: ...`.
+
+#### Design choices and alternatives
+
+| Choice | Rationale | Alternative considered |
+| --- | --- | --- |
+| Separate persistent high score | Keeps the best attempt after history rotation and application restarts | Computing a maximum from the latest ten loses older best attempts; an in-memory maximum is lost on restart |
+| Two numeric fields per record | Reuses existing typing metrics and a simple local file format | Keeping every attempt would allow broader statistics but requires unbounded history or a retention policy |
+| Redisplay the existing menu | Preserves difficulty and storage without extra navigation state | A dedicated state would be useful if these views later gained interactive filtering or pagination |
 
 ### Active run saves
 
@@ -383,6 +457,8 @@ regular progression and a final boss.
 | 8.1 | retain my current input when time expires | unfinished typing still contributes to my attempt |
 | 8.2 | face progressively tougher regular scenarios | the run builds up difficulty predictably |
 | 8.2 | fight a final boss with two phases | the run has a clear final challenge before victory |
+| Records | review my latest ten attempts in chronological order | I can compare recent typing performance |
+| Leaderboard | retain my best attempt across runs and restarts | I have a lasting score to improve on |
 
 Non-functional requirements:
 
@@ -428,6 +504,20 @@ metric rejection. State integration tests check that starting and finishing a ru
 history store. Enemy lookup is also tested under a Turkish default locale so case normalization
 cannot depend on the operating system's language.
 
+Records and leaderboard regressions use stores under `@TempDir`, so they do not alter the player's files:
+
+| Test class | Coverage |
+| --- | --- |
+| `storage.SaveStoreTest` | Latest-ten chronological retention, reopening, invalid metrics and unusable storage paths; all-time best survives rotation and is replaced by a faster attempt; legacy history migrates before its best record is discarded |
+| `storage.LeaderboardStoreTest` | Missing file, first zero score, higher WPM and accuracy tie-breaks; lower scores and exact ties preserve file contents and modification time; malformed scores are reported and left unchanged |
+| `state.MainMenuStateTest` | Records and leaderboard results, empty data and loading errors; leaderboard text and numeric commands; one best entry after history changes; full menu redisplayed after results or errors and subsequent commands remain usable |
+| `state.GamePlayStateTest` | The returned menu reads the same history store after a run, and combat continues when saving fails |
+
+In particular, `highScore_rotatedHistory_retainsBestUntilHigherAttempt` saves a best attempt, then
+twelve slower attempts through reopened stores, and verifies that a faster attempt finally replaces it.
+`highScore_existingHistory_preservesBestBeforeFirstRotation` checks migration from a full legacy history
+and verifies that the persisted best remains readable even when the history file is subsequently absent.
+
 The progression regressions in `GamePlayStateTest` include:
 
 * `normalPerformance_eachRepeatedEnemyType_survivesFiveScenariosAndBothBossPhases` checks the balance target across each regular enemy type.
@@ -455,7 +545,11 @@ The optional `sh ./run-game.sh` or `.\run-game.bat` launchers are alternatives f
 | Phase-boundary defeat | Reach phase 2 with low HP, then make a nonlethal or empty attempt | Boss response can defeat player; no later phase or victory is announced |
 | Restart and exit | Start after victory/defeat; try `exit` during a prompt | New run begins at scenario 1 with the selected mode's starting HP; exit ends the game cleanly |
 | Game difficulty | Choose each mode by number or name, then Start | HP is 400/200/100/80; Encryption countdown is 240/120/60/48 seconds; selection persists after a run |
-| History and restart | Complete an attempt, return to the menu, enter `records`, then restart from the same folder | Saved WPM and accuracy remain visible; at most the latest ten attempts appear, oldest first |
+| History and restart | Complete an attempt, return to the menu, enter `2` or `records`, then restart from the same folder | Saved WPM and accuracy remain visible; at most the latest ten attempts appear, oldest first; the full menu follows the records |
+| Persistent leaderboard | Record a best attempt, then at least eleven lower-WPM attempts; restart from the same folder and enter `6` or `leaderboard` | Exactly one best attempt is shown even though it has left Records; the full menu follows the result |
+| Improved best | Beat the stored best WPM, return to the menu and view Leaderboard; restart and view it again | The higher score replaces the old best and persists; exact ties and lower scores do not replace it |
+| Menu after empty results | Launch in a fresh temporary working folder, choose a nondefault difficulty, then view Records and Leaderboard | Each empty message is followed by all six menu options and the selected difficulty; Start remains available |
+| Menu after loading errors | In an isolated test folder, use malformed history for Records and malformed high-score data for Leaderboard | The appropriate loading error appears, followed by the full menu; malformed files remain unchanged |
 
 For a balance check, sustain at least 50 WPM and 95% character accuracy on each attempt. Confirm at
 least 40 damage per attack, at most two attacks per regular enemy or boss phase, and at least 10 HP
@@ -470,7 +564,9 @@ Compile with the Gradle `classes` task, then start Java 25's JShell from the rep
 jshell --class-path build/classes/java/main
 ```
 
-```java
+Enter the following commands in JShell. These are interactive statements, not a standalone Java source file:
+
+```text
 import seedu.keyboardwarrior.typing.TypingEvaluator;
 import seedu.keyboardwarrior.typing.TypingResultFormatter;
 var result = TypingEvaluator.evaluateTyping("Strike the goblin", "Strike teh goblin", 6.0, 10.0);
