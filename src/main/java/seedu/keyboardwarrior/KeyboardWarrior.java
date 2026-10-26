@@ -19,20 +19,22 @@ import seedu.keyboardwarrior.ui.StateUi;
  * Runs the Keyboard Warrior application and its input-processing loop.
  */
 public class KeyboardWarrior {
-    /** Logs terminal failures with their causes for troubleshooting. */
+    /**
+     * Logs terminal failures with their causes for troubleshooting.
+     */
     private static final Logger LOGGER = Logger.getLogger(KeyboardWarrior.class.getName());
-    /** Delay between game-loop updates. */
+    /**
+     * Delay between game-loop updates.
+     */
     private static final int TICK_MILLIS = 100;
 
     /**
      * Opens the terminal, starts a background input reader and runs the game loop
      * on the main thread.
      * The input reader may block while waiting for a line, but it only adds
-     * complete
-     * commands to {@code inputQueue}. The main thread is the only thread that
-     * changes
-     * the state machine, so timer updates and input handling cannot change a state
-     * concurrently.
+     * complete commands to the input queue. The main thread is the only thread
+     * that changes the state machine, so timer updates and input handling cannot
+     * change a state concurrently.
      *
      * @param args command-line arguments; currently unused
      */
@@ -71,6 +73,8 @@ public class KeyboardWarrior {
     /**
      * Keeps state changes on the main thread while JLine reads and edits player
      * input.
+     *
+     * @param reader terminal reader supplying complete input lines
      */
     private static void runGame(LineReader reader) {
         StateMachine stateMachine = new StateMachine();

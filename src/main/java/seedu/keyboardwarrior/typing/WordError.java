@@ -4,7 +4,9 @@ package seedu.keyboardwarrior.typing;
  * Stores an immutable word mismatch, using an empty string for an absent word.
  */
 public final class WordError {
-    /** Word position starting at one, for display to the player. */
+    /**
+     * Word position starting at one, for display to the player.
+     */
     private final int position;
     private final String expectedWord;
     private final String typedWord;
@@ -12,6 +14,11 @@ public final class WordError {
 
     /**
      * Stores the expected and submitted word at a mismatch position.
+     *
+     * @param position one-based word position
+     * @param expectedWord expected word, or an empty string when none exists
+     * @param typedWord submitted word, or an empty string when none exists
+     * @param type category of word mismatch
      */
     WordError(int position, String expectedWord, String typedWord, ErrorType type) {
         this.position = position;

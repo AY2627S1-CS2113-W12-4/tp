@@ -7,9 +7,13 @@ import java.util.logging.Logger;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
-/** Calculates and applies the damage produced by a selected combat skill. */
+/**
+ * Calculates and applies the damage produced by a selected combat skill.
+ */
 public class SkillResolver {
-    /** Optional combat diagnostics; FINE messages do not appear in normal gameplay. */
+    /**
+     * Optional combat diagnostics; FINE messages do not appear in normal gameplay.
+     */
     private static final Logger LOGGER = Logger.getLogger(SkillResolver.class.getName());
     private CombatUi ui;
 
@@ -55,7 +59,12 @@ public class SkillResolver {
         applyDamage(target, calculatedDamage);
     }
 
-    /** Applies damage without allowing the target's health to fall below zero. */
+    /**
+     * Applies damage without allowing the target's health to fall below zero.
+     *
+     * @param target entity receiving the damage
+     * @param damage nonnegative damage to apply
+     */
     private void applyDamage(Entity target, int damage) {
         assert damage >= 0 : "Resolved damage must not be negative";
         int currentHealth = target.getHealth();

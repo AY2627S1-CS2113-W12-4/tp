@@ -9,14 +9,21 @@ import org.jline.utils.InfoCmp.Capability;
  * Renders the countdown and editable input together under JLine's display lock.
  */
 public class CountdownReader extends LineReaderImpl {
-    /** Seconds shown in the prompt, or {@code null} when no countdown is active. */
+    /**
+     * Seconds shown in the prompt, or {@code null} when no countdown is active.
+     */
     private Integer remainingSeconds;
-    /** Target passage displayed below the timer while a challenge is active. */
+    /**
+     * Target passage displayed below the timer while a challenge is active.
+     */
     private String challengeText;
     private int timeLimitSeconds;
 
     /**
      * Creates a reader whose prompt is refreshed whenever a new input line starts.
+     *
+     * @param terminal terminal used for input and output
+     * @throws java.io.IOException if reader initialization encounters an I/O failure
      */
     public CountdownReader(Terminal terminal) throws java.io.IOException {
         super(terminal);
@@ -60,7 +67,12 @@ public class CountdownReader extends LineReaderImpl {
         }
     }
 
-    /** Displays the live timer above the instruction, passage and editable answer. */
+    /**
+     * Displays the live timer above the instruction, passage and editable answer.
+     *
+     * @param text target passage displayed above the editable answer
+     * @param seconds seconds to display
+     */
     public void showTypingChallenge(String text, int seconds) {
         lock.lock();
         try {
@@ -73,7 +85,9 @@ public class CountdownReader extends LineReaderImpl {
         }
     }
 
-    /** Clears the editing line without retaining its text. */
+    /**
+     * Clears the editing line without retaining its text.
+     */
     public void clearInput() {
         takeCurrentInput();
     }
@@ -99,7 +113,9 @@ public class CountdownReader extends LineReaderImpl {
         }
     }
 
-    /** Refreshes the complete challenge display while the display lock is held. */
+    /**
+     * Refreshes the complete challenge display while the display lock is held.
+     */
     private void refreshPrompt() {
         if (!supportsLiveDisplay()) {
             return;
@@ -111,6 +127,11 @@ public class CountdownReader extends LineReaderImpl {
         }
     }
 
+    /**
+     * Builds the prompt for the current countdown and terminal capabilities.
+     *
+     * @return ordinary input prompt or the complete countdown and challenge prompt
+     */
     private String countdownPrompt() {
         if (remainingSeconds == null || !supportsLiveDisplay()) {
             return "Your input: ";

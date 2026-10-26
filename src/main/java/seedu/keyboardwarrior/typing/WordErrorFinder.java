@@ -7,11 +7,18 @@ import java.util.List;
  * Identifies wrong, missing and extra words through positional comparison.
  */
 final class WordErrorFinder {
+    /**
+     * Prevents instantiation of this utility class.
+     */
     private WordErrorFinder() {
     }
 
     /**
      * Returns mismatches in position order for the evaluator's normalized word lists.
+     *
+     * @param expectedWords normalized words in the target passage
+     * @param typedWords normalized words in the submission
+     * @return word mismatches in ascending position order
      */
     static List<WordError> find(String[] expectedWords, String[] typedWords) {
         int comparisonCount = Math.max(expectedWords.length, typedWords.length);

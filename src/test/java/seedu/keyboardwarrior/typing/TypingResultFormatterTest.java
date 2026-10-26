@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
  * Tests the console formatting of evaluated typing results.
  */
 class TypingResultFormatterTest {
+    /**
+     * Checks that the gameplay summary omits word details without discarding them from the result.
+     */
     @Test
     public void formatTypingSummary_wrongWord_omitsErrorDetailsAndPreservesResult() {
         TypingResult result =
@@ -27,6 +30,9 @@ class TypingResultFormatterTest {
         assertTrue(TypingResultFormatter.formatTypingResult(result).contains("Word 2:"));
     }
 
+    /**
+     * Checks that a late summary retains metrics without listing penalties or word errors.
+     */
     @Test
     public void formatTypingSummary_overTimeLimit_keepsMetricsWithoutPenaltyOrErrors() {
         TypingResult result =
@@ -41,12 +47,18 @@ class TypingResultFormatterTest {
         assertEquals(2, result.getWordErrors().size());
     }
 
+    /**
+     * Checks that summary formatting rejects a null result.
+     */
     @Test
     public void formatTypingSummary_nullResult_throwsException() {
         assertThrows(NullPointerException.class,
                 () -> TypingResultFormatter.formatTypingSummary(null));
     }
 
+    /**
+     * Checks the detailed report's rounded metrics and incorrect-word description.
+     */
     @Test
     public void formatTypingResult_wrongWord_formatsMetricsAndError() {
         TypingResult result =
@@ -58,6 +70,9 @@ class TypingResultFormatterTest {
                 "  Word 2: expected \"the\", typed \"teh\"", ""), TypingResultFormatter.formatTypingResult(result));
     }
 
+    /**
+     * Checks distinct detailed messages for missing and extra words.
+     */
     @Test
     public void formatTypingResult_missingAndExtraWords_formatsErrorTypes() {
         TypingResult missing =
@@ -69,6 +84,9 @@ class TypingResultFormatterTest {
         assertTrue(TypingResultFormatter.formatTypingResult(extra).contains("Word 4: unexpected \"now\""));
     }
 
+    /**
+     * Checks that the detailed report explicitly states when there are no word errors.
+     */
     @Test
     public void formatTypingResult_perfectSubmission_reportsNoErrors() {
         TypingResult result =
@@ -81,6 +99,9 @@ class TypingResultFormatterTest {
                 TypingResultFormatter.formatTypingResult(result));
     }
 
+    /**
+     * Checks that the detailed report for a late attempt still includes metrics and diagnostics.
+     */
     @Test
     public void formatTypingResult_overTimeLimit_reportsMetricsAndRetainsDiagnostics() {
         TypingResult result =
@@ -92,6 +113,9 @@ class TypingResultFormatterTest {
                 "Wrong words:", "  None", ""), TypingResultFormatter.formatTypingResult(result));
     }
 
+    /**
+     * Checks that a report at the exact deadline does not mention a damage penalty.
+     */
     @Test
     public void formatTypingResult_exactTimeLimit_reportsNoDamagePenalty() {
         TypingResult result =
@@ -100,6 +124,9 @@ class TypingResultFormatterTest {
         assertFalse(TypingResultFormatter.formatTypingResult(result).contains("penalty"));
     }
 
+    /**
+     * Checks that detailed formatting rejects a null result.
+     */
     @Test
     public void formatTypingResult_nullResult_throwsException() {
         assertThrows(NullPointerException.class,

@@ -4,21 +4,31 @@ import java.util.Objects;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Creates typing challenges with prompts and time limits suited to a difficulty. */
+/**
+ * Creates typing challenges with prompts and time limits suited to a
+ * difficulty.
+ */
 public class TypingChallengeFactory {
-    /** Baseline speed used to give each passage a realistic completion window. */
+    /**
+     * Baseline speed used to give each passage a realistic completion window.
+     */
     private static final double TARGET_WPM = 50.0;
-    /** Allows twenty percent extra time beyond the baseline passage completion time. */
+    /**
+     * Allows twenty percent extra time beyond the baseline passage completion time.
+     */
     private static final double TIME_ALLOWANCE = 1.2;
     private final PromptBank bank;
 
-    /** Creates a factory backed by a new prompt bank. */
+    /**
+     * Creates a factory backed by a new prompt bank.
+     */
     public TypingChallengeFactory() {
         this(new PromptBank());
     }
 
     /**
-     * Creates a factory using a shared prompt bank, retaining selections across encounters.
+     * Creates a factory using a shared prompt bank, retaining selections across
+     * encounters.
      *
      * @param bank prompt bank used to generate challenges
      */
@@ -27,7 +37,9 @@ public class TypingChallengeFactory {
     }
 
     /**
-     * Generates a challenge for the requested difficulty.
+     * Generates a challenge with a random prompt for the requested difficulty.
+     * The deadline is the larger of the difficulty minimum and the rounded-up time
+     * for fifty WPM plus twenty percent, using normalized UTF-16 text length.
      *
      * @param difficulty desired challenge difficulty
      * @return challenge containing a matching prompt and time limit
@@ -42,7 +54,12 @@ public class TypingChallengeFactory {
         return new TypingChallenge(selectedText, timeLimit);
     }
 
-    /** Returns the difficulty's minimum; longer passages receive a length-aware allowance. */
+    /**
+     * Returns the difficulty's minimum; longer passages receive a length-aware allowance.
+     *
+     * @param difficulty difficulty whose minimum deadline is requested
+     * @return minimum allowed duration in seconds
+     */
     private int getMinimumTimeLimit(Difficulty difficulty) {
         switch (difficulty) {
         case EASY:

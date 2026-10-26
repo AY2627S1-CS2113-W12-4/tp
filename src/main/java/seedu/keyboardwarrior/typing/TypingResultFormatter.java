@@ -7,6 +7,9 @@ import java.util.Objects;
  * Formats typing metrics and optional word-error diagnostics for console display.
  */
 public final class TypingResultFormatter {
+    /**
+     * Prevents instantiation of this utility class.
+     */
     private TypingResultFormatter() {
     }
 

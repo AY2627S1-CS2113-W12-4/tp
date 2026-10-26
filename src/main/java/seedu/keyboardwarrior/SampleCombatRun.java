@@ -8,7 +8,9 @@ import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
 import seedu.keyboardwarrior.ui.CombatUi;
 
-/** Demonstrates how to create and run a single interactive combat encounter. */
+/**
+ * Demonstrates how to create and run a single interactive combat encounter.
+ */
 public class SampleCombatRun {
 
     /**

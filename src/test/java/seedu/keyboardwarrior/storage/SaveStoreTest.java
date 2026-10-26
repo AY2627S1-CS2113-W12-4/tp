@@ -14,11 +14,16 @@ import org.junit.jupiter.api.io.TempDir;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
 import seedu.keyboardwarrior.typing.TypingResult;
 
-/** Verifies file creation, persistence across stores, retention and storage failures. */
+/**
+ * Verifies file creation, persistence across stores, retention and storage failures.
+ */
 class SaveStoreTest {
     @TempDir
     Path tempDir;
 
+    /**
+     * Checks that saving creates missing directories and persists the evaluated metrics.
+     */
     @Test
     void save_missingDirectory_createsFileWithMetrics() throws IOException {
         Path file = tempDir.resolve("data/history.txt");
@@ -31,6 +36,9 @@ class SaveStoreTest {
                 new SaveStore(file).load());
     }
 
+    /**
+     * Checks that reopening storage retains only the latest ten records in chronological order.
+     */
     @Test
     void save_reopenedStore_keepsLatestTenInOrder() throws IOException {
         Path file = tempDir.resolve("history.txt");
@@ -49,6 +57,9 @@ class SaveStoreTest {
         }
     }
 
+    /**
+     * Checks that invalid stored metrics cause an I/O error without rewriting the file.
+     */
     @Test
     void load_invalidMetrics_reportsIoFailureWithoutChangingHistory() throws IOException {
         Path file = tempDir.resolve("history.txt");
@@ -62,6 +73,9 @@ class SaveStoreTest {
         }
     }
 
+    /**
+     * Checks that an unusable parent path produces an error without modifying the existing file.
+     */
     @Test
     void save_parentIsFile_reportsFailureWithoutChangingIt() throws IOException {
         Path parent = tempDir.resolve("data");

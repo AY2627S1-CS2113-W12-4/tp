@@ -14,8 +14,13 @@ import org.junit.jupiter.api.Test;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Tests length-aware deadlines, difficulty minimums and shared passage history. */
+/**
+ * Tests length-aware deadlines, difficulty minimums and shared passage history.
+ */
 class TypingChallengeFactoryTest {
+    /**
+     * Checks that every prompt allows fifty WPM with twenty percent extra time.
+     */
     @Test
     void generate_eachDifficulty_allowsFiftyWpmWithTwentyPercentExtraTime() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new PromptBank(new Random(42)));
@@ -41,6 +46,9 @@ class TypingChallengeFactoryTest {
         }
     }
 
+    /**
+     * Checks that short prompts retain the minimum deadline for their difficulty.
+     */
     @Test
     void generate_shortPrompt_preservesDifficultyMinimums() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("short"));
@@ -51,6 +59,9 @@ class TypingChallengeFactoryTest {
         assertEquals(45, factory.generate(Difficulty.ULTIMATE).getTime());
     }
 
+    /**
+     * Checks that deadline calculation normalizes whitespace and rounds the allowance up.
+     */
     @Test
     void generate_longPrompt_normalizesWhitespaceAndRoundsAllowanceUp() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("  abcdefghij  ".repeat(10)));
@@ -58,6 +69,9 @@ class TypingChallengeFactoryTest {
         assertEquals(32, factory.generate(Difficulty.EASY).getTime());
     }
 
+    /**
+     * Checks that generating a challenge requires a difficulty.
+     */
     @Test
     void generate_nullDifficulty_throwsException() {
         TypingChallengeFactory factory = new TypingChallengeFactory();
@@ -65,6 +79,9 @@ class TypingChallengeFactoryTest {
         assertThrows(NullPointerException.class, () -> factory.generate(null));
     }
 
+    /**
+     * Checks that factories sharing a prompt bank avoid consecutive repeated passages.
+     */
     @Test
     void generate_factoriesSharingBank_doNotRepeatPreviousPassage() {
         PromptBank bank = new PromptBank(new Random(42));
@@ -75,14 +92,27 @@ class TypingChallengeFactoryTest {
                 nextFactory.generate(Difficulty.MEDIUM).getText());
     }
 
-    /** Supplies a known passage so deadline boundaries can be checked independently of random choice. */
+    /**
+     * Supplies a known passage so deadline boundaries can be checked independently of random choice.
+     */
     private static class FixedPromptBank extends PromptBank {
         private final String prompt;
 
+        /**
+         * Creates a bank returning the supplied passage for every difficulty.
+         *
+         * @param prompt passage returned for every difficulty
+         */
         FixedPromptBank(String prompt) {
             this.prompt = prompt;
         }
 
+        /**
+         * Returns the fixture passage for every requested difficulty.
+         *
+         * @param difficulty requested difficulty; unused by this fixture
+         * @return configured passage
+         */
         @Override
         public String getRandomPrompt(Difficulty difficulty) {
             return prompt;

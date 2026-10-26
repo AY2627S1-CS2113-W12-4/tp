@@ -1,6 +1,8 @@
 package seedu.keyboardwarrior.combat;
 
-/** Represents the player and initializes the skills available to them. */
+/**
+ * Represents the player and initializes the skills available to them.
+ */
 public class Player extends Entity {
     /**
      * Creates a player with all skills from the standard player loadout.

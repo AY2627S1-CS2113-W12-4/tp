@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
  * Tests creation of the supported enemy configurations.
  */
 class EnemyFactoryTest {
+    /**
+     * Checks that seeded enemy selection covers all eight configured enemy types.
+     */
     @Test
     void createRandomEnemy_seededSelection_offersVariedConfiguredOpponents() {
         Random random = new Random(42);
@@ -37,6 +40,9 @@ class EnemyFactoryTest {
         assertEquals(8, names.size());
     }
 
+    /**
+     * Checks that equal seeds select the same type while creating independent enemies.
+     */
     @Test
     void createRandomEnemy_sameSeed_createsIndependentEnemiesOfSameType() {
         Enemy first = EnemyFactory.createRandomEnemy(new Random(42));
@@ -49,6 +55,9 @@ class EnemyFactoryTest {
         assertEquals(startingHealth, second.getHealth());
     }
 
+    /**
+     * Checks scenario health progression without changing each enemy type's skill loadout.
+     */
     @Test
     void createRandomEnemy_regularScenarios_useProgressiveHealthAndOriginalLoadouts() {
         int[] expectedHealth = {30, 35, 50, 60, 70};
@@ -66,6 +75,9 @@ class EnemyFactoryTest {
         }
     }
 
+    /**
+     * Checks that invalid scenario numbers and null random sources are rejected.
+     */
     @Test
     void createRandomEnemy_invalidScenarioOrRandom_rejectsConfiguration() {
         for (int scenario : new int[] {Integer.MIN_VALUE, -1, 0, 6, Integer.MAX_VALUE}) {
@@ -75,6 +87,9 @@ class EnemyFactoryTest {
         assertThrows(NullPointerException.class, () -> EnemyFactory.createRandomEnemy(null, 1));
     }
 
+    /**
+     * Checks that boss phases have separate health and the expected fixed attacks.
+     */
     @Test
     void createBossPhase_configuredPhases_haveIndependentHealthAndFixedAttacks() {
         Enemy first = EnemyFactory.createBossPhase(1);
@@ -95,6 +110,9 @@ class EnemyFactoryTest {
         assertEquals(50, EnemyFactory.createBossPhase(1).getHealth());
     }
 
+    /**
+     * Checks that unsupported boss phase numbers are rejected.
+     */
     @Test
     void createBossPhase_invalidPhase_rejectsConfiguration() {
         for (int phase : new int[] {Integer.MIN_VALUE, -1, 0, 3, Integer.MAX_VALUE}) {
@@ -102,6 +120,9 @@ class EnemyFactoryTest {
         }
     }
 
+    /**
+     * Checks the Script Kiddie's health and ordered skills.
+     */
     @Test
     void createEnemy_rogueAi_returnsConfiguredEnemy() {
         Enemy enemy = EnemyFactory.createEnemy("rogue_ai");
@@ -114,6 +135,9 @@ class EnemyFactoryTest {
         assertSame(SkillRegistry.getSkill("buffer_overflow"), enemy.getActiveSkills().get(2));
     }
 
+    /**
+     * Checks the Malware Bot's health and ordered skills.
+     */
     @Test
     void createEnemy_malwareBot_returnsConfiguredEnemy() {
         Enemy enemy = EnemyFactory.createEnemy("MALWARE_BOT");
@@ -125,6 +149,9 @@ class EnemyFactoryTest {
         assertSame(SkillRegistry.getSkill("brute_force"), enemy.getActiveSkills().get(1));
     }
 
+    /**
+     * Checks that enemy identifiers are interpreted independently of the default locale.
+     */
     @Test
     void createEnemy_uppercaseId_doesNotDependOnDefaultLocale() {
         Locale previousLocale = Locale.getDefault();
@@ -142,6 +169,9 @@ class EnemyFactoryTest {
         }
     }
 
+    /**
+     * Checks that an unknown enemy identifier produces a useful exception.
+     */
     @Test
     void createEnemy_unknownType_throwsException() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,

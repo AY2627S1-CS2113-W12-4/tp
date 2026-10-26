@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
  * Tests validation of challenge text and its time limit.
  */
 class TypingChallengeTest {
+    /**
+     * Checks that a valid challenge preserves its original text and time limit.
+     */
     @Test
     public void constructor_validChallenge_preservesTextAndTime() {
         TypingChallenge challenge = new TypingChallenge("  Strike the goblin  ", 15);
@@ -19,11 +22,17 @@ class TypingChallengeTest {
         assertEquals(15, challenge.getTime());
     }
 
+    /**
+     * Checks that null challenge text is rejected.
+     */
     @Test
     public void constructor_nullText_throwsException() {
         assertThrows(NullPointerException.class, () -> new TypingChallenge(null, 15));
     }
 
+    /**
+     * Checks that empty or whitespace-only challenge text is rejected.
+     */
     @Test
     public void constructor_blankText_throwsException() {
         for (String text : List.of("", " \t\n")) {
@@ -31,6 +40,9 @@ class TypingChallengeTest {
         }
     }
 
+    /**
+     * Checks that a challenge requires a positive time limit.
+     */
     @Test
     public void constructor_nonpositiveTime_throwsException() {
         assertThrows(IllegalArgumentException.class, () -> new TypingChallenge("Strike", 0));

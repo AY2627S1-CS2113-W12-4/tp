@@ -12,6 +12,9 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
  * Tests lookup of predefined combat skills.
  */
 class SkillRegistryTest {
+    /**
+     * Checks that a known identifier returns the shared skill definition.
+     */
     @Test
     void getSkill_knownId_returnsConfiguredSkill() {
         Skill skill = SkillRegistry.getSkill("buffer_overflow");
@@ -22,6 +25,9 @@ class SkillRegistryTest {
         assertSame(skill, SkillRegistry.getSkill("buffer_overflow"));
     }
 
+    /**
+     * Checks that an unknown skill identifier produces a useful exception.
+     */
     @Test
     void getSkill_unknownId_throwsException() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,

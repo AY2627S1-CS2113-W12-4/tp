@@ -1,10 +1,14 @@
 package seedu.keyboardwarrior.encounter;
 
-/** Stores the final victory or defeat result of an encounter. */
+/**
+ * Stores the final victory or defeat result of an encounter.
+ */
 public class EncounterOutcome {
     private boolean isVictory;
 
-    /** Creates an outcome defaulting to defeat until the encounter sets its result. */
+    /**
+     * Creates an outcome defaulting to defeat until the encounter sets its result.
+     */
     public EncounterOutcome() {
         this.isVictory = false;
     }
