@@ -26,8 +26,17 @@ dependencies {
 }
 
 test {
+    // Exercise the distributable JAR as well as classes on the test classpath.
+    dependsOn tasks.named('shadowJar')
+    def smokeJar = tasks.named('shadowJar').flatMap { it.archiveFile }
+    inputs.file(smokeJar)
+    doFirst {
+        // Resolve after shadowJar's custom filename has been configured and its archive has been built.
+        systemProperty 'keyboardwarrior.smoke.jar', smokeJar.get().asFile.absolutePath
+    }
     useJUnitPlatform()
     enableAssertions = true
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 
     testLogging {
         events 'passed', 'skipped', 'failed'
@@ -53,6 +62,10 @@ jar {
 
 shadowJar {
     archiveFileName = 'KeyboardWarrior.jar'
+    manifest {
+        // Keep plain java -jar launches warning-free when JLine loads its native terminal provider.
+        attributes 'Enable-Native-Access': 'ALL-UNNAMED'
+    }
 }
 
 checkstyle {
@@ -62,6 +75,7 @@ checkstyle {
 run {
     standardInput = System.in
     enableAssertions = true
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 // Compile through Gradle, then let the launch scripts start Java with native terminal input/output.

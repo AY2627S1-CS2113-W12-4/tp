@@ -1,8 +1,8 @@
 # Keyboard Warrior
 
 Keyboard Warrior is a terminal typing combat game. Type `start`, choose a skill and type its
-passage while a live countdown shows the time remaining. Character accuracy and typing speed
-determine your damage. Survive five regular scenarios, then defeat both phases of the Kernel
+passage while a live countdown shows the time remaining in a supported terminal. Character accuracy
+and typing speed determine your damage. Survive five regular scenarios, then defeat both phases of the Kernel
 Overlord to win. Your starting HP depends on the selected game difficulty and carries through
 the whole run without healing.
 
@@ -39,15 +39,31 @@ Keep Java sources under `src/main/java`; Gradle expects that source layout.
 
 ## Running the game
 
+The same release JAR runs on Windows, macOS and Linux with Java 25. From the folder containing
+the downloaded JAR, run:
+
+```text
+java -jar KeyboardWarrior.jar
+```
+
+The release does not require the source project, Gradle or the launch scripts. A native terminal
+provides the live countdown and automatic capture of unfinished typing. When a console redirects
+input/output or cannot move the cursor, the game starts in plain-text mode instead: menus and
+passages remain visible, and the time allowance is printed once. Plain mode waits for Enter and
+scores the submitted text using its actual elapsed time, including submissions after the deadline.
+It cannot reliably capture keystrokes that the console has not delivered before Enter, so it does
+not automatically submit an unfinished answer.
+
+To run from a source checkout, use the optional launchers below.
 Use Java 25 and run `sh ./run-game.sh` on macOS/Linux or `.\run-game.bat` in Windows PowerShell
 from the project folder. These launchers use Gradle to compile, then run Java directly in the
 current terminal with assertions enabled. They do not build a JAR.
 
-Use IntelliJ's Terminal or a native terminal for gameplay. Gradle `run` and IntelliJ's Run console
-can redirect input, preventing the live countdown and capture of text before Enter. The game checks
-terminal capabilities at startup and shows the launcher command when the console is unsupported.
-On Windows, try Windows Terminal if IntelliJ's Terminal remains unsupported.
+Use IntelliJ's Terminal or a native terminal for the full countdown display. Gradle `run` and
+IntelliJ's Run console can redirect input and therefore use plain-text mode. On Windows, try
+Windows Terminal if IntelliJ's Terminal does not support live display.
 
+After `start`, enter a seed or press Enter on an empty line for a random seed.
 Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow`, `SIGKILL` or `Encryption`), then type its
 passage as one line. Skills select different passage difficulties; the same typing performance gives
 the same player damage for every skill. On Hard, 50 WPM and 95% character accuracy deal 40 damage.
@@ -56,8 +72,8 @@ the same player damage for every skill. On Hard, 50 WPM and 95% character accura
 with a passage approximately as long as `SIGKILL`. After the game difficulty multiplier, its
 countdown is 240 seconds on Easy, 120 on Normal, 60 on Hard, or 48 on Coder.
 
-The timer appears above the passage. Press Enter to submit, or let the deadline submit the text
-currently in the input line. Feedback shows WPM, character accuracy, elapsed time and required time;
+In a supported terminal, the timer appears above the passage. Press Enter to submit, or let the
+deadline submit the text currently in the input line. Feedback shows WPM, character accuracy, elapsed time and required time;
 it does not list individual wrong words. Expiry is announced with "Time's up". Passing the deadline
 adds no separate damage penalty.
 An enemy that survives the attack retaliates. Defeating an enemy advances automatically, with no
@@ -88,20 +104,22 @@ The project uses Gradle 9.6.1 and Java 25. Useful tasks are:
 | `shadowJar` | Package the application and its dependencies in `build/libs/KeyboardWarrior.jar` |
 
 For example, use `.\gradlew.bat check` in Windows PowerShell or `./gradlew check` on macOS/Linux.
-To package a demo, run the same wrapper with `shadowJar`. Run the resulting JAR in a supported
-terminal with Java 25:
+To package a demo, run the same wrapper with `shadowJar`. Run the resulting JAR with Java 25:
 
 ```text
-java -ea --enable-native-access=ALL-UNNAMED -jar build/libs/KeyboardWarrior.jar
+java -ea -jar build/libs/KeyboardWarrior.jar
 ```
 
+The executable JAR enables its bundled terminal library's native access through its manifest;
+the additional command-line native-access option is not required for `java -jar`.
 The Gradle `run` and `test` tasks enable assertions. Internal assertions check game invariants;
 argument validation still throws exceptions when assertions are disabled.
 
 ## Testing and CI
 
 Tests live under `src/test/java/seedu/keyboardwarrior` and cover typing feedback, clocks, damage,
-combat, scenario and boss progression, and terminal output. Run `check` with Java 25.
+combat, scenario and boss progression, and terminal output. Packaged-JAR smoke tests also check
+startup and clean exit with redirected input/output. Run `check` with Java 25.
 [GitHub Actions](.github/workflows/gradle.yml) runs the same checks on Windows, macOS and Linux
 for pushes and pull requests. Checkstyle rules are in `config/checkstyle`.
 

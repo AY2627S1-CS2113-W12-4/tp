@@ -2,7 +2,11 @@ package seedu.keyboardwarrior;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.io.BufferedReader;
+import java.io.Console;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jline.reader.EndOfFileException;
@@ -29,44 +33,93 @@ public class KeyboardWarrior {
     private static final int TICK_MILLIS = 100;
 
     /**
-     * Opens the terminal, starts a background input reader and runs the game loop
-     * on the main thread.
-     * The input reader may block while waiting for a line, but it only adds
-     * complete commands to the input queue. The main thread is the only thread
+     * Uses plain line input for redirected consoles, or opens a live terminal
+     * and runs the game loop on the main thread.
+     * In live mode the background reader may block while waiting for a line,
+     * but it only adds complete commands to the input queue. The main thread is the only thread
      * that changes the state machine, so timer updates and input handling cannot
      * change a state concurrently.
      *
      * @param args command-line arguments; currently unused
      */
     public static void main(String[] args) {
-        TerminalBuilder terminalBuilder = TerminalBuilder.builder().system(true);
-        if (System.console() != null && System.getProperty("os.name").startsWith("Windows")) {
-            // Some launchers set TERM=dumb even for a console. Native mode delivers each
-            // keystroke to JLine, which is required to score an answer before Enter.
-            terminalBuilder.type("windows-vtp");
-        }
-        try (Terminal terminal = terminalBuilder.build()) {
-            CountdownReader reader = new CountdownReader(terminal);
-            if (!reader.supportsLiveDisplay()) {
-                LOGGER.fine(() -> "Unsupported interactive console: " + terminal.getType());
-                System.err.println("This console cannot display the live timer or capture typing before Enter.");
-                String launcher = System.getProperty("os.name").startsWith("Windows")
-                        ? ".\\run-game.bat"
-                        : "sh ./run-game.sh";
-                System.err.println("Open IntelliJ's Terminal or a system terminal and run: " + launcher);
+        try {
+            Console console = System.console();
+            if (console == null || !console.isTerminal()) {
+                // Captured input/output is valid for a CLI, but cannot support native cursor control.
+                // Choose this path before JLine attempts to load or initialize a system terminal.
+                runPlainGame(new InputStreamReader(System.in));
                 return;
             }
-            reader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
-            StateUi.attachTerminal(reader);
-            runGame(reader);
+            Terminal systemTerminal = openSystemTerminal();
+            if (systemTerminal == null) {
+                runPlainGame(console.reader());
+                return;
+            }
+            try (Terminal terminal = systemTerminal) {
+                CountdownReader reader = new CountdownReader(terminal);
+                if (!reader.supportsLiveDisplay()) {
+                    LOGGER.fine(() -> "Using plain input for terminal: " + terminal.getType());
+                    runPlainGame(terminal.reader());
+                    return;
+                }
+                reader.setOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
+                StateUi.attachTerminal(reader);
+                runGame(reader);
+            }
         } catch (IOException exception) {
-            LOGGER.log(Level.WARNING, "Terminal setup or cleanup failed", exception);
-            System.err.println("Unable to open terminal: " + exception.getMessage());
+            LOGGER.log(Level.WARNING, "Console input or terminal cleanup failed", exception);
+            System.err.println("Unable to read console: " + exception.getMessage());
         } catch (RuntimeException | AssertionError exception) {
             LOGGER.log(Level.SEVERE, "Unexpected game failure", exception);
             throw exception;
         } finally {
             StateUi.detachTerminal();
+        }
+    }
+
+    /**
+     * Opens native terminal support when available without making it a startup requirement.
+     *
+     * @return system terminal, or null when terminal initialization is unavailable
+     */
+    private static Terminal openSystemTerminal() {
+        TerminalBuilder builder = TerminalBuilder.builder().system(true).dumb(true);
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            // Some launchers set TERM=dumb even for a real Windows console.
+            builder.type("windows-vtp");
+        }
+        try {
+            return builder.build();
+        } catch (IOException | IllegalStateException exception) {
+            LOGGER.log(Level.FINE, "Native terminal unavailable; using plain console input", exception);
+            return null;
+        }
+    }
+
+    /**
+     * Runs the same states using complete lines when cursor control is unavailable.
+     * A line-buffered console cannot deliver unfinished typing, so expiry is checked
+     * when Enter submits the passage instead of scoring an empty buffer on a timer tick.
+     * The supplied stream belongs to the JVM or terminal and is not closed here.
+     *
+     * @param input console character stream
+     * @throws IOException if the console input fails
+     */
+    private static void runPlainGame(Reader input) throws IOException {
+        StateUi.detachTerminal();
+        StateUi.printLine("Live countdown is unavailable in this console. Press Enter to submit each passage.");
+        BufferedReader reader = new BufferedReader(input);
+        StateMachine stateMachine = new StateMachine();
+        stateMachine.start(new MainMenuState(stateMachine));
+        while (stateMachine.isRunning()) {
+            StateUi.showInputPrompt();
+            String line = reader.readLine();
+            if (line == null) {
+                stateMachine.stop();
+                break;
+            }
+            stateMachine.handleInput(line);
         }
     }
 
