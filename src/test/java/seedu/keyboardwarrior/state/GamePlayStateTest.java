@@ -30,6 +30,7 @@ import seedu.keyboardwarrior.GameSave;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
+import seedu.keyboardwarrior.seed.RunRandom;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.typing.ChallengeClock;
@@ -52,6 +53,44 @@ class GamePlayStateTest {
     private RecordingStateMachine machine;
     private ControlledClock clock;
     private RecordingCombatUi ui;
+
+    @Test
+    void save_resumeAtEveryScenarioAndBossPhase_matchesUninterruptedSeededRun() throws IOException {
+        List<String> uninterrupted = completeRunWithResume(-1);
+        for (int checkpoint = 0; checkpoint < 7; checkpoint++) {
+            assertEquals(uninterrupted, completeRunWithResume(checkpoint),
+                    "Resuming at encounter " + checkpoint + " must retain enemies, prompts and Encryption symbols.");
+        }
+    }
+
+    /** Compares a mixed-skill run, optionally reopening its saved turn before one encounter. */
+    private List<String> completeRunWithResume(int checkpoint) throws IOException {
+        SaveStore history = new SaveStore(tempDir.resolve("resume-" + checkpoint).resolve("history.txt"));
+        GameSaveStore runStore = new GameSaveStore(history.getDirectory().resolve("game-save.properties"));
+        machine = new RecordingStateMachine();
+        clock = new ControlledClock();
+        ui = new RecordingCombatUi();
+        machine.start(new GamePlayState(machine, clock, ui, new RunRandom(42), history));
+        List<String> selections = new ArrayList<>();
+        for (int encounterIndex = 0; encounterIndex < 7; encounterIndex++) {
+            if (encounterIndex == checkpoint) {
+                GameSave saved = runStore.load().orElseThrow();
+                machine.stop();
+                machine = new RecordingStateMachine();
+                ui = new RecordingCombatUi();
+                machine.start(new GamePlayState(machine, clock, ui, new RunRandom(999), history,
+                        saved.difficulty(), runStore, saved));
+            }
+            machine.handleInput(encounterIndex % 2 == 0 ? "Ping" : "Encryption");
+            selections.add(ui.enemy.getName());
+            selections.add(ui.challenge.getText());
+            selections.add(Integer.toString(ui.challenge.getTime()));
+            clock.elapsedSeconds = 1.0;
+            machine.handleInput(ui.challenge.getText());
+        }
+        assertTrue(machine.nextState instanceof MainMenuState);
+        return selections;
+    }
 
     @Test
     void save_resume_restoresHealthDamageAndNextEnemyAttackWithoutReplayingATurn() throws IOException {

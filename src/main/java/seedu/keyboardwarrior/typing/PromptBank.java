@@ -3,9 +3,11 @@ package seedu.keyboardwarrior.typing;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
+import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /**
@@ -25,7 +27,7 @@ public class PromptBank {
      * Creates and populates the prompt bank.
      */
     public PromptBank() {
-        this(new Random());
+        this(SeedGenerator.createRandom());
     }
 
     /**
@@ -38,6 +40,22 @@ public class PromptBank {
         this.previousPromptIndices = new HashMap<>();
         this.random = Objects.requireNonNull(random);
         initializeBank();
+    }
+
+    /** Returns immutable selection history so resumed runs avoid the same previous passages. */
+    public Map<Difficulty, Integer> snapshotHistory() {
+        return Map.copyOf(previousPromptIndices);
+    }
+
+    /** Restores history before generating any prompts for a resumed run. */
+    public void restoreHistory(Map<Difficulty, Integer> history) {
+        for (var entry : history.entrySet()) {
+            if (entry.getValue() < 0 || entry.getValue() >= prompts.get(entry.getKey()).size()) {
+                throw new IllegalArgumentException("Invalid saved prompt index");
+            }
+        }
+        previousPromptIndices.clear();
+        previousPromptIndices.putAll(history);
     }
 
     /**

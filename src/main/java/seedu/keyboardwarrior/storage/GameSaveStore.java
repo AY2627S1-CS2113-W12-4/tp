@@ -9,12 +9,15 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.EnumMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
 import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.GameSave;
+import seedu.keyboardwarrior.seed.RandomSnapshot;
+import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Stores one active run separately from typing history, replacing saves only after writing succeeds. */
 public class GameSaveStore {
@@ -38,7 +41,7 @@ public class GameSaveStore {
             return Optional.of(new GameSave(integer(data, "version"),
                     GameDifficulty.valueOf(required(data, "difficulty")), integer(data, "playerHealth"),
                     integer(data, "scenarioIndex"), integer(data, "bossPhase"), required(data, "enemyType"),
-                    integer(data, "enemyHealth"), integer(data, "nextEnemySkillIndex")));
+                    integer(data, "enemyHealth"), integer(data, "nextEnemySkillIndex"), loadRandomSnapshot(data)));
         } catch (NoSuchFileException exception) {
             return Optional.empty();
         } catch (IllegalArgumentException exception) {
@@ -58,6 +61,11 @@ public class GameSaveStore {
         data.setProperty("enemyType", save.enemyType());
         data.setProperty("enemyHealth", Integer.toString(save.enemyHealth()));
         data.setProperty("nextEnemySkillIndex", Integer.toString(save.nextEnemySkillIndex()));
+        if (save.randomSnapshot() != null) {
+            data.setProperty("randomState", Long.toString(save.randomSnapshot().state()));
+            save.randomSnapshot().previousPromptIndices().forEach((difficulty, index) ->
+                    data.setProperty("previousPrompt." + difficulty.name(), Integer.toString(index)));
+        }
         Files.createDirectories(filePath.getParent());
         Path temporary = Files.createTempFile(filePath.getParent(), "game-save-", ".tmp");
         try {
@@ -89,5 +97,20 @@ public class GameSaveStore {
 
     private static int integer(Properties data, String key) {
         return Integer.parseInt(required(data, key));
+    }
+
+    /** Missing random fields identify legacy saves; partial or malformed fields are rejected. */
+    private static RandomSnapshot loadRandomSnapshot(Properties data) {
+        EnumMap<Difficulty, Integer> history = new EnumMap<>(Difficulty.class);
+        for (String key : data.stringPropertyNames()) {
+            if (key.startsWith("previousPrompt.")) {
+                Difficulty difficulty = Difficulty.valueOf(key.substring("previousPrompt.".length()));
+                history.put(difficulty, integer(data, key));
+            }
+        }
+        if (!data.containsKey("randomState") && history.isEmpty()) {
+            return null;
+        }
+        return new RandomSnapshot(Long.parseLong(required(data, "randomState")), history);
     }
 }

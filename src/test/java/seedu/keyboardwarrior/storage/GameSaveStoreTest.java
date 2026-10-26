@@ -8,17 +8,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.GameSave;
+import seedu.keyboardwarrior.seed.RandomSnapshot;
+import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Tests persistent run snapshots, malformed files and replacement failures using temporary storage. */
 class GameSaveStoreTest {
     @TempDir
     Path directory;
+
+    @Test
+    void save_randomStateAndHistory_roundTripAndRejectMalformedFields() throws IOException {
+        GameSaveStore store = new GameSaveStore(directory.resolve("game-save.properties"));
+        GameSave save = new GameSave(1, GameDifficulty.HARD, 90, 0, 0, "rogue_ai", 25, 1,
+                new RandomSnapshot(123456789, Map.of(Difficulty.EASY, 2, Difficulty.ULTIMATE, 4)));
+        store.save(save);
+        assertEquals(save, store.load().orElseThrow());
+        Path path = directory.resolve("game-save.properties");
+        String valid = Files.readString(path);
+        String[][] changes = {
+            {"randomState=123456789", "randomState=-1"},
+            {"randomState=123456789", "randomState=281474976710656"},
+            {"randomState=123456789", "randomState=invalid"},
+            {"randomState=123456789", "unused=123456789"},
+            {"previousPrompt.EASY=2", "previousPrompt.EASY=5"},
+            {"previousPrompt.EASY=2", "previousPrompt.EASY=-1"},
+            {"previousPrompt.EASY=2", "previousPrompt.UNKNOWN=2"}
+        };
+        for (String[] change : changes) {
+            Files.writeString(path, valid.replace(change[0], change[1]));
+            assertThrows(IOException.class, store::load);
+        }
+        Files.writeString(path, valid.replaceAll("(?m)^(randomState|previousPrompt\\.[A-Z]+)=.*\\R?", ""));
+        assertEquals(new GameSave(1, GameDifficulty.HARD, 90, 0, 0, "rogue_ai", 25, 1),
+                store.load().orElseThrow(), "Legacy saves without randomness must remain loadable.");
+    }
 
     @Test
     void save_reopenedStore_restoresEveryFieldAcrossDifficultiesAndBossPhases() throws IOException {

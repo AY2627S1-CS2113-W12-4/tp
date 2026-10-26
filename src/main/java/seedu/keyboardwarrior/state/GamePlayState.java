@@ -11,6 +11,9 @@ import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
+import seedu.keyboardwarrior.seed.RandomSnapshot;
+import seedu.keyboardwarrior.seed.RunRandom;
+import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 import seedu.keyboardwarrior.typing.ChallengeClock;
@@ -46,6 +49,8 @@ public class GamePlayState extends State {
     private final GameSave restoredSave;
     /** Shares prompt selection history across regular scenarios and both boss phases. */
     private final TypingChallengeFactory challengeFactory;
+    /** Shares both random choices and previous-passage exclusions with saved runs. */
+    private final PromptBank promptBank;
     /** The same player's remaining health carries into the next scenario. */
     private Player player;
     private CombatEncounter encounter;
@@ -100,12 +105,12 @@ public class GamePlayState extends State {
 
     /** Starts a run using the menu's selected difficulty and history location. */
     GamePlayState(StateMachine stateMachine, SaveStore saveStore, GameDifficulty difficulty) {
-        this(stateMachine, new ChallengeClock(), new CombatUi(), new Random(), saveStore, difficulty);
+        this(stateMachine, new ChallengeClock(), new CombatUi(), SeedGenerator.createRandom(), saveStore, difficulty);
     }
 
     /** Restores a saved run using new input, timing and combat objects. */
     GamePlayState(StateMachine stateMachine, SaveStore saveStore, GameSave save) {
-        this(stateMachine, new ChallengeClock(), new CombatUi(), new Random(), saveStore, save.difficulty(),
+        this(stateMachine, new ChallengeClock(), new CombatUi(), restoreRandom(save), saveStore, save.difficulty(),
                 new GameSaveStore(saveStore.getDirectory().resolve("game-save.properties")), save);
     }
 
@@ -118,7 +123,7 @@ public class GamePlayState extends State {
      * @param combatUi interface used to display combat and typing challenges
      */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi) {
-        this(stateMachine, clock, combatUi, new Random());
+        this(stateMachine, clock, combatUi, SeedGenerator.createRandom());
     }
 
     /**
@@ -161,7 +166,9 @@ public class GamePlayState extends State {
         super("Gameplay", stateMachine);
         this.clock = Objects.requireNonNull(clock, "Challenge clock must not be null");
         this.combatUi = Objects.requireNonNull(combatUi, "Combat interface must not be null");
-        this.random = Objects.requireNonNull(random, "Random generator must not be null");
+        Objects.requireNonNull(random, "Random generator must not be null");
+        this.random = restoredSave != null && restoredSave.randomSnapshot() != null
+                ? restoreRandom(restoredSave) : random;
         this.saveStore = Objects.requireNonNull(saveStore, "Save store must not be null");
         this.difficulty = Objects.requireNonNull(difficulty, "Game difficulty must not be null");
         this.gameSaveStore = Objects.requireNonNull(gameSaveStore, "Game save store must not be null");
@@ -169,7 +176,17 @@ public class GamePlayState extends State {
             throw new IllegalArgumentException("Restored difficulty must match the saved run");
         }
         this.restoredSave = restoredSave;
-        this.challengeFactory = new TypingChallengeFactory(new PromptBank(random), difficulty);
+        this.promptBank = new PromptBank(this.random);
+        if (restoredSave != null && restoredSave.randomSnapshot() != null) {
+            promptBank.restoreHistory(restoredSave.randomSnapshot().previousPromptIndices());
+        }
+        this.challengeFactory = new TypingChallengeFactory(promptBank, difficulty);
+    }
+
+    /** Older saves still load, but only new saves contain the original random sequence position. */
+    private static Random restoreRandom(GameSave save) {
+        return save.randomSnapshot() == null ? SeedGenerator.createRandom()
+                : RunRandom.restore(save.randomSnapshot().state());
     }
 
     /**
@@ -361,7 +378,9 @@ public class GamePlayState extends State {
                 : "Autosave progression must identify a regular scenario or a final boss phase";
         CombatEncounter.CombatSnapshot snapshot = encounter.snapshot();
         GameSave save = new GameSave(GameSave.CURRENT_VERSION, difficulty, player.getHealth(), scenarioIndex,
-                bossPhase, snapshot.enemyType(), snapshot.enemyHealth(), snapshot.nextEnemySkillIndex());
+                bossPhase, snapshot.enemyType(), snapshot.enemyHealth(), snapshot.nextEnemySkillIndex(),
+                random instanceof RunRandom runRandom
+                        ? new RandomSnapshot(runRandom.snapshot(), promptBank.snapshotHistory()) : null);
         try {
             gameSaveStore.save(save);
         } catch (IOException exception) {

@@ -27,4 +27,9 @@ public class SeedGenerator {
             return (long) input.hashCode();
         }
     }
+
+    /** Creates a fresh run seed when an entry point has no player-supplied seed. */
+    public static RunRandom createRandom() {
+        return new RunRandom(parseSeed(null));
+    }
 }

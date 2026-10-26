@@ -4,6 +4,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 
+import seedu.keyboardwarrior.seed.SeedGenerator;
+
 /**
  * Creates predefined enemies with their health and skill loadouts configured.
  */
@@ -26,7 +28,7 @@ public class EnemyFactory {
      * @return a fresh enemy with its starting health and skills
      */
     public static Enemy createRandomEnemy() {
-        return createRandomEnemy(new Random());
+        return createRandomEnemy(SeedGenerator.createRandom());
     }
 
     /**

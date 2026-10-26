@@ -3,10 +3,10 @@ package seedu.keyboardwarrior.state;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
 
 import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.GameSave;
+import seedu.keyboardwarrior.seed.RunRandom;
 import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
@@ -80,7 +80,7 @@ public class MainMenuState extends State {
         if (isWaitingForSeed) {
             long seed = SeedGenerator.parseSeed(input);
             StateUi.showSeed(seed);
-            Random masterRandom = new Random(seed);
+            RunRandom masterRandom = new RunRandom(seed);
             stateMachine.transitState(new GamePlayState(stateMachine, masterRandom, saveStore, difficulty));
             return;
         }

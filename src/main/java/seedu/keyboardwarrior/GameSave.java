@@ -4,12 +4,20 @@ import java.util.Objects;
 
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.EnemyFactory;
+import seedu.keyboardwarrior.seed.RandomSnapshot;
 
 /** Immutable, validated run data captured while the player is choosing a skill. */
 public record GameSave(int version, GameDifficulty difficulty, int playerHealth, int scenarioIndex,
-        int bossPhase, String enemyType, int enemyHealth, int nextEnemySkillIndex) {
+        int bossPhase, String enemyType, int enemyHealth, int nextEnemySkillIndex, RandomSnapshot randomSnapshot) {
     /** Version of the properties-file layout supported by this application. */
     public static final int CURRENT_VERSION = 1;
+
+    /** Reads older snapshots that predate random-state persistence. */
+    public GameSave(int version, GameDifficulty difficulty, int playerHealth, int scenarioIndex,
+            int bossPhase, String enemyType, int enemyHealth, int nextEnemySkillIndex) {
+        this(version, difficulty, playerHealth, scenarioIndex, bossPhase, enemyType, enemyHealth,
+                nextEnemySkillIndex, null);
+    }
 
     /** Rejects snapshots that cannot represent a living run at a stable turn boundary. */
     public GameSave {
