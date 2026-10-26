@@ -2,6 +2,7 @@ package seedu.keyboardwarrior.ui;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import seedu.keyboardwarrior.CountdownReader;
 import seedu.keyboardwarrior.GameDifficulty;
@@ -335,5 +336,24 @@ public final class StateUi {
      */
     public static void showExit() {
         printLine("Exit.");
+    }
+
+    /**
+     * Displays the persisted all-time best attempt, or an empty message before the first attempt.
+     *
+     * @param highScore the stored best attempt, if one exists
+     */
+    public static void showLeaderboard(Optional<SavedRecord> highScore) {
+        printLine("Leaderboard - All-time highest score");
+        printLine("Highest WPM, with accuracy breaking ties.");
+        if (highScore.isEmpty()) {
+            printLine("No typing records saved yet. Play a game to appear on the leaderboard.");
+        } else {
+            SavedRecord bestRecord = highScore.get();
+            printLine(String.format(Locale.ROOT, "%10s  %10s", "WPM", "Accuracy"));
+            printLine(String.format(Locale.ROOT, "%10.2f  %9.2f%%",
+                    bestRecord.wpm(), bestRecord.accuracyPercent()));
+        }
+        showMenuOptionsPrompt();
     }
 }

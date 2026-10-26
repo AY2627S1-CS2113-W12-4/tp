@@ -1,9 +1,5 @@
 package seedu.keyboardwarrior.state;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -19,6 +15,8 @@ import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.GameSave;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests menu history display and persistence using real temporary files.
@@ -118,14 +116,14 @@ class MainMenuStateTest {
         StateMachine menuMachine = new StateMachine();
         menuMachine.start(new MainMenuState(menuMachine, new SaveStore(tempDir.resolve("history.txt"))));
         menuMachine.handleInput("3");
-        assertTrue(!menuMachine.isRunning());
+        assertFalse(menuMachine.isRunning());
 
         StateMachine difficultyMachine = new StateMachine();
         difficultyMachine.start(new MainMenuState(difficultyMachine, new SaveStore(tempDir.resolve("history.txt"))));
         difficultyMachine.handleInput("4");
         difficultyMachine.update();
         difficultyMachine.handleInput("exit");
-        assertTrue(!difficultyMachine.isRunning());
+        assertFalse(difficultyMachine.isRunning());
     }
 
     @Test
@@ -251,9 +249,15 @@ class MainMenuStateTest {
             String output = viewLeaderboard(command);
             List<String> rows = output.lines().filter(line -> line.contains("%")).toList();
             assertEquals(1, rows.size());
-            assertEquals(List.of("60.00", "95.00%"), List.of(rows.get(0).trim().split("\\s+")));
+            assertEquals(List.of("60.00", "95.00%"), List.of(rows.getFirst().trim().split("\\s+")));
             assertEquals(records, Files.readString(history));
         }
+        Files.writeString(history, "20.0,100.0\n".repeat(10));
+        String retainedScore = viewLeaderboard("leaderboard");
+        assertTrue(retainedScore.contains("All-time highest score"));
+        List<String> rows = retainedScore.lines().filter(line -> line.contains("%")).toList();
+        assertEquals(1, rows.size());
+        assertEquals(List.of("60.00", "95.00%"), List.of(rows.getFirst().trim().split("\\s+")));
     }
 
     /** Checks that a first-time player can open the leaderboard without a history file. */

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import seedu.keyboardwarrior.typing.TypingResult;
 
@@ -16,6 +17,7 @@ import seedu.keyboardwarrior.typing.TypingResult;
 public class SaveStore {
     private static final int MAX_RECORDS = 10;
     private final Path filePath;
+    private final LeaderboardStore leaderboardStore;
 
     /**
      * Uses a save file relative to the directory from which the game is launched.
@@ -32,6 +34,8 @@ public class SaveStore {
      */
     public SaveStore(Path filePath) {
         this.filePath = Objects.requireNonNull(filePath).toAbsolutePath();
+        this.leaderboardStore = new LeaderboardStore(this.filePath.resolveSibling(
+                this.filePath.getFileName() + ".high-score"));
     }
 
     /** Returns the data directory so run saves can share its location, including temporary test storage. */
@@ -83,7 +87,25 @@ public class SaveStore {
     }
 
     /**
-     * Appends a result, discarding the oldest entries when more than ten exist.
+     * Loads the all-time best attempt, initializing it from existing history on first use.
+     * Previously discarded history cannot be recovered, but this score survives future history rotation.
+     *
+     * @return the best saved attempt, or empty if no attempts have been recorded
+     * @throws IOException if the high score or history cannot be read, or initialization cannot be saved
+     */
+    public Optional<SavedRecord> loadHighScore() throws IOException {
+        Optional<SavedRecord> best = leaderboardStore.load();
+        if (best.isEmpty()) {
+            best = load().stream().max(LeaderboardStore.SCORE_ORDER);
+            if (best.isPresent()) {
+                leaderboardStore.saveIfHigher(best.get());
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Preserves the all-time high score, then appends a result and keeps the latest ten history entries.
      * Reads previous records on every save so history survives application restarts.
      *
      * @param result evaluated typing result
@@ -92,6 +114,9 @@ public class SaveStore {
      */
     public void save(TypingResult result) throws IOException {
         Objects.requireNonNull(result, "Typing result must not be null");
+        // Migrate existing history before its best attempt can be discarded by the ten-record limit.
+        loadHighScore();
+        leaderboardStore.saveIfHigher(new SavedRecord(result.getWpm(), result.getAccuracyPercent()));
         List<String> records;
         try {
             records = new ArrayList<>(Files.readAllLines(filePath));

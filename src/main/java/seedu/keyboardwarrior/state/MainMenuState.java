@@ -10,7 +10,6 @@ import seedu.keyboardwarrior.seed.RunRandom;
 import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
-import seedu.keyboardwarrior.leaderboard.LeaderboardUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
 /**
@@ -97,7 +96,7 @@ public class MainMenuState extends State {
             }
         } else if (choice.equalsIgnoreCase("leaderboard") || choice.equals("6")) {
             try {
-                LeaderboardUi.showLeaderboard(saveStore.load());
+                StateUi.showLeaderboard(saveStore.loadHighScore());
             } catch (IOException exception) {
                 StateUi.printLine("Could not load leaderboard: " + exception.getMessage());
             }

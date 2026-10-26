@@ -54,12 +54,15 @@ combat turn continues.
 
 ## Leaderboard
 
-At the main menu, enter `6` or `leaderboard` to view your single highest-scoring attempt
-from the latest ten saved typing attempts. The display shows its WPM and accuracy.
+At the main menu, enter `6` or `leaderboard` to view your single all-time highest-scoring attempt.
+The display shows its WPM and accuracy.
 The highest WPM wins, with higher accuracy breaking WPM ties. Exact ties still produce only one entry.
-This is the best recent attempt, not an all-time high score; older attempts are removed by the history limit.
+The high score is saved separately in `data/keyboardwarrior.txt.high-score` and survives restarting
+the game and removal of older attempts from the ten-entry history. Only a better attempt replaces it.
+On first use, existing typing history supplies the initial best score; attempts already discarded
+before this feature was added cannot be recovered.
 Viewing it keeps you in the main menu and leaves the chronological Records view unchanged.
-If no attempts are saved, an empty message appears. Unreadable or invalid history displays an error.
+If no attempts are saved, an empty message appears. Unreadable or invalid high-score data displays an error.
 
 ## Main menu and game difficulty
 
