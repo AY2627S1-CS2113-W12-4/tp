@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
 import seedu.keyboardwarrior.typing.TypingResult;
@@ -21,6 +22,26 @@ class SkillResolverTest {
     /**
      * Checks that an automated enemy attack uses its skill's base damage.
      */
+    @Test
+    void execute_eachDifficulty_multipliesBeforeRoundingAndPreservesEnemyDamage() {
+        int[] expectedDamage = {162, 81, 40, 32};
+        TypingResult result = TypingEvaluator.evaluateTyping(
+                "abcdefghijklmnopqrst", "abcdefghijklmnopqrsX", 4.8, 15.0);
+        GameDifficulty[] difficulties = GameDifficulty.values();
+        for (int index = 0; index < difficulties.length; index++) {
+            RecordingCombatUi ui = new RecordingCombatUi();
+            SkillResolver resolver = new SkillResolver(ui, difficulties[index]);
+            Enemy target = new Enemy("Target", 500);
+            resolver.execute(SOURCE, target, SkillRegistry.getSkill("ping"), result);
+            assertEquals(expectedDamage[index], ui.reportedDamage);
+            assertEquals(500 - expectedDamage[index], target.getHealth());
+
+            resolver.execute(SOURCE, target, SkillRegistry.getSkill("ping"), null);
+            assertEquals(10, ui.reportedDamage, "Run difficulty must not multiply automated enemy damage.");
+        }
+        assertThrows(NullPointerException.class, () -> new SkillResolver(new RecordingCombatUi(), null));
+    }
+
     @Test
     void execute_withoutTypingResult_appliesBaseDamage() {
         RecordingCombatUi ui = new RecordingCombatUi();

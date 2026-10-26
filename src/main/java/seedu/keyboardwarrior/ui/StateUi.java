@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 
 import seedu.keyboardwarrior.CountdownReader;
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.storage.SaveStore.SavedRecord;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingResult;
@@ -159,17 +160,39 @@ public final class StateUi {
      * Displays the banner and available main-menu choices.
      */
     public static void showMainMenu() {
+        showMainMenu(GameDifficulty.HARD);
+    }
+
+    /** Displays the five menu choices and the difficulty that the next new run will use. */
+    public static void showMainMenu(GameDifficulty difficulty) {
         showBanner();
         showSeparator();
-        printLine("Type Start to begin five combat scenarios and 2-phase final boss, "
-                + "Records to view typing history, or Exit to quit.");
+        printLine("Current difficulty: " + difficulty.getDisplayName());
+        printLine("1. Start");
+        printLine("2. Records");
+        printLine("3. Exit");
+        printLine("4. Choose Difficulty");
+        printLine("5. Continue");
+        printLine("Enter a number or option name.");
+    }
+
+    /** Shows each run difficulty and its effects before the player chooses. */
+    public static void showDifficultyMenu() {
+        printLine("Choose Difficulty");
+        GameDifficulty[] difficulties = GameDifficulty.values();
+        for (int index = 0; index < difficulties.length; index++) {
+            GameDifficulty difficulty = difficulties[index];
+            printLine((index + 1) + ". " + difficulty.getDisplayName() + " | Damage and countdown x"
+                    + difficulty.getMultiplier() + " | Starting HP: " + difficulty.getStartingHealth());
+        }
+        printLine("Enter a number or difficulty name; Exit to quit.");
     }
 
     /**
      * Explains which commands the main menu accepts.
      */
     public static void showInvalidOption() {
-        printLine("Invalid option. Please enter Start, Records or Exit.");
+        printLine("Invalid option. Please enter Start, Records, Exit, Choose Difficulty or Continue (1-5).");
     }
 
     /**
@@ -189,7 +212,7 @@ public final class StateUi {
                         index + 1, record.wpm(), record.accuracyPercent()));
             }
         }
-        printLine("Type Start to play, Records to view typing history, or Exit to quit.");
+        printLine("Enter Start, Records, Exit, Choose Difficulty or Continue (1-5).");
     }
 
     /**

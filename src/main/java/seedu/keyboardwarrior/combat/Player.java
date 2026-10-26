@@ -17,8 +17,9 @@ public class Player extends Entity {
         addSkill(SkillRegistry.getSkill("brute_force"));
         addSkill(SkillRegistry.getSkill("buffer_overflow"));
         addSkill(SkillRegistry.getSkill("sigkill"));
+        addSkill(SkillRegistry.getSkill("encryption"));
 
-        assert activeSkills.size() == 4 && !activeSkills.contains(null)
+        assert activeSkills.size() == 5 && !activeSkills.contains(null)
                 : "Players must receive the complete standard skill loadout";
     }
 }

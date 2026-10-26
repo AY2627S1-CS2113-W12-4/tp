@@ -3,15 +3,19 @@ package seedu.keyboardwarrior.typing;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
+import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /**
  * Stores typing prompts by difficulty and selects prompts for new challenges.
  */
 public class PromptBank {
+    /** Characters available in Encryption passages; spaces separate groups of at most six. */
+    private static final String ENCRYPTION_CHARACTERS = "!@#$%^&*()\\_+/*{}|:\"<>?";
     private final HashMap<Difficulty, List<String>> prompts;
     /**
      * Last selection for each difficulty, so repeated attacks receive different passages.
@@ -23,7 +27,7 @@ public class PromptBank {
      * Creates and populates the prompt bank.
      */
     public PromptBank() {
-        this(new Random());
+        this(SeedGenerator.createRandom());
     }
 
     /**
@@ -36,6 +40,22 @@ public class PromptBank {
         this.previousPromptIndices = new HashMap<>();
         this.random = Objects.requireNonNull(random);
         initializeBank();
+    }
+
+    /** Returns immutable selection history so resumed runs avoid the same previous passages. */
+    public Map<Difficulty, Integer> snapshotHistory() {
+        return Map.copyOf(previousPromptIndices);
+    }
+
+    /** Restores history before generating any prompts for a resumed run. */
+    public void restoreHistory(Map<Difficulty, Integer> history) {
+        for (var entry : history.entrySet()) {
+            if (entry.getValue() < 0 || entry.getValue() >= prompts.get(entry.getKey()).size()) {
+                throw new IllegalArgumentException("Invalid saved prompt index");
+            }
+        }
+        previousPromptIndices.clear();
+        previousPromptIndices.putAll(history);
     }
 
     /**
@@ -112,6 +132,27 @@ public class PromptBank {
                 + "vulnerable connection. Only after verifying each recovered service did they restore "
                 + "access and document the changes needed to prevent another intrusion.");
         prompts.put(Difficulty.ULTIMATE, ultimate);
+    }
+
+    /**
+     * Generates random symbols, matching an Ultimate passage's length within six characters.
+     * Each space-separated group contains between one and six symbols.
+     *
+     * @return a freshly generated Encryption passage
+     */
+    public String getEncryptionPrompt() {
+        int targetLength = getRandomPrompt(Difficulty.ULTIMATE).length();
+        StringBuilder text = new StringBuilder();
+        while (text.length() < targetLength) {
+            if (!text.isEmpty()) {
+                text.append(' ');
+            }
+            int groupLength = random.nextInt(6) + 1;
+            for (int index = 0; index < groupLength; index++) {
+                text.append(ENCRYPTION_CHARACTERS.charAt(random.nextInt(ENCRYPTION_CHARACTERS.length())));
+            }
+        }
+        return text.toString();
     }
 
     /**

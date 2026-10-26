@@ -4,7 +4,8 @@
 
 Keyboard Warrior is a terminal typing combat game. Choose a skill, type its passage and deal
 damage based on your WPM and character accuracy. Survive five regular scenarios and both phases
-of the final Kernel Overlord boss to win. Your 100 starting HP carries between all encounters;
+of the final Kernel Overlord boss to win. Your starting HP depends on the selected game difficulty and carries
+between all encounters;
 there is no healing during a run.
 
 ## Quick Start
@@ -32,7 +33,7 @@ java -ea --enable-native-access=ALL-UNNAMED -jar KeyboardWarrior.jar
 
 At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
 first. Each entry shows WPM and accuracy. Viewing records keeps you in the main menu, where you
-can enter `start`, `records` or `exit`.
+can enter `start`, `records`, `exit`, `choose difficulty` or `continue`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
 the timer expires. History survives restarting the application. The file is
@@ -42,20 +43,87 @@ If there is no history yet, the menu displays an empty-history message. If the f
 or contains an invalid record, it displays an error. A saving error is reported while the current
 combat turn continues.
 
+## Main menu and game difficulty
+
+The main menu has five options. Enter a number or its name (names are case-insensitive):
+
+1. Start
+2. Records
+3. Exit
+4. Choose Difficulty
+5. Continue
+
+Choose Difficulty opens a menu with `1. Easy`, `2. Normal`, `3. Hard` and `4. Coder`.
+Enter a number or difficulty name to select it and return to the main menu. Invalid input keeps
+you in the selection menu; `exit` quits the application.
+
+| Game difficulty | Player damage multiplier | Countdown multiplier | Starting HP |
+| --- | --- | --- | --- |
+| Easy | x4 | x4 | 400 |
+| Normal | x2 | x2 | 200 |
+| Hard (default) | x1 | x1 | 100 |
+| Coder | x0.8 | x0.8 | 80 |
+
+The current difficulty appears in the main menu and at the start of a run. It applies throughout
+all five scenarios and both boss phases. Returning to the menu after winning or losing keeps the
+selection for your next run. Restarting the application defaults new runs to Hard; Continue uses
+the difficulty stored in the saved run, even if the menu currently shows another difficulty.
+
+Starting health is multiplied once at the start of a run; health is not restored between fights.
+Enemy health and attacks are unchanged. Game difficulty does not change the passages selected by skills
+or your recorded WPM and accuracy.
+
+## Saving and continuing a run
+
+The game uses one save slot at `data/game-save.properties`, relative to the launch folder.
+It saves automatically at the start of every encounter and after the player attack and any enemy
+retaliation finish. The save contains your remaining HP, difficulty, scenario or boss phase,
+enemy identity and remaining HP, and the enemy's next attack in its rotation.
+
+To leave and return later:
+
+1. Type `exit` to quit the application.
+2. Launch it again from the same folder with `run-game.bat` or `run-game.sh`.
+3. Enter `5` or `continue` at the main menu.
+
+You return to skill selection without healing or an extra enemy attack. Progress saves automatically;
+no save command is needed.
+
+Quitting or closing the terminal during typing retains the previous stable turn. The unfinished
+answer and timer are not saved, and you can select a skill again after continuing. Future random
+enemies and passages are selected afresh; previous passage selection history is not restored.
+
+Start begins a new run and replaces the previous slot after encounter setup succeeds. Winning or
+losing deletes the active run save, while your typing history remains available through Records.
+Choosing a different difficulty in the menu does not alter a saved run; Continue restores its original mode.
+
+If no save exists, Continue displays a message and keeps you in the menu. Invalid, unsupported or
+unreadable saves display an error without starting a run. Saving failures are reported but combat
+continues; until a later save succeeds, the previous saved turn remains the latest resume point.
+A failure to remove a finished save is also reported.
+
 ## Skills and countdown
 
 Each turn begins with a skill choice. Names are case-insensitive.
 
-| Skill | Passage difficulty | Minimum time limit |
+| Skill | Passage difficulty | Base minimum time limit (Hard) |
 | --- | --- | --- |
 | `Ping` | Easy | 15 seconds |
 | `Brute Force` | Medium | 30 seconds |
 | `Buffer Overflow` | Hard | 30 seconds |
 | `SIGKILL` | Ultimate | 45 seconds |
+| `Encryption` | Ultimate (random special characters) | Exactly 60 seconds |
 
-The selected passage can increase that limit: the game allows enough time to type its normalized
+`Encryption` generates a fresh random sequence using the symbols `!@#$%^&*()\_+/*{}|:"<>?`.
+Spaces separate groups of one to six characters. The passage is approximately the same length as
+a `SIGKILL` passage, with a base time limit of exactly 60 seconds.
+Its final countdown is 240 seconds on Easy, 120 on Normal, 60 on Hard or 48 on Coder.
+
+For the other skills, the selected passage can increase that limit: the game allows enough time to type its normalized
 character count at 50 WPM, adds a 20% time buffer and rounds up to a whole second. It uses whichever
-is larger: that allowance or the skill's minimum. Check the displayed time limit for each attempt.
+is larger: that allowance or the skill's minimum. The game then multiplies that base time by the
+selected game difficulty's multiplier and rounds up to a whole second. Check the displayed time
+limit for each attempt.
 
 The timer appears above "Type the following..." and updates while you type. Enter submits one
 attempt, including an imperfect or empty answer. If time expires first, the game captures your
@@ -92,13 +160,13 @@ Your remaining HP carries into each scenario and boss phase without healing. Dam
 current enemy's remaining HP is discarded: it does not carry into the next enemy or boss phase.
 Starting a new phase does not grant the boss an extra attack. Defeating phase 1 alone does not win.
 
-At 50 WPM and 95% character accuracy, each attack deals 40 damage. This is enough to defeat each
+On Hard, at 50 WPM and 95% character accuracy, each attack deals 40 damage. This is enough to defeat each
 regular enemy and each boss phase in at most two attacks. With that performance throughout a run,
 the strongest possible regular enemy choices leave you with at least 10 HP after victory.
 Slower or less accurate attempts can require extra turns and lead to defeat.
 
 If your HP reaches zero, the run ends immediately. Victory or defeat returns to the main menu;
-`start` begins a new run at scenario 1 with 100 HP.
+`start` begins a new run at scenario 1 with the selected difficulty's starting HP.
 
 ## Typing feedback
 
@@ -132,12 +200,15 @@ produce it.
 ### Damage and the deadline
 
 ```text
-Damage = floor(WPM * (accuracy percentage / 100)^4)
+Damage = floor(WPM * (accuracy percentage / 100)^4 * game difficulty multiplier)
 ```
 
-`floor` means round down to a whole number. At 50 WPM and 100% accuracy, damage is 50. At 50 WPM
+`floor` means round down to a whole number once, after applying the multiplier. On Hard, at 50 WPM
+and 100% accuracy, damage is 50. At 50 WPM
 and 95% accuracy, it is `floor(50 * 0.95^4) = 40`. Accuracy has a strong effect: at 50 WPM and 80%
 accuracy, damage is 20. This formula applies to every player skill.
+
+At 50 WPM and 95% accuracy, damage is 162 on Easy, 81 on Normal, 40 on Hard or 32 on Coder.
 
 Elapsed and required times must be positive, finite values. A result is overdue only when elapsed
 time is strictly greater than required time. The summary shows both times. Expiry is announced with
@@ -148,7 +219,7 @@ Displayed metrics use two decimal places; calculations use the full values.
 
 ### Example
 
-For `Strike the goblin`, submitting `Strike teh goblin` in 6 seconds gives:
+On Hard, for `Strike the goblin`, submitting `Strike teh goblin` in 6 seconds gives:
 
 ```text
 WPM: 34.00

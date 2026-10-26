@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
 import seedu.keyboardwarrior.combat.Enemy;
+import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.combat.SkillRegistry;
@@ -27,6 +28,39 @@ class CombatEncounterTest {
     /**
      * Checks that an encounter rejects null participants, interfaces and prompt factories.
      */
+    @Test
+    void snapshot_onlyAllowsStableActiveTurnsAndBeginValidatesSavedRotation() {
+        Player player = new Player("Player", 100);
+        Enemy enemy = EnemyFactory.createScenarioEnemy("rogue_ai", 1);
+        Skill skill = SkillRegistry.getSkill("ping");
+        CombatEncounter encounter = new CombatEncounter(player, enemy, new RecordingCombatUi(skill));
+        assertThrows(IllegalStateException.class, encounter::snapshot);
+        assertThrows(IllegalArgumentException.class, () -> encounter.begin(-1));
+        assertThrows(IllegalArgumentException.class, () -> encounter.begin(3));
+        encounter.begin(1);
+        assertEquals(new CombatEncounter.CombatSnapshot("rogue_ai", 30, 1), encounter.snapshot());
+        encounter.preparePlayerTurn(skill);
+        assertThrows(IllegalStateException.class, encounter::snapshot);
+        encounter.submitTypingResult(TypingEvaluator.evaluateTyping("abcde", "abcde", 0.1, 15));
+        assertTrue(encounter.getIsCompleted());
+        assertThrows(IllegalStateException.class, encounter::snapshot);
+    }
+
+    @Test
+    void preparePlayerTurn_encryption_usesSymbolPassageAndSixtySeconds() {
+        Player player = new Player("Player", 100);
+        Enemy enemy = new Enemy("Training Bot", 100);
+        enemy.addSkill(SkillRegistry.getSkill("ping"));
+        Skill encryption = SkillRegistry.getSkill("encryption");
+        CombatEncounter encounter = new CombatEncounter(player, enemy, new RecordingCombatUi(encryption));
+        encounter.begin();
+
+        TypingChallenge challenge = encounter.preparePlayerTurn(encryption);
+
+        assertEquals(60, challenge.getTime());
+        assertFalse(challenge.getText().chars().anyMatch(Character::isLetterOrDigit));
+    }
+
     @Test
     void constructor_nullDependencies_rejectsInvalidEncounter() {
         Player player = new Player("Player", 100);

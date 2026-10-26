@@ -12,6 +12,8 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.keyboardwarrior.GameDifficulty;
+import seedu.keyboardwarrior.combat.SkillRegistry;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /**
@@ -21,6 +23,61 @@ class TypingChallengeFactoryTest {
     /**
      * Checks that every prompt allows fifty WPM with twenty percent extra time.
      */
+    @Test
+    void generateForSkill_eachGameDifficulty_scalesAllSkillDeadlines() {
+        String[] skillIds = {"ping", "brute_force", "buffer_overflow", "sigkill", "encryption"};
+        int[][] expectedSeconds = {
+            {60, 120, 120, 180, 240},
+            {30, 60, 60, 90, 120},
+            {15, 30, 30, 45, 60},
+            {12, 24, 24, 36, 48}
+        };
+        GameDifficulty[] difficulties = GameDifficulty.values();
+        for (int mode = 0; mode < difficulties.length; mode++) {
+            TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("short"),
+                    difficulties[mode]);
+            for (int skill = 0; skill < skillIds.length; skill++) {
+                assertEquals(expectedSeconds[mode][skill],
+                        factory.generateForSkill(SkillRegistry.getSkill(skillIds[skill])).getTime());
+            }
+        }
+        TypingChallengeFactory coderFactory = new TypingChallengeFactory(
+                new FixedPromptBank("a".repeat(420)), GameDifficulty.CODER);
+        assertEquals(97, coderFactory.generateForSkill(SkillRegistry.getSkill("sigkill")).getTime(),
+                "Coder scales the full base deadline, then rounds 96.8 seconds up.");
+    }
+
+    @Test
+    void generateForSkill_encryption_usesRandomSymbolsAndFixedDeadline() {
+        TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("a".repeat(420)));
+        Set<String> passages = new HashSet<>();
+        String allowedSymbols = "!@#$%^&*()\\_+/*{}|:\"<>?";
+
+        assertEquals(Difficulty.ULTIMATE, SkillRegistry.getSkill("encryption").getDifficulty());
+        for (int attempt = 0; attempt < 100; attempt++) {
+            TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("encryption"));
+            assertEquals(60, challenge.getTime());
+            assertTrue(challenge.getText().length() >= 420 && challenge.getText().length() <= 426);
+            for (String word : challenge.getText().split(" ", -1)) {
+                assertTrue(word.length() >= 1 && word.length() <= 6);
+                assertTrue(word.chars().allMatch(character -> allowedSymbols.indexOf(character) >= 0));
+            }
+            passages.add(challenge.getText());
+        }
+        assertEquals(100, passages.size(), "Encryption should generate fresh random passages.");
+    }
+
+    @Test
+    void generateForSkill_sigkill_keepsUltimatePassageAndLengthAwareDeadline() {
+        TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("a".repeat(420)));
+
+        TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("sigkill"));
+
+        assertEquals("a".repeat(420), challenge.getText());
+        assertEquals(121, challenge.getTime());
+        assertThrows(NullPointerException.class, () -> factory.generateForSkill(null));
+    }
+
     @Test
     void generate_eachDifficulty_allowsFiftyWpmWithTwentyPercentExtraTime() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new PromptBank(new Random(42)));

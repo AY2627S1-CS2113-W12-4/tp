@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
@@ -16,6 +17,7 @@ public class SkillResolver {
      */
     private static final Logger LOGGER = Logger.getLogger(SkillResolver.class.getName());
     private CombatUi ui;
+    private final GameDifficulty difficulty;
 
     /**
      * Creates a resolver that reports combat results through the given interface.
@@ -24,13 +26,19 @@ public class SkillResolver {
      * @throws NullPointerException if the interface is null
      */
     public SkillResolver(CombatUi ui) {
+        this(ui, GameDifficulty.HARD);
+    }
+
+    /** Uses the selected run multiplier for typing attacks while keeping enemy base damage unchanged. */
+    public SkillResolver(CombatUi ui, GameDifficulty difficulty) {
         this.ui = Objects.requireNonNull(ui, "Combat interface must not be null");
+        this.difficulty = Objects.requireNonNull(difficulty, "Game difficulty must not be null");
     }
 
     /**
      * Resolves one skill use against a target.
      * Player damage is WPM multiplied by the fourth power of character accuracy
-     * as a fraction, rounded down once at the end. The selected skill's base
+     * as a fraction and the run difficulty multiplier, rounded down once at the end. The selected skill's base
      * damage and the time limit do not modify this result. A {@code null} result
      * applies the skill's base damage directly for automated enemy turns.
      *
@@ -50,7 +58,7 @@ public class SkillResolver {
         }
 
         double accuracy = result.getAccuracyPercent() / 100.0;
-        double damage = result.getWpm() * Math.pow(accuracy, 4);
+        double damage = result.getWpm() * Math.pow(accuracy, 4) * difficulty.getMultiplier();
         assert accuracy >= 0.0 && accuracy <= 1.0 : "Typing accuracy must be normalized";
         assert Double.isFinite(damage) && damage >= 0.0 : "Typing damage must be valid";
         // Retain fractional precision until the final conversion; Java caps extreme values at Integer.MAX_VALUE.

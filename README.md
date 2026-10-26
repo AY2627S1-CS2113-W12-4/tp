@@ -3,7 +3,23 @@
 Keyboard Warrior is a terminal typing combat game. Type `start`, choose a skill and type its
 passage while a live countdown shows the time remaining. Character accuracy and typing speed
 determine your damage. Survive five regular scenarios, then defeat both phases of the Kernel
-Overlord to win. Your 100 starting HP carries through the whole run without healing.
+Overlord to win. Your starting HP depends on the selected game difficulty and carries through
+the whole run without healing.
+
+The main menu accepts numbers or names: `1. Start`, `2. Records`, `3. Exit`, `4. Choose Difficulty`,
+and `5. Continue`.
+Choose a game difficulty before starting a run:
+
+| Mode | Damage and countdown multiplier | Starting HP |
+| --- | --- | --- |
+| Easy | x4 | 400 |
+| Normal | x2 | 200 |
+| Hard (default) | x1 | 100 |
+| Coder | x0.8 | 80 |
+
+The selected mode stays active between runs in the current session. Restarting the application
+defaults new runs to Hard; Continue restores the saved run's difficulty. Skill choices still
+determine passage difficulty.
 
 ## Setting up in IntelliJ
 
@@ -32,9 +48,13 @@ can redirect input, preventing the live countdown and capture of text before Ent
 terminal capabilities at startup and shows the launcher command when the console is unsupported.
 On Windows, try Windows Terminal if IntelliJ's Terminal remains unsupported.
 
-Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow` or `SIGKILL`), then type its
+Choose a displayed skill name (`Ping`, `Brute Force`, `Buffer Overflow`, `SIGKILL` or `Encryption`), then type its
 passage as one line. Skills select different passage difficulties; the same typing performance gives
-the same player damage for every skill. At 50 WPM and 95% character accuracy, an attack deals 40 damage.
+the same player damage for every skill. On Hard, 50 WPM and 95% character accuracy deal 40 damage.
+
+`Encryption` gives a base 60 seconds to type random special characters in groups of at most six,
+with a passage approximately as long as `SIGKILL`. After the game difficulty multiplier, its
+countdown is 240 seconds on Easy, 120 on Normal, 60 on Hard, or 48 on Coder.
 
 The timer appears above the passage. Press Enter to submit, or let the deadline submit the text
 currently in the input line. Feedback shows WPM, character accuracy, elapsed time and required time;
@@ -44,6 +64,13 @@ An enemy that survives the attack retaliates. Defeating an enemy advances automa
 retaliation or healing during the transition. Clearing scenario 5 starts the final boss; victory
 requires defeating its second phase. `start` after victory or defeat begins a fresh run.
 Type `exit` at any phase to quit.
+
+Your run saves automatically when an encounter starts and after each completed turn. To resume,
+launch the game again and choose `5` or `continue`. Player HP, difficulty, progression, enemy HP,
+and the next enemy attack are restored at skill selection. An unfinished typing challenge is retried
+from the last saved turn; its text and remaining time are not saved.
+The single save slot is `data/game-save.properties`; Start replaces it with a new
+run, and victory or defeat removes it. Save/load errors are reported while keeping the game usable.
 
 At the main menu, type `records` to view the latest ten typing attempts, oldest first. WPM and
 accuracy are saved automatically and remain available after restarting the application.

@@ -31,6 +31,31 @@ class StateUiTerminalTest {
      * Checks that countdown redraws preserve the editable input and update the displayed seconds.
      */
     @Test
+    void countdown_symbolPassage_preservesLiteralTextAndCursorColumns() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
+                .streams(new ByteArrayInputStream(new byte[0]), output).paused(true).build()) {
+            terminal.setSize(new Size(80, 24));
+            CountdownReader reader = new CountdownReader(terminal);
+            String passage = "%{!@# %}^&* %% %* %P? \\_+/*";
+            String answer = "!@#$%^&*()";
+            reader.getBuffer().write(answer);
+            reader.showTypingChallenge(passage, 60);
+
+            for (int seconds : new int[] {60, 59}) {
+                reader.setCountdown(seconds);
+                var displayed = reader.getDisplayedBufferWithPrompts(new java.util.ArrayList<>());
+                String expected = "Time remaining: " + seconds + "s\nTime limit: 60 seconds\n"
+                        + "Type the following text and press Enter to attack:\n" + passage + "\nYour input: " + answer;
+                assertEquals(expected, displayed.toString());
+                assertEquals(expected.length() - 8, displayed.columnLength(),
+                        "Every symbol must count toward cursor positioning; each newline counts as minus one.");
+                assertEquals(answer.length(), reader.getBuffer().cursor());
+            }
+        }
+    }
+
+    @Test
     void countdown_reusesStatusRowAndPreservesInput() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")

@@ -34,6 +34,11 @@ public class SaveStore {
         this.filePath = Objects.requireNonNull(filePath).toAbsolutePath();
     }
 
+    /** Returns the data directory so run saves can share its location, including temporary test storage. */
+    public Path getDirectory() {
+        return filePath.getParent();
+    }
+
     /**
      * A saved typing speed and accuracy percentage, without combat-specific data.
      *

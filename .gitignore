@@ -24,3 +24,5 @@ text-ui-test/EXPECTED-UNIX.TXT
 
 # Local typing history
 /data/keyboardwarrior.txt
+/data/game-save.properties
+/data/game-save-*.tmp

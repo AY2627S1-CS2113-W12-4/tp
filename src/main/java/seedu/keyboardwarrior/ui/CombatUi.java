@@ -91,6 +91,7 @@ public class CombatUi {
             }
         }
         StateUi.printLine(skillString.toString());
+        StateUi.printLine("Progress saves automatically between turns. Type Exit to quit.");
     }
 
     /**

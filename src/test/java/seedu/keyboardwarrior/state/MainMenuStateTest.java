@@ -15,6 +15,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import seedu.keyboardwarrior.GameDifficulty;
+import seedu.keyboardwarrior.GameSave;
+import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 
 /**
@@ -27,6 +30,104 @@ class MainMenuStateTest {
     /**
      * Checks that gameplay started from a menu with custom history appends to that same file.
      */
+    @Test
+    void continue_savedRun_restoresSavedDifficultyAndSharesHistoryLocation() throws IOException {
+        GameSaveStore runStore = new GameSaveStore(tempDir.resolve("game-save.properties"));
+        GameSave save = new GameSave(1, GameDifficulty.CODER, 65, 2, 0, "cipher_serpent", 23, 1);
+        runStore.save(save);
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt")),
+                    GameDifficulty.EASY));
+            machine.handleInput("5");
+            String report = output.toString(StandardCharsets.UTF_8);
+            assertTrue(report.contains("Resuming saved run. Difficulty: Coder"));
+            assertTrue(report.contains("Scenario 3/5"));
+            assertTrue(report.contains("Cipher Serpent | HP: 23"));
+            assertTrue(report.contains("HP: 65"));
+            machine.handleInput("Encryption");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Time limit: 48 seconds"));
+            machine.handleInput("");
+            assertEquals(1, Files.readAllLines(tempDir.resolve("history.txt")).size());
+            machine.handleInput("exit");
+        } finally {
+            System.setOut(original);
+        }
+    }
+
+    @Test
+    void continue_missingOrInvalidSave_leavesMenuUsableAndDoesNotOverwriteFile() throws IOException {
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        Path path = tempDir.resolve("game-save.properties");
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            machine.handleInput("continue");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("No saved game to continue"));
+            Files.writeString(path, "version=broken");
+            machine.handleInput(" CoNtInUe ");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Could not load game"));
+            assertEquals("version=broken", Files.readString(path));
+            machine.handleInput("records");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("No typing records saved yet"));
+            assertTrue(machine.isRunning());
+            machine.stop();
+        } finally {
+            System.setOut(original);
+        }
+    }
+
+    @Test
+    void chooseDifficulty_numbersAndNames_returnToMenuAndAffectNextRun() {
+        String[] choices = {"1", " nOrMaL ", "3", " CoDeR "};
+        String[] names = {"Easy", "Normal", "Hard", "Coder"};
+        int[] health = {400, 200, 100, 80};
+        for (int index = 0; index < choices.length; index++) {
+            PrintStream original = System.out;
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+                System.setOut(capture);
+                StateMachine machine = new StateMachine();
+                machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("Current difficulty: Hard"));
+                machine.handleInput(index % 2 == 0 ? "4" : " Choose Difficulty ");
+                machine.handleInput("invalid");
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("Invalid difficulty"));
+                machine.handleInput(choices[index]);
+                machine.handleInput("2");
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("Current difficulty: " + names[index]));
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("No typing records saved yet"));
+                machine.handleInput("1");
+                machine.handleInput("3");
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("Starting run with seed: 3"));
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("HP: " + health[index]));
+                machine.handleInput("exit");
+            } finally {
+                System.setOut(original);
+            }
+        }
+    }
+
+    @Test
+    void menu_exitNumberAndDifficultyExit_stopApplication() {
+        StateMachine menuMachine = new StateMachine();
+        menuMachine.start(new MainMenuState(menuMachine, new SaveStore(tempDir.resolve("history.txt"))));
+        menuMachine.handleInput("3");
+        assertTrue(!menuMachine.isRunning());
+
+        StateMachine difficultyMachine = new StateMachine();
+        difficultyMachine.start(new MainMenuState(difficultyMachine, new SaveStore(tempDir.resolve("history.txt"))));
+        difficultyMachine.handleInput("4");
+        difficultyMachine.update();
+        difficultyMachine.handleInput("exit");
+        assertTrue(!difficultyMachine.isRunning());
+    }
+
     @Test
     void start_customHistory_savesAttemptsToTheSameFile() throws IOException {
         Path history = tempDir.resolve("history.txt");
@@ -132,7 +233,7 @@ class MainMenuStateTest {
             machine.handleInput(" ReCoRdS ");
             assertTrue(machine.isRunning());
             machine.handleInput("unknown");
-            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Please enter Start, Records or Exit"));
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Please enter Start, Records, Exit"));
             machine.stop();
         } finally {
             System.setOut(original);
