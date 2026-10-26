@@ -42,7 +42,7 @@ java -ea -jar KeyboardWarrior.jar
 
 At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
 first. Each entry shows WPM and accuracy. Viewing records keeps you in the main menu, where you
-can enter `start`, `records`, `exit`, `choose difficulty` or `continue`.
+can enter `start`, `records`, `exit`, `choose difficulty`, `continue` or `leaderboard`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
 the live timer expires in a supported terminal. History survives restarting the application. The file is
@@ -52,15 +52,25 @@ If there is no history yet, the menu displays an empty-history message. If the f
 or contains an invalid record, it displays an error. A saving error is reported while the current
 combat turn continues.
 
+## Leaderboard
+
+At the main menu, enter `6` or `leaderboard` to view your single highest-scoring attempt
+from the latest ten saved typing attempts. The display shows its WPM and accuracy.
+The highest WPM wins, with higher accuracy breaking WPM ties. Exact ties still produce only one entry.
+This is the best recent attempt, not an all-time high score; older attempts are removed by the history limit.
+Viewing it keeps you in the main menu and leaves the chronological Records view unchanged.
+If no attempts are saved, an empty message appears. Unreadable or invalid history displays an error.
+
 ## Main menu and game difficulty
 
-The main menu has five options. Enter a number or its name (names are case-insensitive):
+The main menu has six options. Enter a number or its name (names are case-insensitive):
 
 1. Start
 2. Records
 3. Exit
 4. Choose Difficulty
 5. Continue
+6. Leaderboard
 
 Choose Difficulty opens a menu with `1. Easy`, `2. Normal`, `3. Hard` and `4. Coder`.
 Enter a number or difficulty name to select it and return to the main menu. Invalid input keeps

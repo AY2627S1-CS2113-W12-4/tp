@@ -10,6 +10,7 @@ import seedu.keyboardwarrior.seed.RunRandom;
 import seedu.keyboardwarrior.seed.SeedGenerator;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
+import seedu.keyboardwarrior.leaderboard.LeaderboardUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
 /**
@@ -93,6 +94,12 @@ public class MainMenuState extends State {
                 StateUi.showRecords(saveStore.load());
             } catch (IOException e) {
                 StateUi.printLine("Could not load typing history: " + e.getMessage());
+            }
+        } else if (choice.equalsIgnoreCase("leaderboard") || choice.equals("6")) {
+            try {
+                LeaderboardUi.showLeaderboard(saveStore.load());
+            } catch (IOException exception) {
+                StateUi.printLine("Could not load leaderboard: " + exception.getMessage());
             }
         } else if (choice.equalsIgnoreCase("choose difficulty") || choice.equals("4")) {
             stateMachine.transitState(new DifficultySelectionState(stateMachine, saveStore));

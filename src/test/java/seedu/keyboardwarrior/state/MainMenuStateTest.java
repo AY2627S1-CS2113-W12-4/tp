@@ -240,4 +240,54 @@ class MainMenuStateTest {
         }
         return output.toString(StandardCharsets.UTF_8);
     }
+
+    /** Checks both commands display only the best attempt, breaking WPM ties by accuracy. */
+    @Test
+    void leaderboard_savedHistory_showsHighestScoreWithoutChangingHistory() throws IOException {
+        Path history = tempDir.resolve("history.txt");
+        String records = "42.5,100.0\n60.0,80.0\n60.0,95.0\n60.0,95.0\n50.0,100.0\n";
+        Files.writeString(history, records);
+        for (String command : List.of("6", " LeAdErBoArD ")) {
+            String output = viewLeaderboard(command);
+            List<String> rows = output.lines().filter(line -> line.contains("%")).toList();
+            assertEquals(1, rows.size());
+            assertEquals(List.of("60.00", "95.00%"), List.of(rows.get(0).trim().split("\\s+")));
+            assertEquals(records, Files.readString(history));
+        }
+    }
+
+    /** Checks that a first-time player can open the leaderboard without a history file. */
+    @Test
+    void leaderboard_missingHistory_displaysEmptyMessage() {
+        assertTrue(viewLeaderboard("6").contains("No typing records saved yet"));
+    }
+
+    /** Checks that corrupt history produces a readable error and leaves the menu usable. */
+    @Test
+    void leaderboard_invalidHistory_displaysErrorWithoutCrashing() throws IOException {
+        Files.writeString(tempDir.resolve("history.txt"), "invalid\n");
+        assertTrue(viewLeaderboard("leaderboard").contains("Could not load leaderboard"));
+    }
+
+    /** Captures leaderboard output and checks that Start still works afterwards. */
+    private String viewLeaderboard(String command) {
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("6. Leaderboard"));
+            output.reset();
+            machine.handleInput(command);
+            String report = output.toString(StandardCharsets.UTF_8);
+            assertTrue(machine.isRunning());
+            machine.handleInput("start");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Enter a seed"));
+            machine.stop();
+            return report;
+        } finally {
+            System.setOut(original);
+        }
+    }
 }
