@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.EnumMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -20,9 +18,7 @@ import seedu.keyboardwarrior.seed.RandomSnapshot;
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
 /** Stores one active run separately from typing history, replacing saves only after writing succeeds. */
-public class GameSaveStore {
-    private final Path filePath;
-
+public class GameSaveStore extends FileStore {
     /** Uses the default run save relative to the game's launch directory. */
     public GameSaveStore() {
         this(Path.of("data", "game-save.properties"));
@@ -30,7 +26,7 @@ public class GameSaveStore {
 
     /** Accepts a file location so tests and alternate data directories remain isolated. */
     public GameSaveStore(Path filePath) {
-        this.filePath = Objects.requireNonNull(filePath).toAbsolutePath();
+        super(filePath);
     }
 
     /** Loads and validates a run; a missing file means there is no game to continue. */
@@ -66,20 +62,11 @@ public class GameSaveStore {
             save.randomSnapshot().previousPromptIndices().forEach((difficulty, index) ->
                     data.setProperty("previousPrompt." + difficulty.name(), Integer.toString(index)));
         }
-        Files.createDirectories(filePath.getParent());
-        Path temporary = Files.createTempFile(filePath.getParent(), "game-save-", ".tmp");
-        try {
+        writeSafely("game-save-", temporary -> {
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                 data.store(writer, "Keyboard Warrior active run");
             }
-            try {
-                Files.move(temporary, filePath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException exception) {
-                Files.move(temporary, filePath, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } finally {
-            Files.deleteIfExists(temporary);
-        }
+        });
     }
 
     /** Removes a completed or lost run without affecting typing history. */

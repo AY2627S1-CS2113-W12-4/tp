@@ -14,9 +14,8 @@ import seedu.keyboardwarrior.typing.TypingResult;
 /**
  * Persists the latest ten typing results as UTF-8 lines in {@code wpm,accuracyPercent} format.
  */
-public class SaveStore {
+public class SaveStore extends FileStore {
     private static final int MAX_RECORDS = 10;
-    private final Path filePath;
     private final LeaderboardStore leaderboardStore;
 
     /**
@@ -33,14 +32,9 @@ public class SaveStore {
      * @throws NullPointerException if the path is null
      */
     public SaveStore(Path filePath) {
-        this.filePath = Objects.requireNonNull(filePath).toAbsolutePath();
+        super(filePath);
         this.leaderboardStore = new LeaderboardStore(this.filePath.resolveSibling(
                 this.filePath.getFileName() + ".high-score"));
-    }
-
-    /** Returns the data directory so run saves can share its location, including temporary test storage. */
-    public Path getDirectory() {
-        return filePath.getParent();
     }
 
     /**
@@ -125,7 +119,7 @@ public class SaveStore {
         }
         records.add(result.getWpm() + "," + result.getAccuracyPercent());
         int firstRecord = Math.max(0, records.size() - MAX_RECORDS);
-        Files.createDirectories(filePath.getParent());
-        Files.write(filePath, records.subList(firstRecord, records.size()));
+        List<String> latestRecords = records.subList(firstRecord, records.size());
+        writeSafely("typing-history-", temporary -> Files.write(temporary, latestRecords));
     }
 }
