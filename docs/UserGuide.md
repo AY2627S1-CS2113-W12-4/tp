@@ -11,22 +11,31 @@ there is no healing during a run.
 ## Quick Start
 
 1. Install Java 25.
-2. From the project folder, run `sh ./run-game.sh` on macOS/Linux or `.\run-game.bat` in Windows PowerShell,
-   using IntelliJ's Terminal or a native terminal.
+2. Place the release JAR in a writable folder, open a terminal in that folder and run
+   `java -jar KeyboardWarrior.jar`. The same JAR works on Windows, macOS and Linux.
 3. Type `start` and press Enter at the main menu.
-4. Type a displayed skill name, such as `Ping`, and press Enter.
-5. Type the passage. Press Enter to submit, or let the countdown submit your current text automatically.
+4. Enter a seed and press Enter, or press Enter on an empty line for a random seed.
+5. Type a displayed skill name, such as `Ping`, and press Enter.
+6. Type the passage and press Enter to submit. In a supported terminal, the live countdown can also
+   submit your current text automatically when time expires.
 
-The launchers compile through Gradle and start Java directly with assertions enabled. Gradle `run`
-and IntelliJ's Run console may redirect input and prevent the live timer from working. If the game
-reports an unsupported console, use the displayed launcher command in a native terminal. On Windows,
-try Windows Terminal if IntelliJ's Terminal remains unsupported.
+Only Java 25 and the JAR are needed for a release. If you have the source project, you can instead
+run `sh ./run-game.sh` on macOS/Linux or `.\run-game.bat` in Windows PowerShell. These optional
+launchers compile through Gradle and start Java directly with assertions enabled.
 
-Type `exit` and press Enter at any phase to quit. To run an existing packaged demo, use Java 25 in a
-supported terminal:
+Use IntelliJ's Terminal or a native terminal for the live timer and capture of typing before Enter.
+Gradle `run`, IDE Run consoles and automated process launchers may redirect input/output. The game
+then starts in plain-text mode, where the menu and passages remain visible and the time allowance
+is printed once. Plain mode waits for Enter, even after the displayed deadline, then scores the
+submitted text using the actual elapsed time. It cannot reliably capture keystrokes that the
+console has not delivered before Enter, so automatic submission is unavailable in this mode.
+On Windows, Windows Terminal is an alternative when an IDE terminal lacks live display.
+
+Type `exit` and press Enter at any phase to quit. End-of-input also closes the game cleanly.
+To enable development assertions while running the JAR, use:
 
 ```text
-java -ea --enable-native-access=ALL-UNNAMED -jar KeyboardWarrior.jar
+java -ea -jar KeyboardWarrior.jar
 ```
 
 ## Saved typing history
@@ -36,7 +45,7 @@ first. Each entry shows WPM and accuracy. Viewing records keeps you in the main 
 can enter `start`, `records`, `exit`, `choose difficulty` or `continue`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
-the timer expires. History survives restarting the application. The file is
+the live timer expires in a supported terminal. History survives restarting the application. The file is
 `data/keyboardwarrior.txt`, relative to the folder from which the game is launched.
 
 If there is no history yet, the menu displays an empty-history message. If the file cannot be read
@@ -83,7 +92,7 @@ enemy identity and remaining HP, and the enemy's next attack in its rotation.
 To leave and return later:
 
 1. Type `exit` to quit the application.
-2. Launch it again from the same folder with `run-game.bat` or `run-game.sh`.
+2. Launch the JAR again from the same folder, or use the same source launcher as before.
 3. Enter `5` or `continue` at the main menu.
 
 You return to skill selection without healing or an extra enemy attack. Progress saves automatically;
@@ -125,10 +134,14 @@ is larger: that allowance or the skill's minimum. The game then multiplies that 
 selected game difficulty's multiplier and rounds up to a whole second. Check the displayed time
 limit for each attempt.
 
-The timer appears above "Type the following..." and updates while you type. Enter submits one
-attempt, including an imperfect or empty answer. If time expires first, the game captures your
+In a supported terminal, the timer appears above "Type the following..." and updates while you type.
+Enter submits one attempt, including an imperfect or empty answer. If time expires first, the game captures your
 current input, clears the input line and scores the captured text. Corrections made before submission
 or expiry count; previously corrected mistakes do not affect the result.
+
+Plain-text mode prints the time allowance and passage once, then waits for Enter. It does not
+redraw a countdown or submit an empty turn while the console is still holding your input. A late
+submission is evaluated using its actual elapsed time with the same accuracy and damage rules.
 
 Every skill uses the same player damage formula. The skill changes the passage and its time
 allowance, so choose a difficulty suited to the typing practice you want. Enemy attacks use their
@@ -213,8 +226,9 @@ At 50 WPM and 95% accuracy, damage is 162 on Easy, 81 on Normal, 40 on Hard or 3
 Elapsed and required times must be positive, finite values. A result is overdue only when elapsed
 time is strictly greater than required time. The summary shows both times. Expiry is announced with
 "Time's up" rather than a separate status line.
-Automatic expiry still ends the attempt and can trigger the surviving enemy's turn. It adds no
-separate damage penalty.
+In a supported terminal, automatic expiry ends the attempt and can trigger the surviving enemy's
+turn. In plain-text mode, Enter ends the attempt even when it is late. Neither mode adds a separate
+damage penalty for exceeding the deadline.
 Displayed metrics use two decimal places; calculations use the full values.
 
 ### Example

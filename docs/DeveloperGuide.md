@@ -12,17 +12,24 @@ explain implementation, rationale and alternatives, with UML placed beside the r
 
 ### Runtime and terminal input
 
-`KeyboardWarrior.java` initializes the terminal, checks its capabilities, then starts the main menu
-and JLine input loop. `CountdownReader.supportsLiveDisplay()` rejects consoles that cannot redraw
-input safely. The application displays terminal launcher instructions for unsupported consoles.
-A background reader queues complete lines; the main thread processes input and updates the state
-machine every 100 milliseconds. This keeps a live countdown above the typing instructions and passage
-while the user edits the input line.
+`KeyboardWarrior.java` selects an input mode and starts the main menu. When no native console is
+available, it selects plain input before initializing JLine. Capable interactive terminals use
+JLine and `CountdownReader` to keep the live countdown above the passage while preserving edited
+input. A JLine terminal without redraw capabilities also falls back to plain input instead of
+returning before the menu. Both input modes accept `exit` and handle end-of-input as a clean shutdown.
 
-`MainMenuState` accepts `start` and enters `GamePlayState`. The gameplay state owns the run's player,
-current encounter, clock and challenge factory. The same player and prompt selection history survive
-scenario and boss phase transitions. `exit` stops the application from the menu, skill selection or
-an active typing challenge.
+The live input loop queues complete lines on a background reader; the main thread processes input
+and updates the state machine every 100 milliseconds. Plain mode uses a synchronous buffered line
+reader, prints the initial time allowance and passage, and handles each line on Enter without an
+automatic-expiry update tick. A line-buffered console may withhold typed characters until Enter,
+so plain mode waits for that line rather than scoring an empty input before it arrives. The clock
+still measures actual elapsed time, and a late line uses the ordinary evaluator and damage formula.
+
+`MainMenuState` accepts `start`, asks for a seed and enters `GamePlayState` after the seed input.
+An empty seed line chooses a random seed. The gameplay state owns the run's player, current encounter,
+clock and challenge factory. The same player and prompt selection history survive scenario and boss
+phase transitions. `exit` stops the application from the menu, seed prompt, skill selection or an
+active typing challenge.
 
 ### Game difficulty selection
 
@@ -48,6 +55,11 @@ The launcher starts Java in the foreground with `-ea` and native access enabled.
 input avoids Gradle `run` and IDE Run console stream redirection, which can prevent JLine from seeing
 unsubmitted keystrokes. On Windows, the entry point selects the native Windows terminal type even
 when the launcher supplies `TERM=dumb`.
+
+These scripts are conveniences for a source checkout. The release is one executable fat JAR for
+Windows, macOS and Linux and must start with Java 25 using `java -jar KeyboardWarrior.jar` without
+Gradle or repository scripts. Its manifest includes `Enable-Native-Access: ALL-UNNAMED` for JLine's
+bundled native support; this removes Java 25's native-access warning but does not create a terminal.
 
 ### Typing history and state transitions
 
@@ -206,12 +218,14 @@ its target length, then generates random special characters in space-separated g
 The resulting passage is between the target length and six characters longer. Other skills continue
 to use the difficulty-based generator above.
 
-Both Enter and automatic expiry use the same evaluator. At expiry, `GamePlayState.update()` obtains
+Both Enter and live-terminal automatic expiry use the same evaluator. At expiry, `GamePlayState.update()` obtains
 `StateUi.takeCurrentInput()` before clearing the editable line and resolving the attempt. The actual
 elapsed duration is supplied, so captured partial text retains its measured WPM and accuracy.
 `isTimeLimitExceeded()` reports the strict comparison `elapsedSeconds > requiredSeconds`. It is
 metadata: overdue attempts receive no additional damage reduction. The retained compatibility getter
 `getTimeDamageMultiplier()` returns `1.0`; player damage does not depend on it.
+Plain mode does not call the automatic-expiry update tick; `handleInput(...)` evaluates the line
+when Enter arrives, retaining actual elapsed time even after the displayed deadline.
 
 #### Validation and defensive checks
 
@@ -377,6 +391,7 @@ Non-functional requirements:
 * Keep evaluation independent of terminal input, timing and scenario progression.
 * Retain immutable results and reject invalid integration data before changing combat state.
 * Keep gameplay usable in a supported terminal while countdown updates preserve input.
+* Start from one standalone JAR on Windows, macOS and Linux, with plain input/output when no live terminal is available.
 
 Glossary:
 
@@ -391,7 +406,13 @@ Glossary:
 ### Automated checks
 
 Run `./gradlew check` on macOS/Linux or `.\gradlew.bat check` in Windows PowerShell with Java 25.
-This runs JUnit and Checkstyle. Tests live under `src/test/java/seedu/keyboardwarrior`.
+This builds the executable JAR, runs JUnit (including packaged-JAR smoke tests) and runs Checkstyle.
+Tests live under `src/test/java/seedu/keyboardwarrior`.
+
+Packaged-JAR smoke tests start Java 25 subprocesses in temporary working folders with redirected
+input/output. They verify that the actual release artifact displays the menu, processes commands
+and closes cleanly on `exit` or EOF without the unsupported-console shutdown or native-access warning.
+This covers application startup, which direct UI-component tests do not exercise.
 
 The relevant regression checks cover character substitution/insertion/deletion, normalization,
 capitalization and punctuation, empty input, invalid values and immutable diagnostic lists. Formatter
@@ -416,11 +437,14 @@ The progression regressions in `GamePlayStateTest` include:
 
 ### Manual gameplay acceptance tests
 
-Use a supported terminal with Java 25 and `sh ./run-game.sh` or `.\run-game.bat`.
+For the live-countdown checks, use a supported terminal with Java 25 and the release JAR.
+The optional `sh ./run-game.sh` or `.\run-game.bat` launchers are alternatives for a source checkout.
 
 | Test | Steps | Expected result |
 | --- | --- | --- |
-| Launch and setup | Start in an unsupported redirected console, then use the suggested terminal launcher | Unsupported console explains the launcher; supported terminal shows menu |
+| Standalone JAR launch | Run `java -jar KeyboardWarrior.jar` with only the JAR and Java 25 available | Menu appears without requiring Gradle or a source launcher |
+| Redirected launch | Launch the JAR with piped `exit` input, then with empty input | Plain-text menu appears and both runs exit cleanly without terminal setup warnings |
+| Plain-mode late input | In an IDE Run console, start a challenge, wait past its displayed allowance and submit a partial passage with Enter | Passage remains visible while waiting; submitted text is scored using actual elapsed time; no empty turn is submitted before Enter |
 | Countdown and skill allowance | Start a run; choose each skill across several passages | Timer stays above the passage, updates while typing and uses the displayed length-based allowance |
 | Early submission | Submit a partly correct passage before expiry | Four metrics and damage appear; no wrong-word list; surviving enemy retaliates once |
 | Timeout capture | Type part of a passage, correct a character, then let time expire without Enter | Final current input is scored; nonempty text has nonzero WPM; no separate late penalty; next input is clear |
