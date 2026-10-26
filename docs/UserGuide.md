@@ -41,8 +41,8 @@ java -ea -jar KeyboardWarrior.jar
 ## Saved typing history
 
 At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
-first. Each entry shows WPM and accuracy. Viewing records keeps you in the main menu, where you
-can enter `start`, `records`, `exit`, `choose difficulty` or `continue`.
+first. Each entry shows WPM and accuracy. The full main menu appears again after the records, where you
+can enter `start`, `records`, `exit`, `choose difficulty`, `continue` or `leaderboard`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
 the live timer expires in a supported terminal. History survives restarting the application. The file is
@@ -52,15 +52,28 @@ If there is no history yet, the menu displays an empty-history message. If the f
 or contains an invalid record, it displays an error. A saving error is reported while the current
 combat turn continues.
 
+## Leaderboard
+
+At the main menu, enter `6` or `leaderboard` to view your single all-time highest-scoring attempt.
+The display shows its WPM and accuracy.
+The highest WPM wins, with higher accuracy breaking WPM ties. Exact ties still produce only one entry.
+The high score is saved separately in `data/keyboardwarrior.txt.high-score` and survives restarting
+the game and removal of older attempts from the ten-entry history. Only a better attempt replaces it.
+On first use, existing typing history supplies the initial best score; attempts already discarded
+before this feature was added cannot be recovered.
+The full main menu appears again after the leaderboard. The chronological Records view remains unchanged.
+If no attempts are saved, an empty message appears. Unreadable or invalid high-score data displays an error.
+
 ## Main menu and game difficulty
 
-The main menu has five options. Enter a number or its name (names are case-insensitive):
+The main menu has six options. Enter a number or its name (names are case-insensitive):
 
 1. Start
 2. Records
 3. Exit
 4. Choose Difficulty
 5. Continue
+6. Leaderboard
 
 Choose Difficulty opens a menu with `1. Easy`, `2. Normal`, `3. Hard` and `4. Coder`.
 Enter a number or difficulty name to select it and return to the main menu. Invalid input keeps

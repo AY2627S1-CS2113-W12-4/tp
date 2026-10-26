@@ -1,9 +1,5 @@
 package seedu.keyboardwarrior.state;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -39,6 +35,8 @@ import seedu.keyboardwarrior.typing.TypingEvaluator;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 import seedu.keyboardwarrior.ui.StateUi;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests timed attacks, five scenarios, both final-boss phases, defeat and
@@ -88,7 +86,7 @@ class GamePlayStateTest {
             clock.elapsedSeconds = 1.0;
             machine.handleInput(ui.challenge.getText());
         }
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         return selections;
     }
 
@@ -208,7 +206,7 @@ class GamePlayStateTest {
             ui.player.setHealth(1);
             machine.handleInput("Ping");
             submitAfterTenSeconds("");
-            assertTrue(machine.nextState instanceof MainMenuState);
+            assertInstanceOf(MainMenuState.class, machine.nextState);
             assertTrue(report().contains("Current difficulty: " + difficulties[index].getDisplayName()));
             output.reset();
             machine.handleInput("1");
@@ -227,8 +225,7 @@ class GamePlayStateTest {
             machine.handleInput("Encryption");
             assertEquals(48, clock.durationSeconds);
             String text = ui.challenge.getText();
-            double elapsed = text.length() * 60.0 / (5.0 * 10.25);
-            clock.elapsedSeconds = elapsed;
+            clock.elapsedSeconds = text.length() * 60.0 / (5.0 * 10.25);
             machine.handleInput(text);
             assertTrue(report().contains("Dealt 8 damage to"), "10.25 WPM in Coder must deal eight damage.");
             assertEquals(encounterIndex == 6 ? 60 : 70, ui.player.getHealth());
@@ -236,7 +233,7 @@ class GamePlayStateTest {
             oneShotCurrentEncounter();
             output.reset();
         }
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         machine.handleInput("1");
         machine.handleInput("");
         assertTrue(report().contains("Difficulty: Coder"));
@@ -277,7 +274,7 @@ class GamePlayStateTest {
         machine.handleInput(" Start ");
         machine.handleInput("");
 
-        assertTrue(machine.nextState instanceof GamePlayState);
+        assertInstanceOf(GamePlayState.class, machine.nextState);
         assertTrue(report().contains("Scenario 1/5"));
         assertTrue(report().contains("==== COMBAT STARTED ===="));
         machine.handleInput("exit");
@@ -294,7 +291,7 @@ class GamePlayStateTest {
         machine.handleInput(" EXIT ");
 
         assertFalse(machine.isRunning());
-        assertTrue(machine.nextState == null);
+        assertNull(machine.nextState);
         assertFalse(report().contains("Scenario 1/5"));
         assertFalse(Files.exists(tempDir.resolve("history.txt")));
     }
@@ -308,17 +305,19 @@ class GamePlayStateTest {
     void handleInput_sameSeed_repeatsRunAndRetainsHistory() throws IOException {
         Path file = tempDir.resolve("seeded-history.txt");
         RecordingSaveStore firstStore = new RecordingSaveStore(file);
-        List<String> firstRun = completeSeededRun(42, firstStore);
+        List<String> firstRun = completeSeededRun(firstStore);
+        int firstReadsBeforeMenu = firstStore.loadCount;
         machine.handleInput("Records");
-        assertEquals(1, firstStore.loadCount);
+        assertEquals(firstReadsBeforeMenu + 1, firstStore.loadCount);
         List<SaveStore.SavedRecord> firstRecords = new SaveStore(file).load();
         assertEquals(7, firstRecords.size());
         machine.handleInput("exit");
 
         RecordingSaveStore reopenedStore = new RecordingSaveStore(file);
-        List<String> secondRun = completeSeededRun(42, reopenedStore);
+        List<String> secondRun = completeSeededRun(reopenedStore);
+        int secondReadsBeforeMenu = reopenedStore.loadCount;
         machine.handleInput("Records");
-        assertEquals(1, reopenedStore.loadCount);
+        assertEquals(secondReadsBeforeMenu + 1, reopenedStore.loadCount);
         assertEquals(firstRun, secondRun);
         List<SaveStore.SavedRecord> combinedRecords = new ArrayList<>(firstRecords);
         combinedRecords.addAll(firstRecords);
@@ -329,15 +328,14 @@ class GamePlayStateTest {
     /**
      * Completes five scenarios and both boss phases with reproducible one-second submissions.
      *
-     * @param seed seed shared by enemy and prompt selection
      * @param history history store used throughout the run and returned menu
      * @return enemy names, prompt text and deadlines in turn order
      */
-    private List<String> completeSeededRun(long seed, SaveStore history) {
+    private List<String> completeSeededRun(SaveStore history) {
         machine = new RecordingStateMachine();
         clock = new ControlledClock();
         ui = new RecordingCombatUi();
-        machine.start(new GamePlayState(machine, clock, ui, new Random(seed), history));
+        machine.start(new GamePlayState(machine, clock, ui, new Random(42), history));
         List<String> selections = new ArrayList<>();
         String[] skills = {"Ping", "Brute Force", "Buffer Overflow", "SIGKILL"};
         for (int encounter = 0; encounter < 7; encounter++) {
@@ -350,7 +348,7 @@ class GamePlayStateTest {
             machine.handleInput(ui.challenge.getText());
         }
         assertEquals(7, ui.encounters);
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         assertTrue(report().contains("You win! All 5 scenarios and both final boss phases cleared."));
         return selections;
     }
@@ -544,7 +542,7 @@ class GamePlayStateTest {
         for (int scenario = 1; scenario <= 5; scenario++) {
             assertEquals(scenario, ui.encounters);
             assertEquals(90, ui.player.getHealth());
-            assertTrue(ui.player == originalPlayer);
+            assertSame(ui.player, originalPlayer);
             machine.handleInput("SIGKILL");
             submitAfterTenSeconds(ui.challenge.getText());
             if (scenario < 5) {
@@ -554,12 +552,12 @@ class GamePlayStateTest {
         }
 
         assertEquals(6, ui.encounters);
-        assertTrue(machine.nextState == null);
+        assertNull(machine.nextState);
         assertTrue(report().contains("Final Boss - Phase 1/2"));
         assertFalse(report().contains("You win!"));
         for (int phase = 1; phase <= 2; phase++) {
             assertEquals(90, ui.player.getHealth());
-            assertTrue(ui.player == originalPlayer);
+            assertSame(ui.player, originalPlayer);
             machine.handleInput("SIGKILL");
             submitAfterTenSeconds(ui.challenge.getText());
             if (phase == 1) {
@@ -570,14 +568,14 @@ class GamePlayStateTest {
             }
         }
         assertEquals(7, ui.encounters);
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         assertTrue(machine.isRunning());
         assertTrue(report().contains("You win! All 5 scenarios and both final boss phases cleared."));
         assertFalse(report().contains("Scenario 6/5"));
 
         machine.handleInput("start");
         machine.handleInput("");
-        assertTrue(machine.nextState instanceof GamePlayState);
+        assertInstanceOf(GamePlayState.class, machine.nextState);
         assertEquals(2, report().split("Scenario 1/5", -1).length - 1);
         assertTrue(report().substring(report().lastIndexOf("Scenario 1/5")).contains("HP: 100"));
         machine.handleInput("exit");
@@ -597,7 +595,7 @@ class GamePlayStateTest {
         assertTrue(ui.player.getIsDead());
         assertEquals(0, ui.player.getHealth());
         assertEquals(1, ui.encounters);
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         assertTrue(report().contains("Game over."));
         assertFalse(report().contains("Scenario 2/5"));
         assertFalse(report().contains("You win!"));
@@ -615,9 +613,11 @@ class GamePlayStateTest {
             submitAfterTenSeconds("");
         }
 
+        int readsBeforeMenu = history.loadCount;
         machine.handleInput("Records");
 
-        assertEquals(1, history.loadCount, "The returned menu must read the gameplay history store.");
+        assertEquals(readsBeforeMenu + 1, history.loadCount,
+                "The returned menu must read the gameplay history store.");
         assertTrue(report().contains("Typing history (oldest to newest)"));
         assertTrue(report().contains("0.00%"));
         assertFalse(report().contains("No typing records saved yet"));
@@ -680,7 +680,7 @@ class GamePlayStateTest {
         assertEquals(7, ui.encounters);
         assertEquals(70, ui.enemy.getHealth(), "Overkill from phase one must not damage phase two.");
         assertEquals(75, ui.player.getHealth());
-        assertTrue(ui.player == originalPlayer);
+        assertSame(ui.player, originalPlayer);
         assertEquals(enemyTurnsBefore, ui.enemyTurns);
         assertFalse(report().contains("You win!"));
         assertTrue(report().contains("Final Boss - Phase 2/2"));
@@ -696,7 +696,7 @@ class GamePlayStateTest {
         machine.handleInput("Ping");
         submitAfterTenSeconds("");
 
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         assertTrue(ui.player.getIsDead());
         assertEquals(6, ui.encounters);
         assertFalse(report().contains("Final Boss - Phase 2/2"));
@@ -714,7 +714,7 @@ class GamePlayStateTest {
         machine.handleInput("Ping");
         submitAfterTenSeconds("");
 
-        assertTrue(machine.nextState instanceof MainMenuState);
+        assertInstanceOf(MainMenuState.class, machine.nextState);
         assertTrue(ui.player.getIsDead());
         assertEquals(7, ui.encounters);
         assertFalse(report().contains("You win!"));

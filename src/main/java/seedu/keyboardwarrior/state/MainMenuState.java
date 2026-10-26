@@ -94,6 +94,14 @@ public class MainMenuState extends State {
             } catch (IOException e) {
                 StateUi.printLine("Could not load typing history: " + e.getMessage());
             }
+            StateUi.showMainMenu(difficulty);
+        } else if (choice.equalsIgnoreCase("leaderboard") || choice.equals("6")) {
+            try {
+                saveStore.loadHighScore().ifPresentOrElse(StateUi::showLeaderboard, StateUi::showEmptyLeaderboard);
+            } catch (IOException exception) {
+                StateUi.printLine("Could not load leaderboard: " + exception.getMessage());
+            }
+            StateUi.showMainMenu(difficulty);
         } else if (choice.equalsIgnoreCase("choose difficulty") || choice.equals("4")) {
             stateMachine.transitState(new DifficultySelectionState(stateMachine, saveStore));
         } else if (choice.equalsIgnoreCase("continue") || choice.equals("5")) {

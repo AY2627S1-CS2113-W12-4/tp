@@ -1,6 +1,7 @@
 package seedu.keyboardwarrior.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
@@ -85,5 +86,35 @@ class SaveStoreTest {
 
         assertThrows(IOException.class, () -> store.save(result));
         assertEquals("existing content", Files.readString(parent));
+    }
+
+    /** Verifies the best score survives history rotation and reopening, until beaten. */
+    @Test
+    void highScore_rotatedHistory_retainsBestUntilHigherAttempt() throws IOException {
+        Path file = tempDir.resolve("history.txt");
+        new SaveStore(file).save(TypingEvaluator.evaluateTyping("hello", "hello", 1, 15));
+        SaveStore.SavedRecord best = new SaveStore(file).loadHighScore().orElseThrow();
+        for (int attempt = 0; attempt < 12; attempt++) {
+            new SaveStore(file).save(TypingEvaluator.evaluateTyping("hello", "hello", 10, 15));
+        }
+        assertEquals(10, new SaveStore(file).load().size());
+        assertFalse(new SaveStore(file).load().contains(best));
+        assertEquals(best, new SaveStore(file).loadHighScore().orElseThrow());
+
+        TypingResult faster = TypingEvaluator.evaluateTyping("hello", "hello", 0.5, 15);
+        new SaveStore(file).save(faster);
+        assertEquals(new SaveStore.SavedRecord(faster.getWpm(), faster.getAccuracyPercent()),
+                new SaveStore(file).loadHighScore().orElseThrow());
+    }
+
+    /** Migrates old history before its oldest and best record can be discarded on the next save. */
+    @Test
+    void highScore_existingHistory_preservesBestBeforeFirstRotation() throws IOException {
+        Path file = tempDir.resolve("history.txt");
+        Files.writeString(file, "200.0,95.0\n" + "20.0,100.0\n".repeat(9));
+        new SaveStore(file).save(TypingEvaluator.evaluateTyping("hello", "hello", 10, 15));
+        assertFalse(Files.readString(file).contains("200.0"));
+        Files.delete(file);
+        assertEquals(new SaveStore.SavedRecord(200, 95), new SaveStore(file).loadHighScore().orElseThrow());
     }
 }

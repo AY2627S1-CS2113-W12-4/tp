@@ -1,9 +1,5 @@
 package seedu.keyboardwarrior.state;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -19,6 +15,11 @@ import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.GameSave;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests menu history display and persistence using real temporary files.
@@ -118,14 +119,14 @@ class MainMenuStateTest {
         StateMachine menuMachine = new StateMachine();
         menuMachine.start(new MainMenuState(menuMachine, new SaveStore(tempDir.resolve("history.txt"))));
         menuMachine.handleInput("3");
-        assertTrue(!menuMachine.isRunning());
+        assertFalse(menuMachine.isRunning());
 
         StateMachine difficultyMachine = new StateMachine();
         difficultyMachine.start(new MainMenuState(difficultyMachine, new SaveStore(tempDir.resolve("history.txt"))));
         difficultyMachine.handleInput("4");
         difficultyMachine.update();
         difficultyMachine.handleInput("exit");
-        assertTrue(!difficultyMachine.isRunning());
+        assertFalse(difficultyMachine.isRunning());
     }
 
     @Test
@@ -230,7 +231,9 @@ class MainMenuStateTest {
             System.setOut(capture);
             StateMachine machine = new StateMachine();
             machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            output.reset();
             machine.handleInput(" ReCoRdS ");
+            assertMainMenuDisplayed(output.toString(StandardCharsets.UTF_8));
             assertTrue(machine.isRunning());
             machine.handleInput("unknown");
             assertTrue(output.toString(StandardCharsets.UTF_8).contains("Please enter Start, Records, Exit"));
@@ -239,5 +242,70 @@ class MainMenuStateTest {
             System.setOut(original);
         }
         return output.toString(StandardCharsets.UTF_8);
+    }
+
+    /** Checks both commands display only the best attempt, breaking WPM ties by accuracy. */
+    @Test
+    void leaderboard_savedHistory_showsHighestScoreWithoutChangingHistory() throws IOException {
+        Path history = tempDir.resolve("history.txt");
+        String records = "42.5,100.0\n60.0,80.0\n60.0,95.0\n60.0,95.0\n50.0,100.0\n";
+        Files.writeString(history, records);
+        for (String command : List.of("6", " LeAdErBoArD ")) {
+            String output = viewLeaderboard(command);
+            List<String> rows = output.lines().filter(line -> line.contains("%")).toList();
+            assertEquals(1, rows.size());
+            assertEquals(List.of("60.00", "95.00%"), List.of(rows.getFirst().trim().split("\\s+")));
+            assertEquals(records, Files.readString(history));
+        }
+        Files.writeString(history, "20.0,100.0\n".repeat(10));
+        String retainedScore = viewLeaderboard("leaderboard");
+        assertTrue(retainedScore.contains("All-time highest score"));
+        List<String> rows = retainedScore.lines().filter(line -> line.contains("%")).toList();
+        assertEquals(1, rows.size());
+        assertEquals(List.of("60.00", "95.00%"), List.of(rows.getFirst().trim().split("\\s+")));
+    }
+
+    /** Checks that a first-time player can open the leaderboard without a history file. */
+    @Test
+    void leaderboard_missingHistory_displaysEmptyMessage() {
+        assertTrue(viewLeaderboard("6").contains("No typing records saved yet"));
+    }
+
+    /** Checks that corrupt history produces a readable error and leaves the menu usable. */
+    @Test
+    void leaderboard_invalidHistory_displaysErrorWithoutCrashing() throws IOException {
+        Files.writeString(tempDir.resolve("history.txt"), "invalid\n");
+        assertTrue(viewLeaderboard("leaderboard").contains("Could not load leaderboard"));
+    }
+
+    /** Captures leaderboard output and checks that Start still works afterwards. */
+    private String viewLeaderboard(String command) {
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("6. Leaderboard"));
+            output.reset();
+            machine.handleInput(command);
+            String report = output.toString(StandardCharsets.UTF_8);
+            assertMainMenuDisplayed(report);
+            assertTrue(machine.isRunning());
+            machine.handleInput("start");
+            assertTrue(output.toString(StandardCharsets.UTF_8).contains("Enter a seed"));
+            machine.stop();
+            return report;
+        } finally {
+            System.setOut(original);
+        }
+    }
+
+    /** Checks that the complete menu follows the result or error, ready for the next command. */
+    private void assertMainMenuDisplayed(String report) {
+        String menu = String.join(System.lineSeparator(), "Current difficulty: Hard", "1. Start",
+                "2. Records", "3. Exit", "4. Choose Difficulty", "5. Continue", "6. Leaderboard",
+                "Enter a number or option name.") + System.lineSeparator();
+        assertTrue(report.endsWith(menu));
     }
 }
