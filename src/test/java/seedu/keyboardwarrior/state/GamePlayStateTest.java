@@ -225,8 +225,7 @@ class GamePlayStateTest {
             machine.handleInput("Encryption");
             assertEquals(48, clock.durationSeconds);
             String text = ui.challenge.getText();
-            double elapsed = text.length() * 60.0 / (5.0 * 10.25);
-            clock.elapsedSeconds = elapsed;
+            clock.elapsedSeconds = text.length() * 60.0 / (5.0 * 10.25);
             machine.handleInput(text);
             assertTrue(report().contains("Dealt 8 damage to"), "10.25 WPM in Coder must deal eight damage.");
             assertEquals(encounterIndex == 6 ? 60 : 70, ui.player.getHealth());
@@ -306,7 +305,7 @@ class GamePlayStateTest {
     void handleInput_sameSeed_repeatsRunAndRetainsHistory() throws IOException {
         Path file = tempDir.resolve("seeded-history.txt");
         RecordingSaveStore firstStore = new RecordingSaveStore(file);
-        List<String> firstRun = completeSeededRun(42, firstStore);
+        List<String> firstRun = completeSeededRun(firstStore);
         int firstReadsBeforeMenu = firstStore.loadCount;
         machine.handleInput("Records");
         assertEquals(firstReadsBeforeMenu + 1, firstStore.loadCount);
@@ -315,7 +314,7 @@ class GamePlayStateTest {
         machine.handleInput("exit");
 
         RecordingSaveStore reopenedStore = new RecordingSaveStore(file);
-        List<String> secondRun = completeSeededRun(42, reopenedStore);
+        List<String> secondRun = completeSeededRun(reopenedStore);
         int secondReadsBeforeMenu = reopenedStore.loadCount;
         machine.handleInput("Records");
         assertEquals(secondReadsBeforeMenu + 1, reopenedStore.loadCount);
@@ -329,15 +328,14 @@ class GamePlayStateTest {
     /**
      * Completes five scenarios and both boss phases with reproducible one-second submissions.
      *
-     * @param seed seed shared by enemy and prompt selection
      * @param history history store used throughout the run and returned menu
      * @return enemy names, prompt text and deadlines in turn order
      */
-    private List<String> completeSeededRun(long seed, SaveStore history) {
+    private List<String> completeSeededRun(SaveStore history) {
         machine = new RecordingStateMachine();
         clock = new ControlledClock();
         ui = new RecordingCombatUi();
-        machine.start(new GamePlayState(machine, clock, ui, new Random(seed), history));
+        machine.start(new GamePlayState(machine, clock, ui, new Random(42), history));
         List<String> selections = new ArrayList<>();
         String[] skills = {"Ping", "Brute Force", "Buffer Overflow", "SIGKILL"};
         for (int encounter = 0; encounter < 7; encounter++) {

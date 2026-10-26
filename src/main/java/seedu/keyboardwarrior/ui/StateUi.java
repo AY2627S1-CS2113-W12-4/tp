@@ -2,7 +2,6 @@ package seedu.keyboardwarrior.ui;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 import seedu.keyboardwarrior.CountdownReader;
 import seedu.keyboardwarrior.GameDifficulty;
@@ -64,15 +63,6 @@ public final class StateUi {
     }
 
     /**
-     * Clears the editing line before asking for the next combat skill.
-     */
-    public static void clearInput() {
-        if (reader != null) {
-            reader.clearInput();
-        }
-    }
-
-    /**
      * Returns and clears the unfinished passage for automatic timeout evaluation.
      *
      * @return unfinished input, or an empty string if no terminal is attached
@@ -95,16 +85,6 @@ public final class StateUi {
             printLine("Type the following text and press Enter to attack:");
             printLine(challenge.getText());
         }
-    }
-
-    /**
-     * Prints the supplied target text with the line-submission instruction; no timer is started.
-     *
-     * @param text target passage to print
-     */
-    public static void showTypingChallenge(String text) {
-        printLine("Type the following text. Press Enter to submit each line before time runs out:");
-        printLine(text);
     }
 
     /**
@@ -155,13 +135,6 @@ public final class StateUi {
         }
         System.out.print("Your input: ");
         System.out.flush();
-    }
-
-    /**
-     * Displays the banner and available main-menu choices.
-     */
-    public static void showMainMenu() {
-        showMainMenu(GameDifficulty.HARD);
     }
 
     /** Displays the six menu choices and the difficulty that the next new run will use. */
@@ -297,13 +270,6 @@ public final class StateUi {
     }
 
     /**
-     * Displays feedback for a gameplay command.
-     */
-    public static void showPlaying() {
-        printLine("Playing...");
-    }
-
-    /**
      * Displays the seconds left in the current challenge.
      *
      * @param seconds seconds to display
@@ -323,13 +289,7 @@ public final class StateUi {
         printLine("");
         printLine("Time's up!");
     }
-
-    /**
-     * Announces that the player submitted the correct challenge text in time.
-     */
-    public static void showChallengeCompleted() {
-        printLine("Challenge completed!");
-    }
+    
 
     /**
      * Announces that the application has stopped.
@@ -339,21 +299,28 @@ public final class StateUi {
     }
 
     /**
-     * Displays the persisted all-time best attempt, or an empty message before the first attempt.
+     * Displays the persisted all-time best attempt.
      *
-     * @param highScore the stored best attempt, if one exists
+     * @param highScore the stored best attempt
      */
-    public static void showLeaderboard(Optional<SavedRecord> highScore) {
+    public static void showLeaderboard(SavedRecord highScore) {
+        showLeaderboardHeading();
+        printLine(String.format(Locale.ROOT, "%10s  %10s", "WPM", "Accuracy"));
+        printLine(String.format(Locale.ROOT, "%10.2f  %9.2f%%",
+                highScore.wpm(), highScore.accuracyPercent()));
+        showMenuOptionsPrompt();
+    }
+
+    /** Displays the leaderboard before any typing attempts have been recorded. */
+    public static void showEmptyLeaderboard() {
+        showLeaderboardHeading();
+        printLine("No typing records saved yet. Play a game to appear on the leaderboard.");
+        showMenuOptionsPrompt();
+    }
+
+    /** Displays the shared heading and scoring rule for either leaderboard view. */
+    private static void showLeaderboardHeading() {
         printLine("Leaderboard - All-time highest score");
         printLine("Highest WPM, with accuracy breaking ties.");
-        if (highScore.isEmpty()) {
-            printLine("No typing records saved yet. Play a game to appear on the leaderboard.");
-        } else {
-            SavedRecord bestRecord = highScore.get();
-            printLine(String.format(Locale.ROOT, "%10s  %10s", "WPM", "Accuracy"));
-            printLine(String.format(Locale.ROOT, "%10.2f  %9.2f%%",
-                    bestRecord.wpm(), bestRecord.accuracyPercent()));
-        }
-        showMenuOptionsPrompt();
     }
 }
