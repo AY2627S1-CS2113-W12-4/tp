@@ -96,7 +96,7 @@ public class MainMenuState extends State {
             }
         } else if (choice.equalsIgnoreCase("leaderboard") || choice.equals("6")) {
             try {
-                StateUi.showLeaderboard(saveStore.loadHighScore());
+                saveStore.loadHighScore().ifPresentOrElse(StateUi::showLeaderboard, StateUi::showEmptyLeaderboard);
             } catch (IOException exception) {
                 StateUi.printLine("Could not load leaderboard: " + exception.getMessage());
             }
