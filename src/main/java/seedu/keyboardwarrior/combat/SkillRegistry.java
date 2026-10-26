@@ -4,7 +4,9 @@ import java.util.HashMap;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Provides shared definitions for every skill identified by the game. */
+/**
+ * Provides shared definitions for every skill identified by the game.
+ */
 public class SkillRegistry {
 
     private static final HashMap<String, Skill> SKILL_DATABASE = new HashMap<>();

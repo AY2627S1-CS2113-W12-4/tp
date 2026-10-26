@@ -39,7 +39,10 @@ import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
-/** Tests timed attacks, five scenarios, both final-boss phases, defeat and quitting. */
+/**
+ * Tests timed attacks, five scenarios, both final-boss phases, defeat and
+ * quitting.
+ */
 class GamePlayStateTest {
     @TempDir
     Path tempDir;
@@ -170,6 +173,7 @@ class GamePlayStateTest {
             assertTrue(report().contains("Current difficulty: " + difficulties[index].getDisplayName()));
             output.reset();
             machine.handleInput("1");
+            machine.handleInput("");
             assertTrue(report().contains("HP: " + expectedHealth[index]));
             machine.stop();
         }
@@ -195,10 +199,14 @@ class GamePlayStateTest {
         }
         assertTrue(machine.nextState instanceof MainMenuState);
         machine.handleInput("1");
+        machine.handleInput("");
         assertTrue(report().contains("Difficulty: Coder"));
         assertTrue(report().contains("HP: 80"));
     }
 
+    /**
+     * Captures console output and creates fresh state, timing and combat fixtures.
+     */
     @BeforeEach
     void setUp() {
         StateUi.detachTerminal();
@@ -211,6 +219,9 @@ class GamePlayStateTest {
         ui = new RecordingCombatUi();
     }
 
+    /**
+     * Detaches the terminal and restores standard output after each test.
+     */
     @AfterEach
     void tearDown() {
         StateUi.detachTerminal();
@@ -218,10 +229,14 @@ class GamePlayStateTest {
         capturedOutput.close();
     }
 
+    /**
+     * Checks that Start followed by an empty seed enters the first scenario.
+     */
     @Test
     void mainMenu_start_entersFirstScenario() {
         machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
         machine.handleInput(" Start ");
+        machine.handleInput("");
 
         assertTrue(machine.nextState instanceof GamePlayState);
         assertTrue(report().contains("Scenario 1/5"));
@@ -230,6 +245,80 @@ class GamePlayStateTest {
         assertFalse(machine.isRunning());
     }
 
+    /**
+     * Checks that Exit remains a command while the menu is waiting for a seed.
+     */
+    @Test
+    void mainMenu_exitAtSeedPrompt_stopsWithoutStartingGame() {
+        machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+        machine.handleInput("start");
+        machine.handleInput(" EXIT ");
+
+        assertFalse(machine.isRunning());
+        assertTrue(machine.nextState == null);
+        assertFalse(report().contains("Scenario 1/5"));
+        assertFalse(Files.exists(tempDir.resolve("history.txt")));
+    }
+
+    /**
+     * Checks reproducible full runs and history retention across victory and a restarted seeded run.
+     *
+     * @throws IOException if the temporary history cannot be read
+     */
+    @Test
+    void handleInput_sameSeed_repeatsRunAndRetainsHistory() throws IOException {
+        Path file = tempDir.resolve("seeded-history.txt");
+        RecordingSaveStore firstStore = new RecordingSaveStore(file);
+        List<String> firstRun = completeSeededRun(42, firstStore);
+        machine.handleInput("Records");
+        assertEquals(1, firstStore.loadCount);
+        List<SaveStore.SavedRecord> firstRecords = new SaveStore(file).load();
+        assertEquals(7, firstRecords.size());
+        machine.handleInput("exit");
+
+        RecordingSaveStore reopenedStore = new RecordingSaveStore(file);
+        List<String> secondRun = completeSeededRun(42, reopenedStore);
+        machine.handleInput("Records");
+        assertEquals(1, reopenedStore.loadCount);
+        assertEquals(firstRun, secondRun);
+        List<SaveStore.SavedRecord> combinedRecords = new ArrayList<>(firstRecords);
+        combinedRecords.addAll(firstRecords);
+        assertEquals(combinedRecords.subList(4, 14), new SaveStore(file).load());
+        machine.handleInput("exit");
+    }
+
+    /**
+     * Completes five scenarios and both boss phases with reproducible one-second submissions.
+     *
+     * @param seed seed shared by enemy and prompt selection
+     * @param history history store used throughout the run and returned menu
+     * @return enemy names, prompt text and deadlines in turn order
+     */
+    private List<String> completeSeededRun(long seed, SaveStore history) {
+        machine = new RecordingStateMachine();
+        clock = new ControlledClock();
+        ui = new RecordingCombatUi();
+        machine.start(new GamePlayState(machine, clock, ui, new Random(seed), history));
+        List<String> selections = new ArrayList<>();
+        String[] skills = {"Ping", "Brute Force", "Buffer Overflow", "SIGKILL"};
+        for (int encounter = 0; encounter < 7; encounter++) {
+            machine.handleInput(skills[encounter % skills.length]);
+            selections.add(ui.enemy.getName());
+            selections.add(ui.challenge.getText());
+            selections.add(Integer.toString(ui.challenge.getTime()));
+            clock.elapsedSeconds = 1.0;
+            clock.remainingSeconds = clock.durationSeconds - 1;
+            machine.handleInput(ui.challenge.getText());
+        }
+        assertEquals(7, ui.encounters);
+        assertTrue(machine.nextState instanceof MainMenuState);
+        assertTrue(report().contains("You win! All 5 scenarios and both final boss phases cleared."));
+        return selections;
+    }
+
+    /**
+     * Checks that only an available skill starts a timed challenge.
+     */
     @Test
     void handleInput_skillChoice_startsOnlyValidChallenges() {
         startGame();
@@ -246,6 +335,9 @@ class GamePlayStateTest {
         assertTrue(report().contains("Time remaining: " + clock.durationSeconds + "s"));
     }
 
+    /**
+     * Checks damage, persistence and continued combat after an inaccurate submission.
+     */
     @Test
     void handleInput_inaccurateAnswer_appliesMetricsDamageAndKeepsFighting() throws IOException {
         startGame();
@@ -274,6 +366,9 @@ class GamePlayStateTest {
         assertEquals(2, clock.startCount);
     }
 
+    /**
+     * Checks that an empty expired attempt deals no damage and triggers only one retaliation.
+     */
     @Test
     void update_expiredEmptyAttempt_dealsZeroDamageAndRetaliatesOnce() {
         startGame();
@@ -293,10 +388,14 @@ class GamePlayStateTest {
         assertEquals(2, clock.startCount);
     }
 
+    /**
+     * Checks that timeout scores unfinished input while preserving countdown display order.
+     */
     @Test
     void update_liveCountdown_scoresUnsubmittedAnswerAndPreservesTimerOrder() throws Exception {
         ByteArrayOutputStream terminalOutput = new ByteArrayOutputStream();
-        // Use stream-based output on every OS; a paused POSIX PTY also pauses its output pump.
+        // Use stream-based output on every OS; a paused POSIX PTY also pauses its
+        // output pump.
         try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
                 .streams(new ByteArrayInputStream(new byte[0]), terminalOutput).paused(true).build()) {
             terminal.setSize(new Size(80, 24));
@@ -345,6 +444,9 @@ class GamePlayStateTest {
         }
     }
 
+    /**
+     * Checks that a late correct answer deals typing damage without an additional penalty.
+     */
     @Test
     void handleInput_lateCorrectAnswer_usesMetricsWithoutAnExtraPenalty() {
         advanceToThirdScenario();
@@ -365,6 +467,9 @@ class GamePlayStateTest {
         assertFalse(report().contains("Damage penalty:"));
     }
 
+    /**
+     * Checks that a submission exactly at the deadline is accepted without timeout feedback.
+     */
     @Test
     void handleInput_atExactLimit_appliesFullDamage() {
         advanceToThirdScenario();
@@ -385,10 +490,14 @@ class GamePlayStateTest {
         assertFalse(report().contains("Time's up!"));
     }
 
+    /**
+     * Checks progression through five scenarios and two boss phases before returning to the menu.
+     */
     @Test
     void handleInput_fiveVictoriesAndBothBossPhases_returnsToMenuOnlyAfterFinalVictory() {
         startGame();
-        // Take one hit first to verify that remaining health carries into later scenarios.
+        // Take one hit first to verify that remaining health carries into later
+        // scenarios.
         machine.handleInput("Ping");
         submitAfterTenSeconds("");
         Player originalPlayer = ui.player;
@@ -428,12 +537,16 @@ class GamePlayStateTest {
         assertFalse(report().contains("Scenario 6/5"));
 
         machine.handleInput("start");
+        machine.handleInput("");
         assertTrue(machine.nextState instanceof GamePlayState);
         assertEquals(2, report().split("Scenario 1/5", -1).length - 1);
         assertTrue(report().substring(report().lastIndexOf("Scenario 1/5")).contains("HP: 100"));
         machine.handleInput("exit");
     }
 
+    /**
+     * Checks that player defeat ends the run before another scenario starts.
+     */
     @Test
     void handleInput_playerDefeated_endsRunBeforeNextScenario() {
         startGame();
@@ -451,6 +564,9 @@ class GamePlayStateTest {
         assertFalse(report().contains("You win!"));
     }
 
+    /**
+     * Checks that the menu returned to after defeat reads the same history store.
+     */
     @Test
     void handleInput_playerDefeated_recordsUsesSameHistoryStore() {
         RecordingSaveStore history = new RecordingSaveStore(tempDir.resolve("history.txt"));
@@ -468,6 +584,9 @@ class GamePlayStateTest {
         assertFalse(report().contains("No typing records saved yet"));
     }
 
+    /**
+     * Checks that exiting during a typing challenge stops without an enemy turn.
+     */
     @Test
     void handleInput_exitDuringTyping_stopsWithoutTakingAnEnemyTurn() {
         startGame();
@@ -479,6 +598,9 @@ class GamePlayStateTest {
         assertFalse(report().contains("WPM:"));
     }
 
+    /**
+     * Checks survival at normal typing performance for each fixed enemy selection.
+     */
     @Test
     void normalPerformance_eachRepeatedEnemyType_survivesFiveScenariosAndBothBossPhases() {
         for (int enemyType = 0; enemyType < 8; enemyType++) {
@@ -503,6 +625,9 @@ class GamePlayStateTest {
         }
     }
 
+    /**
+     * Checks that a boss transition retains player health, discards overkill and skips retaliation.
+     */
     @Test
     void bossPhaseTransition_preservesPlayerHealthAndDiscardsOverkillWithoutRetaliation() {
         advanceToBoss();
@@ -522,6 +647,9 @@ class GamePlayStateTest {
         assertTrue(report().contains("Final Boss - Phase 2/2"));
     }
 
+    /**
+     * Checks that defeat in the first boss phase returns to the menu without starting the second.
+     */
     @Test
     void bossPhaseOne_playerDefeat_returnsToMenuWithoutStartingPhaseTwo() {
         advanceToBoss();
@@ -536,6 +664,9 @@ class GamePlayStateTest {
         assertFalse(report().contains("You win!"));
     }
 
+    /**
+     * Checks that defeat in the second boss phase returns to the menu without announcing victory.
+     */
     @Test
     void bossPhaseTwo_playerDefeat_returnsToMenuWithoutVictory() {
         advanceToBoss();
@@ -550,6 +681,9 @@ class GamePlayStateTest {
         assertFalse(report().contains("You win!"));
     }
 
+    /**
+     * Checks that exiting in the second boss phase stops without another enemy turn.
+     */
     @Test
     void bossPhaseTwo_exitDuringTyping_stopsWithoutAnEnemyTurn() {
         advanceToBoss();
@@ -563,14 +697,20 @@ class GamePlayStateTest {
         assertFalse(report().contains("You win!"));
     }
 
-    /** Reaches a fifty-health enemy so ordinary on-time and late submissions do not kill it. */
+    /**
+     * Reaches a fifty-health enemy so ordinary on-time and late submissions do not
+     * kill it.
+     */
     private void advanceToThirdScenario() {
         startGame();
         oneShotCurrentEncounter();
         oneShotCurrentEncounter();
     }
 
-    /** Defeats the regular encounters while keeping the boss available for phase-boundary tests. */
+    /**
+     * Defeats the regular encounters while keeping the boss available for
+     * phase-boundary tests.
+     */
     private void advanceToBoss() {
         startGame();
         for (int scenario = 0; scenario < 5; scenario++) {
@@ -578,7 +718,10 @@ class GamePlayStateTest {
         }
     }
 
-    /** Uses a deliberately large attack to exercise killing blows and discarded overkill. */
+    /**
+     * Uses a deliberately large attack to exercise killing blows and discarded
+     * overkill.
+     */
     private void oneShotCurrentEncounter() {
         machine.handleInput("Ping");
         clock.elapsedSeconds = 1.0;
@@ -586,7 +729,10 @@ class GamePlayStateTest {
         machine.handleInput(ui.challenge.getText());
     }
 
-    /** Types real prompts at fifty WPM with at least ninety-five percent character accuracy. */
+    /**
+     * Types real prompts at fifty WPM with at least ninety-five percent character
+     * accuracy.
+     */
     private void submitAtNormalPerformance() {
         machine.handleInput("Ping");
         String expected = ui.challenge.getText();
@@ -610,31 +756,56 @@ class GamePlayStateTest {
         machine.handleInput(submission);
     }
 
-    /** Starts gameplay with controllable timing and observed combat output. */
+    /**
+     * Starts gameplay with controllable timing and observed combat output.
+     */
     private void startGame() {
         machine.start(new GamePlayState(machine, clock, ui, new FixedEnemyRandom(),
                 new SaveStore(tempDir.resolve("history.txt"))));
     }
 
-    /** Submits an answer at a reproducible duration within every skill's limit. */
+    /**
+     * Submits an answer at a reproducible duration within every skill's limit.
+     *
+     * @param typedText text captured or submitted for evaluation
+     */
     private void submitAfterTenSeconds(String typedText) {
         clock.elapsedSeconds = 10.0;
         clock.remainingSeconds = clock.durationSeconds - 10;
         machine.handleInput(typedText);
     }
 
+    /**
+     * Returns the console output captured during the current test.
+     *
+     * @return captured console output as UTF-8 text
+     */
     private String report() {
         return output.toString(StandardCharsets.UTF_8);
     }
 
-    /** Observes history reads without replacing real persistence through the temporary file. */
+    /**
+     * Observes history reads without replacing real persistence through the
+     * temporary file.
+     */
     private static class RecordingSaveStore extends SaveStore {
         private int loadCount;
 
+        /**
+         * Creates a recording store backed by the supplied temporary history file.
+         *
+         * @param filePath location of the history file
+         */
         RecordingSaveStore(Path filePath) {
             super(filePath);
         }
 
+        /**
+         * Counts history reads while loading records from the real temporary file.
+         *
+         * @return saved records in chronological order
+         * @throws IOException if the history cannot be read or contains invalid metrics
+         */
         @Override
         public List<SavedRecord> load() throws IOException {
             loadCount++;
@@ -642,31 +813,56 @@ class GamePlayStateTest {
         }
     }
 
-    /** Keeps the test enemy's health and skill sequence independent of random content. */
+    /**
+     * Fixes enemy selection while supplying deterministic, bounded prompt selections.
+     * The current enemy bank requests a bound of eight; prompt banks request five or four.
+     */
     private static class FixedEnemyRandom extends Random {
         private final int enemyIndex;
 
+        /**
+         * Creates a random fixture returning a fixed enemy index.
+         */
         FixedEnemyRandom() {
             this(0);
         }
 
+        /**
+         * Creates a random fixture returning a fixed enemy index.
+         *
+         * @param enemyIndex fixed index returned for enemy selections
+         */
         FixedEnemyRandom(int enemyIndex) {
+            super(0);
             this.enemyIndex = enemyIndex;
         }
 
+        /**
+         * Returns the configured enemy index for the eight-enemy bank, otherwise a seeded random index.
+         *
+         * @param bound exclusive upper bound requested by the enemy or prompt bank
+         * @return configured enemy index or a valid prompt index
+         */
         @Override
         public int nextInt(int bound) {
-            return enemyIndex;
+            return bound == 8 ? enemyIndex : super.nextInt(bound);
         }
     }
 
-    /** Supplies deterministic time without waiting through real countdowns. */
+    /**
+     * Supplies deterministic time without waiting through real countdowns.
+     */
     private static class ControlledClock extends ChallengeClock {
         private int durationSeconds;
         private int remainingSeconds;
         private double elapsedSeconds;
         private int startCount;
 
+        /**
+         * Records a timer start and resets the manually controlled elapsed and remaining times.
+         *
+         * @param durationSeconds duration recorded for this attempt
+         */
         @Override
         public void start(int durationSeconds) {
             this.durationSeconds = durationSeconds;
@@ -675,18 +871,30 @@ class GamePlayStateTest {
             startCount++;
         }
 
+        /**
+         * Returns the remaining time supplied by the test.
+         *
+         * @return manually controlled remaining seconds
+         */
         @Override
         public int getRemainingSeconds() {
             return remainingSeconds;
         }
 
+        /**
+         * Returns the elapsed time supplied by the test.
+         *
+         * @return manually controlled elapsed seconds
+         */
         @Override
         public double getElapsedSeconds() {
             return elapsedSeconds;
         }
     }
 
-    /** Observes real combat participants and guards against blocking console reads. */
+    /**
+     * Observes real combat participants and guards against blocking console reads.
+     */
     private static class RecordingCombatUi extends CombatUi {
         private Enemy enemy;
         private Player player;
@@ -695,6 +903,11 @@ class GamePlayStateTest {
         private int enemyTurns;
         private int invalidSkills;
 
+        /**
+         * Records the enemy and encounter count, then displays the normal combat announcement.
+         *
+         * @param enemy enemy entering the encounter
+         */
         @Override
         public void showCombatStart(Enemy enemy) {
             this.enemy = enemy;
@@ -702,45 +915,85 @@ class GamePlayStateTest {
             super.showCombatStart(enemy);
         }
 
+        /**
+         * Records the player, then displays the normal player-turn information.
+         *
+         * @param player player taking the turn
+         * @param enemy opposing enemy
+         */
         @Override
         public void showPlayerTurn(Player player, Enemy enemy) {
             this.player = player;
             super.showPlayerTurn(player, enemy);
         }
 
+        /**
+         * Counts enemy turns while preserving their normal display.
+         *
+         * @param enemy enemy taking the turn
+         */
         @Override
         public void showEnemyTurn(Enemy enemy) {
             enemyTurns++;
             super.showEnemyTurn(enemy);
         }
 
+        /**
+         * Records the generated challenge while preserving its normal display.
+         *
+         * @param challenge generated typing challenge
+         */
         @Override
         public void showTypingChallenge(TypingChallenge challenge) {
             this.challenge = challenge;
             super.showTypingChallenge(challenge);
         }
 
+        /**
+         * Counts invalid skill selections while displaying the normal feedback.
+         */
         @Override
         public void showInvalidSkill() {
             invalidSkills++;
             super.showInvalidSkill();
         }
 
+        /**
+         * Rejects blocking skill reads because gameplay must use the state-machine input loop.
+         *
+         * @param activeSkills available skills; no selection is made
+         * @return never returns normally
+         * @throws AssertionError whenever called
+         */
         @Override
         public Skill getSkillChoice(ArrayList<Skill> activeSkills) {
             throw new AssertionError("Gameplay must receive skills through the main input loop.");
         }
 
+        /**
+         * Rejects blocking submission reads because gameplay must use the state-machine input loop.
+         *
+         * @param typingChallenge challenge text; no input is read
+         * @return never returns normally
+         * @throws AssertionError whenever called
+         */
         @Override
         public String getTypingSubmission(String typingChallenge) {
             throw new AssertionError("Gameplay must receive submissions through the main input loop.");
         }
     }
 
-    /** Records transitions while preserving normal state-machine behavior. */
+    /**
+     * Records transitions while preserving normal state-machine behavior.
+     */
     private static class RecordingStateMachine extends StateMachine {
         private State nextState;
 
+        /**
+         * Records the requested destination and performs the normal state transition.
+         *
+         * @param nextState state to activate
+         */
         @Override
         public void transitState(State nextState) {
             this.nextState = nextState;

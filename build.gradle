@@ -3,6 +3,7 @@ plugins {
     id 'application'
     id 'checkstyle'
     id 'com.gradleup.shadow' version '9.5.1'
+    id 'jacoco'
 }
 
 java {
@@ -85,5 +86,13 @@ tasks.register('prepareTerminalRun') {
         outputFile.parentFile.mkdirs()
         outputFile.setText(runtimeClasspath.asPath, 'UTF-8')
         javaHomeFile.get().asFile.setText(System.getProperty('java.home'), 'UTF-8')
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
     }
 }

@@ -1,6 +1,7 @@
 package seedu.keyboardwarrior.state;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -19,11 +20,16 @@ import seedu.keyboardwarrior.GameSave;
 import seedu.keyboardwarrior.storage.GameSaveStore;
 import seedu.keyboardwarrior.storage.SaveStore;
 
-/** Tests the records command against real temporary history files. */
+/**
+ * Tests menu history display and persistence using real temporary files.
+ */
 class MainMenuStateTest {
     @TempDir
     Path tempDir;
 
+    /**
+     * Checks that gameplay started from a menu with custom history appends to that same file.
+     */
     @Test
     void continue_savedRun_restoresSavedDifficultyAndSharesHistoryLocation() throws IOException {
         GameSaveStore runStore = new GameSaveStore(tempDir.resolve("game-save.properties"));
@@ -97,6 +103,8 @@ class MainMenuStateTest {
                 assertTrue(output.toString(StandardCharsets.UTF_8).contains("Current difficulty: " + names[index]));
                 assertTrue(output.toString(StandardCharsets.UTF_8).contains("No typing records saved yet"));
                 machine.handleInput("1");
+                machine.handleInput("3");
+                assertTrue(output.toString(StandardCharsets.UTF_8).contains("Starting run with seed: 3"));
                 assertTrue(output.toString(StandardCharsets.UTF_8).contains("HP: " + health[index]));
                 machine.handleInput("exit");
             } finally {
@@ -132,6 +140,7 @@ class MainMenuStateTest {
             machine.start(new MainMenuState(machine, new SaveStore(history)));
 
             machine.handleInput("start");
+            machine.handleInput("42");
             machine.handleInput("Ping");
             machine.handleInput("");
 
@@ -142,6 +151,45 @@ class MainMenuStateTest {
         }
     }
 
+    /**
+     * Checks that numeric and text seeds reproduce the first enemy and prompt through the menu.
+     */
+    @Test
+    void start_sameSeed_repeatsEnemyAndPrompt() {
+        assertEquals(startWithSeed("42"), startWithSeed(" 42 "));
+        String textSeed = "keyboard-warrior";
+        assertEquals(startWithSeed(textSeed), startWithSeed(Long.toString(textSeed.hashCode())));
+        assertNotEquals(startWithSeed("42"), startWithSeed("43"));
+    }
+
+    /**
+     * Captures the first encounter and challenge started through the real menu.
+     *
+     * @param seed numeric or text seed submitted at the seed prompt
+     * @return combat and challenge output, excluding the seed announcement
+     */
+    private String startWithSeed(String seed) {
+        PrintStream original = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setOut(capture);
+            StateMachine machine = new StateMachine();
+            machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
+            machine.handleInput("start");
+            machine.handleInput(seed);
+            machine.handleInput("Ping");
+            machine.handleInput("exit");
+        } finally {
+            System.setOut(original);
+        }
+        String report = output.toString(StandardCharsets.UTF_8);
+        assertTrue(report.contains("Scenario 1/5"));
+        return report.substring(report.indexOf("Scenario 1/5"));
+    }
+
+    /**
+     * Checks that viewing saved metrics preserves their order and leaves the menu usable.
+     */
     @Test
     void records_savedHistory_displaysMetricsAndStaysInMenu() throws IOException {
         Files.writeString(tempDir.resolve("history.txt"), "42.5,87.25\n60.0,100.0\n");
@@ -153,18 +201,28 @@ class MainMenuStateTest {
         assertTrue(output.contains("oldest to newest"));
     }
 
+    /**
+     * Checks the empty-history message when the save file does not exist.
+     */
     @Test
     void records_missingHistory_displaysEmptyMessage() {
         assertTrue(viewRecords().contains("No typing records saved yet"));
     }
 
+    /**
+     * Checks that malformed history produces a message without crashing the menu.
+     */
     @Test
     void records_invalidHistory_displaysErrorWithoutCrashing() throws IOException {
         Files.writeString(tempDir.resolve("history.txt"), "invalid\n");
         assertTrue(viewRecords().contains("Could not load typing history"));
     }
 
-    /** Captures the menu output and verifies that viewing records leaves the menu usable. */
+    /**
+     * Captures the menu output and verifies that viewing records leaves the menu usable.
+     *
+     * @return captured output from viewing records and checking menu usability
+     */
     private String viewRecords() {
         PrintStream original = System.out;
         ByteArrayOutputStream output = new ByteArrayOutputStream();

@@ -19,6 +19,9 @@ import seedu.keyboardwarrior.ui.CombatUi;
 class SkillResolverTest {
     private static final Entity SOURCE = new Enemy("Source", 100);
 
+    /**
+     * Checks that an automated enemy attack uses its skill's base damage.
+     */
     @Test
     void execute_eachDifficulty_multipliesBeforeRoundingAndPreservesEnemyDamage() {
         int[] expectedDamage = {162, 81, 40, 32};
@@ -54,6 +57,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that perfect typing at one WPM deals one damage.
+     */
     @Test
     void execute_eligibleTypingResult_appliesCalculatedDamage() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -70,6 +76,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that changing only the deadline does not change attack damage.
+     */
     @Test
     void execute_sameTypingPerformance_hasNoTimeLimitPenalty() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -93,6 +102,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that fifty WPM at ninety-five percent accuracy deals forty damage.
+     */
     @Test
     void execute_targetPerformance_usesCharacterAccuracyAndRoundsDown() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -112,6 +124,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that partial accuracy is raised to the fourth power before rounding damage down.
+     */
     @Test
     void execute_partialAccuracy_raisesCorrectFractionToFourthPower() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -129,6 +144,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that player damage depends on typing performance rather than skill base damage.
+     */
     @Test
     void execute_playerDamage_isIndependentOfSelectedSkillBaseDamage() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -147,6 +165,9 @@ class SkillResolverTest {
         assertEquals(60, target.getHealth());
     }
 
+    /**
+     * Checks that completely incorrect text deals no damage regardless of typing speed.
+     */
     @Test
     void execute_allCharactersIncorrect_dealsZeroDamageDespiteTypingSpeed() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -162,6 +183,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that an empty late submission deals no damage.
+     */
     @Test
     void execute_emptyLateAttempt_stillDealsZeroDamage() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -177,6 +201,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that extreme typing speed cannot overflow the target's health calculation.
+     */
     @Test
     void execute_extremeTypingSpeed_capsDamageWithoutOverflowingHealth() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -190,6 +217,9 @@ class SkillResolverTest {
         assertEquals(Integer.MAX_VALUE, ui.reportedDamage);
     }
 
+    /**
+     * Checks that damage greater than remaining health leaves the target at zero health.
+     */
     @Test
     void execute_damageAboveHealth_clampsHealthAtZero() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -203,11 +233,17 @@ class SkillResolverTest {
         assertEquals(25, ui.reportedDamage);
     }
 
+    /**
+     * Checks that a resolver requires a combat interface.
+     */
     @Test
     void constructor_nullUi_rejectsConstruction() {
         assertThrows(NullPointerException.class, () -> new SkillResolver(null));
     }
 
+    /**
+     * Checks that null attack dependencies are rejected without damaging the target.
+     */
     @Test
     void execute_nullParticipantOrSkill_rejectsAttackWithoutDamage() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -224,6 +260,9 @@ class SkillResolverTest {
         assertFalse(ui.typingWasTooSlow);
     }
 
+    /**
+     * Checks that zero base damage leaves the target's health unchanged.
+     */
     @Test
     void execute_zeroDamage_preservesHealth() {
         RecordingCombatUi ui = new RecordingCombatUi();
@@ -237,17 +276,28 @@ class SkillResolverTest {
         assertEquals(0, ui.reportedDamage);
     }
 
-    /** Records resolver feedback without printing to the console. */
+    /**
+     * Records resolver feedback without printing to the console.
+     */
     private static class RecordingCombatUi extends CombatUi {
         private String damagedEntityName;
         private int reportedDamage;
         private boolean typingWasTooSlow;
 
+        /**
+         * Records that slow-typing feedback was requested without printing it.
+         */
         @Override
         public void showTypingSlow() {
             typingWasTooSlow = true;
         }
 
+        /**
+         * Records the damaged participant and reported damage without printing feedback.
+         *
+         * @param name name of the damaged participant
+         * @param damage reported damage amount
+         */
         @Override
         public void showDamage(String name, int damage) {
             damagedEntityName = name;

@@ -8,16 +8,22 @@ import java.util.Random;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
-/** Stores typing prompts by difficulty and selects prompts for new challenges. */
+/**
+ * Stores typing prompts by difficulty and selects prompts for new challenges.
+ */
 public class PromptBank {
     /** Characters available in Encryption passages; spaces separate groups of at most six. */
     private static final String ENCRYPTION_CHARACTERS = "!@#$%^&*()\\_+/*{}|:\"<>?";
     private final HashMap<Difficulty, List<String>> prompts;
-    /** Last selection for each difficulty, so repeated attacks receive different passages. */
+    /**
+     * Last selection for each difficulty, so repeated attacks receive different passages.
+     */
     private final HashMap<Difficulty, Integer> previousPromptIndices;
     private final Random random;
 
-    /** Creates and populates the prompt bank. */
+    /**
+     * Creates and populates the prompt bank.
+     */
     public PromptBank() {
         this(new Random());
     }
@@ -34,7 +40,9 @@ public class PromptBank {
         initializeBank();
     }
 
-    /** Populates each difficulty with its available challenge text. */
+    /**
+     * Populates each difficulty with its available challenge text.
+     */
     private void initializeBank() {
         List<String> easy = new ArrayList<>();
         easy.add("The system booted successfully and local services are running on the server.");

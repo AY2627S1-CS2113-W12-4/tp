@@ -7,6 +7,9 @@ import java.util.Objects;
  * Coordinates speed, accuracy, word errors and the time limit for one typing attempt.
  */
 public final class TypingEvaluator {
+    /**
+     * Prevents instantiation of this utility class.
+     */
     private TypingEvaluator() {
     }
 
@@ -15,6 +18,8 @@ public final class TypingEvaluator {
      * Leading and trailing whitespace is removed, and repeated spaces, tabs and line breaks
      * are collapsed into a single space. Accuracy is one minus the Levenshtein character-edit
      * distance divided by the longer normalized text's character count, as a percentage.
+     * Accuracy counts Unicode code points; gross WPM counts UTF-16 code units,
+     * including normalized spaces, in groups of five per word.
      * Capitalization and punctuation are preserved. Detailed word errors remain positional
      * diagnostics and do not determine accuracy. Exceeding the required time does not reduce damage.
      *
@@ -53,6 +58,9 @@ public final class TypingEvaluator {
 
     /**
      * Returns text with leading/trailing whitespace removed and internal whitespace collapsed.
+     *
+     * @param text passage or submission to normalize
+     * @return trimmed text with internal whitespace collapsed
      */
     private static String normalizeText(String text) {
         return text.trim().replaceAll("\\s+", " ");

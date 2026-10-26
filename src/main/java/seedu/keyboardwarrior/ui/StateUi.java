@@ -19,12 +19,17 @@ public final class StateUi {
     private static final String SEPARATOR = "----------------------------------------";
     private static CountdownReader reader;
 
+    /**
+     * Prevents instantiation of this utility class.
+     */
     private StateUi() {
         // Utility class: callers use the display methods without creating an instance.
     }
 
     /**
      * Connects terminal input and output to the UI.
+     *
+     * @param lineReader reader used for terminal input and display
      */
     public static void attachTerminal(CountdownReader lineReader) {
         reader = lineReader;
@@ -39,6 +44,8 @@ public final class StateUi {
 
     /**
      * Updates the countdown within the reader's prompt, preserving input.
+     *
+     * @param seconds seconds to display
      */
     public static void updateCountdown(int seconds) {
         if (reader != null) {
@@ -55,19 +62,29 @@ public final class StateUi {
         }
     }
 
-    /** Clears the editing line before asking for the next combat skill. */
+    /**
+     * Clears the editing line before asking for the next combat skill.
+     */
     public static void clearInput() {
         if (reader != null) {
             reader.clearInput();
         }
     }
 
-    /** Returns and clears the unfinished passage for automatic timeout evaluation. */
+    /**
+     * Returns and clears the unfinished passage for automatic timeout evaluation.
+     *
+     * @return unfinished input, or an empty string if no terminal is attached
+     */
     public static String takeCurrentInput() {
         return reader == null ? "" : reader.takeCurrentInput();
     }
 
-    /** Displays the timer above the typing instruction and target passage. */
+    /**
+     * Displays the timer above the typing instruction and target passage.
+     *
+     * @param challenge typing challenge to display
+     */
     public static void showTypingChallenge(TypingChallenge challenge) {
         if (reader != null) {
             reader.showTypingChallenge(challenge.getText(), challenge.getTime());
@@ -80,7 +97,9 @@ public final class StateUi {
     }
 
     /**
-     * Shows the target text and explains how to submit text before the deadline.
+     * Prints the supplied target text with the line-submission instruction; no timer is started.
+     *
+     * @param text target passage to print
      */
     public static void showTypingChallenge(String text) {
         printLine("Type the following text. Press Enter to submit each line before time runs out:");
@@ -89,7 +108,10 @@ public final class StateUi {
 
     /**
      * Prints output above any input currently being edited, or directly in tests.
-     * Combat output uses this same terminal so it does not overwrite the editable line.
+     * Combat output uses this same terminal so it does not overwrite the editable
+     * line.
+     *
+     * @param text output to print above any editable input
      */
     public static void printLine(String text) {
         if (reader == null) {
@@ -173,7 +195,11 @@ public final class StateUi {
         printLine("Invalid option. Please enter Start, Records, Exit, Choose Difficulty or Continue (1-5).");
     }
 
-    /** Displays saved typing results in chronological order while remaining in the main menu. */
+    /**
+     * Displays saved typing results in chronological order while remaining in the main menu.
+     *
+     * @param records saved records in display order, oldest first
+     */
     public static void showRecords(List<SavedRecord> records) {
         printLine("Typing history (oldest to newest)");
         if (records.isEmpty()) {
@@ -190,6 +216,22 @@ public final class StateUi {
     }
 
     /**
+     * Prompts for an optional seed before starting a run.
+     */
+    public static void showSeedPrompt() {
+        printLine("Enter a seed (or press Enter for a random seed):");
+    }
+
+    /**
+     * Displays the numeric seed used for the new run.
+     *
+     * @param seed numeric seed used for the new run
+     */
+    public static void showSeed(long seed) {
+        printLine("Starting run with seed: " + seed);
+    }
+
+    /**
      * Announces entry into gameplay.
      */
     public static void showGameplayStart() {
@@ -197,13 +239,23 @@ public final class StateUi {
         printLine("Your remaining health carries into the next scenario. Type Exit at any time to quit.");
     }
 
-    /** Displays progress before the next scenario begins. */
+    /**
+     * Displays progress before the next scenario begins.
+     *
+     * @param number one-based scenario number
+     * @param total total number of scenarios or phases
+     */
     public static void showScenario(int number, int total) {
         showSeparator();
         printLine("Scenario " + number + "/" + total);
     }
 
-    /** Announces the current final-boss phase after the five regular scenarios. */
+    /**
+     * Announces the current final-boss phase after the five regular scenarios.
+     *
+     * @param phase one-based boss phase number
+     * @param total total number of scenarios or phases
+     */
     public static void showBossPhase(int phase, int total) {
         showSeparator();
         printLine("Final Boss - Phase " + phase + "/" + total);
@@ -212,18 +264,25 @@ public final class StateUi {
         }
     }
 
-    /** Announces victory after all five scenarios and both final-boss phases. */
+    /**
+     * Announces victory after all five scenarios and both final-boss phases.
+     */
     public static void showRunVictory() {
         printLine("You win! All 5 scenarios and both final boss phases cleared.");
     }
 
-    /** Announces that player defeat ended the run. */
+    /**
+     * Announces that player defeat ended the run.
+     */
     public static void showRunDefeat() {
         printLine("Game over. Start a new run from the main menu.");
     }
 
     /**
-     * Displays evaluated metrics while retaining individual word errors in the result.
+     * Displays evaluated metrics while retaining individual word errors in the
+     * result.
+     *
+     * @param result evaluated typing result
      */
     public static void showTypingResult(TypingResult result) {
         printLine(TypingResultFormatter.formatTypingSummary(result));
@@ -238,6 +297,8 @@ public final class StateUi {
 
     /**
      * Displays the seconds left in the current challenge.
+     *
+     * @param seconds seconds to display
      */
     public static void showRemainingTime(int seconds) {
         if (reader != null) {

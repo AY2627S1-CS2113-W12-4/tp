@@ -18,8 +18,8 @@ import seedu.keyboardwarrior.ui.CombatUi;
 
 /**
  * Runs turn-based combat between a player and an enemy.
- * Player skills are resolved through typing challenges, while enemy skills apply
- * their base damage automatically.
+ * Player skills are resolved through typing challenges, while enemy skills
+ * apply their base damage automatically.
  */
 public class CombatEncounter extends Encounter {
     /** Stable opponent data needed to resume at the next player turn. */
@@ -34,11 +34,17 @@ public class CombatEncounter extends Encounter {
     private SkillResolver skillResolver;
     private TypingChallengeRunner challengeRunner;
     private TypingChallengeFactory challengeFactory;
-    /** Skill awaiting a typing result from the current player turn. */
+    /**
+     * Skill awaiting a typing result from the current player turn.
+     */
     private Skill pendingSkill;
-    /** Index of the enemy skill to use on its next turn. */
+    /**
+     * Index of the enemy skill to use on its next turn.
+     */
     private int enemySkillIndex;
-    /** Whether combat has begun; prevents attacks before setup and repeated starts. */
+    /**
+     * Whether combat has begun; prevents attacks before setup and repeated starts.
+     */
     private boolean isStarted;
 
     /**
@@ -59,7 +65,8 @@ public class CombatEncounter extends Encounter {
      * @param player player taking part in the encounter
      * @param enemy enemy taking part in the encounter
      * @param ui combat interface
-     * @param challengeFactory factory retaining prompt selection history between encounters
+     * @param challengeFactory factory retaining prompt selection history between
+     *     encounters
      * @throws NullPointerException if any dependency is null
      */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui, TypingChallengeFactory challengeFactory) {
@@ -96,7 +103,8 @@ public class CombatEncounter extends Encounter {
      * Announces combat and the first player turn without reading console input.
      * The application can then collect input while continuing timer updates.
      *
-     * @throws IllegalStateException if combat already began or a living enemy cannot take a turn
+     * @throws IllegalStateException if combat already began or a living enemy
+     *     cannot take a turn
      */
     public void begin() {
         begin(0);
@@ -146,7 +154,8 @@ public class CombatEncounter extends Encounter {
      * @return challenge to display and time before submitting its result
      * @throws NullPointerException if the chosen skill is null
      * @throws IllegalArgumentException if the player does not have the chosen skill
-     * @throws IllegalStateException if combat has not begun, ended or a result is already pending
+     * @throws IllegalStateException if combat has not begun, ended or a result
+     *     is already pending
      */
     public TypingChallenge preparePlayerTurn(Skill chosenSkill) {
         if (!isStarted || isCompleted || pendingSkill != null) {
@@ -166,7 +175,8 @@ public class CombatEncounter extends Encounter {
 
     /**
      * Resolves the pending attack and the enemy response, then opens the next turn.
-     * A defeated enemy does not retaliate, and a late attempt still consumes a turn.
+     * A defeated enemy does not retaliate, and a late attempt still consumes a
+     * turn.
      *
      * @param result evaluated result of the pending typing challenge
      * @throws NullPointerException if the result is null
@@ -194,7 +204,9 @@ public class CombatEncounter extends Encounter {
         ui.showPlayerTurn(player, enemy);
     }
 
-    /** Uses the enemy's next skill without requiring a typing challenge. */
+    /**
+     * Uses the enemy's next skill without requiring a typing challenge.
+     */
     private void executeEnemyTurn() {
         assert isStarted && !isCompleted : "An enemy turn requires active combat";
         assert pendingSkill == null : "The player attack must resolve before the enemy turn";
@@ -211,7 +223,9 @@ public class CombatEncounter extends Encounter {
                 : "Enemy skill rotation must remain within the loadout";
     }
 
-    /** Rejects unusable enemy loadouts before a turn can partially execute. */
+    /**
+     * Rejects unusable enemy loadouts before a turn can partially execute.
+     */
     private void requireEnemySkills() {
         ArrayList<Skill> enemySkills = enemy.getActiveSkills();
         if (enemySkills.isEmpty() || enemySkills.contains(null) || enemySkillIndex >= enemySkills.size()) {
@@ -219,7 +233,9 @@ public class CombatEncounter extends Encounter {
         }
     }
 
-    /** Marks the enemy as defeated and completes the encounter as a victory. */
+    /**
+     * Marks the enemy as defeated and completes the encounter as a victory.
+     */
     private void executeVictory() {
         assert enemy.getHealth() == 0 : "Victory requires the enemy to have no health";
         assert player.getHealth() > 0 : "The player must be alive on victory";
@@ -235,7 +251,9 @@ public class CombatEncounter extends Encounter {
                 : "Victory must finalize the enemy and encounter state";
     }
 
-    /** Marks the player as defeated and completes the encounter as a loss. */
+    /**
+     * Marks the player as defeated and completes the encounter as a loss.
+     */
     private void executeDefeat() {
         assert player.getHealth() == 0 : "Defeat requires the player to have no health";
         assert pendingSkill == null : "Defeat must follow a resolved attack";

@@ -4,14 +4,20 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 
-/** Creates predefined enemies with their health and skill loadouts configured. */
+/**
+ * Creates predefined enemies with their health and skill loadouts configured.
+ */
 public class EnemyFactory {
-    /** Enemy types available when a scenario randomly chooses its opponent. */
+    /**
+     * Enemy types available when a scenario randomly chooses its opponent.
+     */
     private static final String[] ENEMY_TYPES = {
         "rogue_ai", "malware_bot", "firewall_golem", "cache_goblin",
         "phantom_packet", "cipher_serpent", "trojan_knight", "null_dragon"
     };
-    /** Health progression for the five regular scenarios, independent of enemy type. */
+    /**
+     * Health progression for the five regular scenarios, independent of enemy type.
+     */
     private static final int[] SCENARIO_HEALTH = {30, 35, 50, 60, 70};
 
     /**

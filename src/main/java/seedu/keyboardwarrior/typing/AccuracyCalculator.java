@@ -4,6 +4,9 @@ package seedu.keyboardwarrior.typing;
  * Calculates character accuracy without counting later characters as wrong after one insertion or deletion.
  */
 final class AccuracyCalculator {
+    /**
+     * Prevents instantiation of this utility class.
+     */
     private AccuracyCalculator() {
     }
 
@@ -11,6 +14,10 @@ final class AccuracyCalculator {
      * Returns accuracy from the minimum number of character edits between normalized texts.
      * Unicode code points are compared so a supplementary character counts as one edit.
      * The evaluator guarantees a nonempty expected text.
+     *
+     * @param expectedText normalized, nonempty target text
+     * @param typedText normalized submission, which may be empty
+     * @return calculated accuracy percentage
      */
     static double calculate(String expectedText, String typedText) {
         int[] expectedCharacters = expectedText.codePoints().toArray();
@@ -22,7 +29,13 @@ final class AccuracyCalculator {
         return 100.0 * (1.0 - distance / (double) comparisonCount);
     }
 
-    /** Computes Levenshtein distance using two rows rather than a full character-by-character table. */
+    /**
+     * Computes Levenshtein distance using two rows rather than a full character-by-character table.
+     *
+     * @param first first sequence of Unicode code points
+     * @param second second sequence of Unicode code points
+     * @return minimum number of insertions, deletions and substitutions
+     */
     private static int editDistance(int[] first, int[] second) {
         // Keep the shorter passage in the columns to bound the working memory.
         if (first.length < second.length) {

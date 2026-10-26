@@ -10,7 +10,9 @@ import seedu.keyboardwarrior.ui.StateUi;
  * it.
  */
 public class StateMachine {
-    /** Diagnostic state changes; FINE messages are hidden by default. */
+    /**
+     * Diagnostic state changes; FINE messages are hidden by default.
+     */
     private static final Logger LOGGER = Logger.getLogger(StateMachine.class.getName());
     private State currentState;
     private boolean isRunning = true;
@@ -89,7 +91,9 @@ public class StateMachine {
         }
     }
 
-    /** Rejects lifecycle operations before startup or after shutdown. */
+    /**
+     * Rejects lifecycle operations before startup or after shutdown.
+     */
     private void requireActiveState() {
         if (currentState == null || !isRunning) {
             throw new IllegalStateException("State machine must be started and running.");
