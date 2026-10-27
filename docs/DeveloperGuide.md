@@ -370,6 +370,86 @@ accidental double attacks. Existing `FINE` logging records combat events without
 | Length-based deadline with a minimum | Makes longer passages achievable at the balance target | One fixed deadline per skill can demand very different WPM from randomly selected passages |
 | Deadline as metadata | Capture still ends the turn, without a second score reduction | An extra late multiplier obscures the direct relationship between text, speed and damage |
 
+### Combat model and encounter lifecycle
+
+The combat package defines mutable participants and immutable skill definitions. `CombatEncounter`,
+`Encounter` and `EncounterOutcome` provide the combat lifecycle; no other encounter type participates
+in the gameplay flow described here.
+
+| Class | Responsibility |
+| --- | --- |
+| `combat.Entity` | Store a participant's display name, nonnegative HP, defeated flag and active skills |
+| `combat.Player` | Create the player with the five standard skills in display order |
+| `combat.Enemy` | Represent an opponent whose loadout is supplied by a factory |
+| `combat.Skill` | Store a skill's display name, nonnegative base damage and typing difficulty |
+| `combat.SkillRegistry` | Own the shared skill definitions and resolve stable skill identifiers |
+| `combat.EnemyFactory` | Build registered enemies, scenario-scaled opponents and both boss phases |
+| `combat.SkillResolver` | Calculate typed player damage or use base damage for automated enemy attacks, then clamp HP at zero |
+| `encounter.Encounter` | Define `start()`, display text, completion state and guarded outcome access |
+| `encounter.EncounterOutcome` | Store the final victory flag; it defaults to `false` until completion |
+| `encounter.CombatEncounter` | Enforce turn order, generate player challenges, rotate enemy attacks and finalize victory or defeat |
+
+`Entity` rejects null or blank names and negative HP. Skills cannot be null, and `Skill` similarly
+rejects blank names, negative base damage and null typing difficulties. The active-skill collection
+is ordered: the player receives Ping, Brute Force, Buffer Overflow, SIGKILL and Encryption. Registry
+lookups use the lowercase identifiers below and reject an unknown identifier.
+
+| Identifier | Display name | Base damage | Typing difficulty |
+| --- | --- | --- | --- |
+| `ping` | Ping | 10 | Easy |
+| `brute_force` | Brute Force | 20 | Medium |
+| `buffer_overflow` | Buffer Overflow | 40 | Hard |
+| `sigkill` | SIGKILL | 80 | Ultimate |
+| `encryption` | Encryption | 80 | Ultimate |
+
+Base damage is used when `SkillResolver.execute(...)` receives a null `TypingResult`, which is the
+automated enemy-turn path. A player turn supplies a result and instead uses the WPM/accuracy formula
+described in the Typing evaluation and damage section. Consequently, selecting a higher-base-damage player skill does not
+directly increase player damage; it selects a different typing challenge.
+
+`EnemyFactory.createEnemy(type)` provides the registered identity and attack rotation. Its default HP
+is useful for direct construction, while `createScenarioEnemy(...)` and
+`createRandomEnemy(random, scenarioNumber)` replace it with the current scenario's 30/35/50/60/70 HP.
+Enemy identifiers are normalized with `Locale.ROOT`, keeping lookup independent of the host locale.
+
+| Type identifier | Display name | Default HP | Repeating attack rotation |
+| --- | --- | ---: | --- |
+| `rogue_ai` | Script Kiddie | 80 | Ping, Brute Force, Buffer Overflow |
+| `malware_bot` | Malware Bot | 120 | Ping, Brute Force |
+| `firewall_golem` | Firewall Golem | 90 | Ping, Buffer Overflow |
+| `cache_goblin` | Cache Goblin | 80 | Ping, Brute Force |
+| `phantom_packet` | Phantom Packet | 90 | Ping, Buffer Overflow |
+| `cipher_serpent` | Cipher Serpent | 100 | Brute Force, Buffer Overflow |
+| `trojan_knight` | Trojan Knight | 110 | Ping, Brute Force |
+| `null_dragon` | Null Dragon | 120 | Brute Force, Buffer Overflow |
+
+Boss creation is separate: phase 1 has 50 HP and repeatedly uses Ping for 10 damage, while phase 2
+has 70 HP and repeatedly uses Brute Force for 20 damage. `getTypeId(...)` converts configured regular
+enemies back to their stable identifiers and maps either boss phase to `kernel_overlord` for saving.
+
+A `CombatEncounter` can run synchronously through `start()`, or the state machine can use its split
+API so countdown updates remain nonblocking:
+
+1. `begin()` announces combat and opens the first player turn. `begin(savedIndex)` restores the next
+   enemy attack without taking an extra turn.
+2. `preparePlayerTurn(skill)` verifies that combat is active and the player owns the skill, generates
+   one challenge, and records exactly one pending skill.
+3. `submitTypingResult(result)` resolves that skill. A lethal player attack completes victory before
+   retaliation; otherwise the enemy uses its next base-damage skill and advances its index modulo the
+   loadout size.
+4. A lethal enemy attack completes defeat. If both participants remain alive, the encounter displays
+   the next player turn.
+
+Only one result can resolve each prepared turn. Calls made before `begin()`, after completion or while
+another skill is pending fail with `IllegalStateException`. `Encounter.getEncounterOutcome()` is also
+unavailable before completion. On completion, combat marks the defeated entity, sets the outcome and
+sets `isCompleted`; gameplay advances only after reading a completed victorious outcome.
+
+`CombatEncounter.snapshot()` is deliberately narrower than the encounter itself. Between stable
+turns it returns the enemy type, remaining HP and next attack index. It rejects snapshots before
+combat starts, while a typing result is pending or after combat completes, preventing a save from
+representing a partially resolved turn.
+
 ### Scenario progression and two-phase final boss
 
 #### Run structure and ownership

@@ -95,18 +95,25 @@ Starting health is multiplied once at the start of a run; health is not restored
 Enemy health and attacks are unchanged. Game difficulty does not change the passages selected by skills
 or your recorded WPM and accuracy.
 
-## Starting a seeded run
+## Seeds and repeatable runs
 
-After `start`, enter a number such as `42`, text such as `practice`, or a blank line for a new random
-seed. Leading and trailing spaces are ignored. A signed whole number within Java's `long` range is
-used directly; other nonblank text is converted to a numeric seed. Text seeds are case-sensitive.
-The game displays the numeric seed before the first scenario, so you can record it and enter it
-again in a later run. Type `exit` at this prompt to quit.
+A seed controls the run's random enemy and passage choices. After entering `start`, you can enter:
 
-The seed controls random enemy and passage selection, including Encryption's symbols. To repeat
-the sequence, use the same game version, difficulty, skill choices and number of attacks per
-encounter. A seed does not fix your typing results: your submitted text and elapsed time still
-determine damage, so different performance can change how the run progresses.
+* A signed 64-bit whole number, such as `42` or `-19`. The game uses that exact number.
+* Any nonblank text, such as `practice-run`. The same text is consistently converted to the same
+  numeric seed.
+* An empty line. The game generates and displays a random numeric seed.
+
+Reusing a seed reproduces the same choices when you make the same decisions in the same order. Enemy
+selection and prompt selection share one random sequence. Choosing different skills, especially
+Encryption, consumes that sequence differently and can change later enemies or passages. A seed is
+intended for repeatable gameplay and testing, not for security.
+
+The game also remembers where it is in that sequence whenever it autosaves. Continuing a current
+save preserves future enemy and passage choices as well as the rule that the same passage difficulty
+does not immediately repeat its previous passage. You do not need to enter the original seed again.
+Older saves created before random-state saving was added can still load, but their future random
+choices start from a new random sequence.
 
 ## Saving and continuing a run
 
