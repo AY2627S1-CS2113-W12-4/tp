@@ -88,6 +88,9 @@ Records shows the latest ten typing attempts, oldest first. Leaderboard shows on
 attempt, even after that attempt leaves the ten-entry history. Both contain WPM and character
 accuracy rather than combat damage, player names or whole-run scores. Evaluated partial and empty
 attempts are eligible too; the first zero-score attempt creates a high score if none exists.
+`SavedRecord` stores no difficulty, seed, timestamp or player identifier, so attempts from all modes
+and runs using the same storage path share one history and one leaderboard. Records row numbers
+are computed from the displayed list and are not persisted identifiers.
 
 | Class | Responsibility |
 | --- | --- |
@@ -162,6 +165,9 @@ if there is also no history, the leaderboard shows its empty message. Loaded WPM
 nonnegative, and accuracy must be finite and within 0-100. Each record needs exactly two fields, and
 the high-score file must contain exactly one line. Malformed loaded data and unreadable files produce
 `IOException`; an invalid high-score file is not silently overwritten or replaced from history.
+`SavedRecord` itself has no validating constructor. `SaveStore.load()` validates the latest ten
+history lines it returns, while `LeaderboardStore` validates loaded scores and candidates passed to
+`saveIfHigher(...)`. Earlier lines in an oversized history file are ignored by `load()`.
 Records reports `Could not load typing history: ...`; Leaderboard reports `Could not load leaderboard: ...`.
 
 #### Design choices and alternatives
