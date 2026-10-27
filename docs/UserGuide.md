@@ -5,8 +5,7 @@
 Keyboard Warrior is a terminal typing combat game. Choose a skill, type its passage and deal
 damage based on your WPM and character accuracy. Survive five regular scenarios and both phases
 of the final Kernel Overlord boss to win. Your starting HP depends on the selected game difficulty and carries
-between all encounters;
-there is no healing during a run.
+between all encounters; there is no healing during a run.
 
 ## Quick Start
 
@@ -56,7 +55,8 @@ combat turn continues.
 
 At the main menu, enter `6` or `leaderboard` to view your single all-time highest-scoring attempt.
 The display shows its WPM and accuracy.
-The highest WPM wins, with higher accuracy breaking WPM ties. Exact ties still produce only one entry.
+The highest WPM wins, with higher accuracy breaking WPM ties. There is no minimum accuracy requirement.
+Exact ties still produce only one entry.
 The high score is saved separately in `data/keyboardwarrior.txt.high-score` and survives restarting
 the game and removal of older attempts from the ten-entry history. Only a better attempt replaces it.
 On first use, existing typing history supplies the initial best score; attempts already discarded
@@ -95,12 +95,26 @@ Starting health is multiplied once at the start of a run; health is not restored
 Enemy health and attacks are unchanged. Game difficulty does not change the passages selected by skills
 or your recorded WPM and accuracy.
 
+## Starting a seeded run
+
+After `start`, enter a number such as `42`, text such as `practice`, or a blank line for a new random
+seed. Leading and trailing spaces are ignored. A signed whole number within Java's `long` range is
+used directly; other nonblank text is converted to a numeric seed. Text seeds are case-sensitive.
+The game displays the numeric seed before the first scenario, so you can record it and enter it
+again in a later run. Type `exit` at this prompt to quit.
+
+The seed controls random enemy and passage selection, including Encryption's symbols. To repeat
+the sequence, use the same game version, difficulty, skill choices and number of attacks per
+encounter. A seed does not fix your typing results: your submitted text and elapsed time still
+determine damage, so different performance can change how the run progresses.
+
 ## Saving and continuing a run
 
 The game uses one save slot at `data/game-save.properties`, relative to the launch folder.
 It saves automatically at the start of every encounter and after the player attack and any enemy
 retaliation finish. The save contains your remaining HP, difficulty, scenario or boss phase,
-enemy identity and remaining HP, and the enemy's next attack in its rotation.
+enemy identity and remaining HP, and the enemy's next attack in its rotation. It also preserves the
+random sequence position and previous passage selections.
 
 To leave and return later:
 
@@ -113,11 +127,19 @@ no save command is needed.
 
 Quitting or closing the terminal during typing retains the previous stable turn. The unfinished
 answer and timer are not saved, and you can select a skill again after continuing. Future random
-enemies and passages are selected afresh; previous passage selection history is not restored.
+choices resume from that saved point, including the passage history used to avoid immediate
+repeats. With the same skill choices and combat progression, future passages and enemies match
+an uninterrupted run. Older saves without this random-selection information still load their combat progress,
+but begin a fresh random sequence.
 
 Start begins a new run and replaces the previous slot after encounter setup succeeds. Winning or
-losing deletes the active run save, while your typing history remains available through Records.
+losing deletes the active run save, while your typing history and high score remain available
+through Records and Leaderboard.
 Choosing a different difficulty in the menu does not alter a saved run; Continue restores its original mode.
+
+All three data files are relative to the folder where you launch the application. Launching from a
+different folder can show different records, leaderboard and saved progress. Keep the `data` folder
+with your game folder when moving your saved data.
 
 If no save exists, Continue displays a message and keeps you in the menu. Invalid, unsupported or
 unreadable saves display an error without starting a run. Saving failures are reported but combat
