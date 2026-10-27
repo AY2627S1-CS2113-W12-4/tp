@@ -39,8 +39,10 @@ java -ea -jar KeyboardWarrior.jar
 
 ## Saved typing history
 
-At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
-first. Each entry shows WPM and accuracy. The full main menu appears again after the records, where you
+At the main menu, type `2` or `records` and press Enter to view the latest ten typing attempts, oldest
+first. Each entry represents one submitted passage, not a whole game, and shows WPM and accuracy.
+The `#` column is its position in the displayed history, not a permanent record ID or score rank.
+The full main menu appears again after the records, where you
 can enter `start`, `records`, `exit`, `choose difficulty`, `continue` or `leaderboard`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
@@ -48,21 +50,26 @@ the live timer expires in a supported terminal. History survives restarting the 
 `data/keyboardwarrior.txt`, relative to the folder from which the game is launched.
 
 If there is no history yet, the menu displays an empty-history message. If the file cannot be read
-or contains an invalid record, it displays an error. A saving error is reported while the current
-combat turn continues.
+or contains an invalid record, it displays an error. The full menu also reappears after an empty
+message or loading error, keeping your selected difficulty. A saving error is reported while the
+current combat turn continues; that attempt may not appear in Records.
 
 ## Leaderboard
 
 At the main menu, enter `6` or `leaderboard` to view your single all-time highest-scoring attempt.
-The display shows its WPM and accuracy.
+The display shows the WPM and accuracy of one typing attempt, not total combat damage or a whole-game score.
+This is a local leaderboard shared by attempts across all difficulty modes and seeds in the same game folder.
 The highest WPM wins, with higher accuracy breaking WPM ties. There is no minimum accuracy requirement.
-Exact ties still produce only one entry.
+Exact ties leave the saved best unchanged. Values are displayed to two decimal places, but the
+comparison uses their full precision, so two attempts that look equal may still differ.
 The high score is saved separately in `data/keyboardwarrior.txt.high-score` and survives restarting
 the game and removal of older attempts from the ten-entry history. Only a better attempt replaces it.
 On first use, existing typing history supplies the initial best score; attempts already discarded
 before this feature was added cannot be recovered.
 The full main menu appears again after the leaderboard. The chronological Records view remains unchanged.
 If no attempts are saved, an empty message appears. Unreadable or invalid high-score data displays an error.
+Initialization can also fail if existing history cannot be read or the initial high score cannot be saved.
+The full menu reappears after either an empty message or an error, keeping your selected difficulty.
 
 ## Main menu and game difficulty
 
