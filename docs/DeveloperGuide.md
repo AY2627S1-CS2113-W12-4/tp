@@ -4,9 +4,7 @@
 
 The project uses the [CS2113 tP starter template](https://github.com/NUS-CS2113-AY2627-S1/tp),
 JLine for interactive terminal input and JUnit Jupiter for tests. Typing evaluation uses the Java
-standard library. The enhancement sections below follow the
-[Week 10 design documentation guidance](https://nus-cs2113-ay2627-s1.github.io/website/schedule/week10/project.html):
-explain implementation, rationale and alternatives, with UML placed beside the relevant explanation.
+standard library.
 
 ## Design and implementation
 
@@ -240,7 +238,7 @@ encounter, valid progression and no pending typing challenge. Combat snapshots c
 and attack rotation. Restoration asserts that health, opponent and next attack match the saved data.
 File validation still uses exceptions because malformed saves must be rejected even without `-ea`.
 
-### Enhancement 8.1: Character feedback and accuracy-based damage
+### Typing evaluation and damage
 
 #### Responsibilities and data flow
 
@@ -372,7 +370,7 @@ accidental double attacks. Existing `FINE` logging records combat events without
 | Length-based deadline with a minimum | Makes longer passages achievable at the balance target | One fixed deadline per skill can demand very different WPM from randomly selected passages |
 | Deadline as metadata | Capture still ends the turn, without a second score reduction | An extra late multiplier obscures the direct relationship between text, speed and damage |
 
-### Enhancement 8.2: Scenario progression and two-phase final boss
+### Scenario progression and two-phase final boss
 
 #### Run structure and ownership
 
@@ -499,13 +497,13 @@ The target users are players who want English typing practice through short comb
 Keyboard Warrior makes speed and accuracy visible through damage and provides a complete run with
 regular progression and a final boss.
 
-| Enhancement | As a player, I want to ... | So that ... |
+| Feature | As a player, I want to ... | So that ... |
 | --- | --- | --- |
-| 8.1 | receive character accuracy and WPM feedback | one local typo has a proportional accuracy cost |
-| 8.1 | deal damage from speed and accuracy across all skills | I can understand how my typing affects combat |
-| 8.1 | retain my current input when time expires | unfinished typing still contributes to my attempt |
-| 8.2 | face progressively tougher regular scenarios | the run builds up difficulty predictably |
-| 8.2 | fight a final boss with two phases | the run has a clear final challenge before victory |
+| Typing feedback | receive character accuracy and WPM feedback | one local typo has a proportional accuracy cost |
+| Typing damage | deal damage from speed and accuracy across all skills | I can understand how my typing affects combat |
+| Timed input | retain my current input when time expires | unfinished typing still contributes to my attempt |
+| Scenario progression | face progressively tougher regular scenarios | the run builds up difficulty predictably |
+| Final boss | fight a final boss with two phases | the run has a clear final challenge before victory |
 | Difficulty | choose Easy, Normal, Hard or Coder | health, damage and typing allowances suit my ability |
 | Seeds | enter a seed when starting a run | I can repeat random choices with the same gameplay sequence |
 | Continue | resume the last stable turn after restarting | remaining health, progression and future random choices are retained |
@@ -655,14 +653,13 @@ damage unchanged. Setting required seconds to `6.0` is on time because the compa
 Zero, negative, NaN and infinite time values should throw `IllegalArgumentException`; null text should
 throw `NullPointerException`. Exit JShell with `/exit`.
 
-## Maintaining diagrams and iteration traceability
+## Maintaining the documentation
 
 The diagrams are ordinary SVG images so GitHub and GitHub Pages display them without Mermaid support
 or a server-side renderer. Each image has a neighboring `.puml` source for editing with PlantUML.
 The checked-in SVGs were laid out from those sources; keep each source and rendered image aligned
 when changing the design. [Diagram maintenance notes](diagrams/README.md) describe their scope.
 
-The Week 10 course workflow also asks the team to record the iteration plan in its issue tracker,
-assign work and verify RepoSense attribution. Those external checks require the team's actual issue
-links, assignments and dashboard evidence. This document records enhancement design, alternatives,
-defensive contracts and tests; it does not claim tracker updates or invent ownership annotations.
+When gameplay or storage behavior changes, update the corresponding guide sections, examples and
+testing instructions. Regenerate the PDF copies after updating the Markdown guides so the online
+and printable versions describe the same product.
