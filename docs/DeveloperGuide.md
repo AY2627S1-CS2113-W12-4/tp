@@ -31,6 +31,18 @@ clock and challenge factory. The same player and prompt selection history surviv
 phase transitions. `exit` stops the application from the menu, seed prompt, skill selection or an
 active typing challenge.
 
+`run-game.bat` and `run-game.sh` first invoke Gradle's `prepareTerminalRun` task. That task depends on
+`classes`, writes the runtime classpath and the build JVM's Java home, and does not create a JAR.
+The launcher starts Java in the foreground with `-ea` and native access enabled. Direct terminal
+input avoids Gradle `run` and IDE Run console stream redirection, which can prevent JLine from seeing
+unsubmitted keystrokes. On Windows, the entry point selects the native Windows terminal type even
+when the launcher supplies `TERM=dumb`.
+
+These scripts are conveniences for a source checkout. The release is one executable fat JAR for
+Windows, macOS and Linux and must start with Java 25 using `java -jar KeyboardWarrior.jar` without
+Gradle or repository scripts. Its manifest includes `Enable-Native-Access: ALL-UNNAMED` for JLine's
+bundled native support; this removes Java 25's native-access warning but does not create a terminal.
+
 ### Game difficulty selection
 
 `GameDifficulty` is separate from `TypingChallenge.Difficulty`: it describes run modifiers rather
@@ -49,17 +61,26 @@ the countdown multiplier after calculating the normal base deadline and rounds u
 a base of 60 seconds, becoming 240, 120, 60 or 48 seconds. `SkillResolver` multiplies typing damage
 before rounding down once. Automated enemy attacks keep their original base damage.
 
-`run-game.bat` and `run-game.sh` first invoke Gradle's `prepareTerminalRun` task. That task depends on
-`classes`, writes the runtime classpath and the build JVM's Java home, and does not create a JAR.
-The launcher starts Java in the foreground with `-ea` and native access enabled. Direct terminal
-input avoids Gradle `run` and IDE Run console stream redirection, which can prevent JLine from seeing
-unsubmitted keystrokes. On Windows, the entry point selects the native Windows terminal type even
-when the launcher supplies `TERM=dumb`.
+### Seeds and reproducible choices
 
-These scripts are conveniences for a source checkout. The release is one executable fat JAR for
-Windows, macOS and Linux and must start with Java 25 using `java -jar KeyboardWarrior.jar` without
-Gradle or repository scripts. Its manifest includes `Enable-Native-Access: ALL-UNNAMED` for JLine's
-bundled native support; this removes Java 25's native-access warning but does not create a terminal.
+After Start, `MainMenuState` treats the next line as a seed rather than a menu choice.
+`SeedGenerator.parseSeed(...)` trims a nonblank line, parses it as a signed Java `long`, or uses
+the trimmed string's `hashCode()` if numeric parsing fails. Blank input generates a fresh random
+`long`. Text seeds are case-sensitive, and an out-of-range integer is handled as text. The resolved
+numeric seed is displayed. At this prompt `exit` quits; `3` is a seed, not the menu's Exit shortcut.
+
+The menu constructs one `RunRandom` for the run. `GamePlayState` shares it between `EnemyFactory`
+and `PromptBank`, including Encryption generation. `RunRandom` extends `Random` and implements the
+same 48-bit linear congruential sequence, including Java's seed scrambling. Its `snapshot()` records
+the current internal position; `restore(...)` validates that position and resumes without replaying
+earlier draws. Gameplay uses `nextInt(...)` for its random choices.
+
+`PromptBank` also tracks the last selected passage index for each `TypingChallenge.Difficulty`,
+excluding that passage from the next selection at that level. Switching skills does not clear the
+other levels' history. The bank and generator are shared across all scenarios and boss phases.
+Repeating a seed reproduces random choices for the same sequence of challenge requests and encounter
+transitions in the same product version. A different number of attempts or different skills can consume
+different draws; seeds do not fix typing speed, accuracy or combat outcomes.
 
 ### Records and all-time leaderboard
 
@@ -156,10 +177,15 @@ Records reports `Could not load typing history: ...`; Leaderboard reports `Could
 ### Active run saves
 
 `GameSave` is an immutable record of a stable player turn: format version, game difficulty, current
-player HP, zero-based scenario index, boss phase, enemy type identifier, current enemy HP and next
-enemy skill index. Its constructor validates version, progression combinations, health bounds and
-attack rotation against `EnemyFactory`. Regular encounters use scenario indices 0-4 with boss phase 0;
+player HP, zero-based scenario index, boss phase, enemy type identifier, current enemy HP, next
+enemy skill index and an optional `RandomSnapshot`. Its constructor validates version, progression
+combinations, health bounds and attack rotation against `EnemyFactory`.
+Regular encounters use scenario indices 0-4 with boss phase 0;
 the boss uses index 5 and phase 1 or 2. Dead participants cannot be saved.
+
+`RandomSnapshot` holds the generator's internal position and an immutable copy of per-difficulty
+previous passage indices. It validates the position through `RunRandom.restore(...)` and the indices
+against a `PromptBank`. The original seed alone would restart the sequence rather than resume it.
 
 `CombatEncounter.snapshot()` rejects calls before combat starts, during a pending typing attack,
 or after completion. `begin(savedAttackIndex)` restores rotation without taking a turn.
@@ -167,17 +193,38 @@ or after completion. `begin(savedAttackIndex)` restores rotation without taking 
 with its standard skills instead of rerolling it. `GameSave.restoreEnemy()` applies the saved HP.
 
 `GameSaveStore` uses UTF-8 Java properties at `data/game-save.properties`, independently of typing
-history. For alternate history locations, run storage shares `SaveStore.getDirectory()`, allowing
-tests to use `@TempDir` throughout. Writes go to a temporary file in that directory, then replace
-the slot with an atomic move where supported, falling back to a regular replacement move otherwise.
+history and the leaderboard. For alternate history locations, run storage shares `SaveStore.getDirectory()`,
+allowing tests to use `@TempDir` throughout. `GameSaveStore` extends `FileStore` and uses its
+temporary-file replacement method, with an atomic move where supported and a regular replacement
+move otherwise.
 Invalid/missing fields and unsupported versions become `IOException`; an absent file means no run.
 Runtime saves and temporary files are excluded from Git.
 
+| Properties | Stored values |
+| --- | --- |
+| `version`, `difficulty`, `playerHealth` | Format version 1, game difficulty enum name and remaining player HP |
+| `scenarioIndex`, `bossPhase` | Regular scenario 0-4 with phase 0, or scenario 5 with boss phase 1-2 |
+| `enemyType`, `enemyHealth`, `nextEnemySkillIndex` | Stable opponent identifier, remaining HP and next attack rotation index |
+| `randomState` | Unsigned 48-bit generator position for the next random draw |
+| `previousPrompt.<DIFFICULTY>` | Last selected passage index for each passage difficulty already used |
+
+The random fields are optional for compatibility with earlier version-1 saves. If neither
+`randomState` nor any `previousPrompt.*` key exists, loading returns a legacy save without a
+`RandomSnapshot`. A history key without `randomState`, an invalid difficulty/index or an invalid
+generator position is rejected. A valid generator position with no history keys is allowed, such
+as a save taken before the first passage is selected.
+
 `GamePlayState.enter()` separates fresh-run initialization from restoration. The latter creates
 fresh runtime objects, directly restores player HP and progression, then begins the restored
-encounter at its saved rotation. It does not reapply the health multiplier or restore an active
-timer. Clock state, terminal objects, random generator state and passage selection history are not
-serialized. Resuming an interrupted challenge returns to its previous skill-selection point.
+encounter at its saved rotation. It does not reapply the health multiplier or take an enemy turn.
+For current saves, construction restores `RunRandom` and `PromptBank` history before selecting any
+new passage or enemy. Legacy saves restore combat state but start with fresh randomness and empty
+passage history, so their original future choices cannot be recovered.
+
+Clock state, terminal objects and unfinished typed text are not serialized. Resuming an interrupted
+challenge returns to its previous skill-selection point and restores that point's random state;
+choosing the same skill again reproduces the interrupted passage for a current save. Its timer
+starts again when that passage is shown.
 
 Autosaves occur after encounter setup (including scenario/boss transitions) and after a surviving
 enemy's response. No manual save command is exposed. Continue loads before transitioning states, so invalid saves
@@ -185,7 +232,7 @@ leave the menu usable. Start replaces the previous slot once the initial encount
 Victory and defeat remove it; Exit retains it. IO errors are reported while gameplay remains usable.
 
 Regression tests cover reopening stores, all modes and boss phases, corrupt values, temporary-file
-cleanup, exact enemy rotation after resume, interrupted attempts, new-run replacement,
+cleanup, exact random choices and enemy rotation after resume, interrupted attempts, new-run replacement,
 progression, deletion after completion and combat continuing when storage fails.
 
 Assertions check the internal save/restore boundaries: autosaves require a living player, an active
@@ -371,7 +418,9 @@ encounter and advances only on victory. It does not infer success merely because
 
 The following sequence covers the boundary after a lethal attack against boss phase 1. The next
 encounter is created only after the first one has completed. Activation boxes show execution;
-dashed arrows show returns. The omitted health check is explained in the note.
+dashed arrows show returns. The omitted health check is explained in the note. For readability,
+the diagram omits the selected `difficulty` argument passed to the new `CombatEncounter`;
+the implementation passes it after the shared challenge factory.
 
 ![Sequence diagram for moving from boss phase 1 to phase 2](diagrams/boss-phase-transition.svg)
 
@@ -457,6 +506,9 @@ regular progression and a final boss.
 | 8.1 | retain my current input when time expires | unfinished typing still contributes to my attempt |
 | 8.2 | face progressively tougher regular scenarios | the run builds up difficulty predictably |
 | 8.2 | fight a final boss with two phases | the run has a clear final challenge before victory |
+| Difficulty | choose Easy, Normal, Hard or Coder | health, damage and typing allowances suit my ability |
+| Seeds | enter a seed when starting a run | I can repeat random choices with the same gameplay sequence |
+| Continue | resume the last stable turn after restarting | remaining health, progression and future random choices are retained |
 | Records | review my latest ten attempts in chronological order | I can compare recent typing performance |
 | Leaderboard | retain my best attempt across runs and restarts | I have a lasting score to improve on |
 
@@ -518,6 +570,14 @@ twelve slower attempts through reopened stores, and verifies that a faster attem
 `highScore_existingHistory_preservesBestBeforeFirstRotation` checks migration from a full legacy history
 and verifies that the persisted best remains readable even when the history file is subsequently absent.
 
+Seed and save regressions cover the continuation contract:
+
+* `seed.RunRandomTest` compares draws with Java `Random`, including rejection sampling, and checks restoration without replaying earlier draws.
+* `storage.GameSaveStoreTest` checks random-state and passage-history round trips, legacy saves and malformed fields, as well as combat fields and safe replacement.
+* `save_resumeAtEveryScenarioAndBossPhase_matchesUninterruptedSeededRun` compares resumed and uninterrupted choices at every encounter boundary, including Encryption passages.
+* `save_resume_restoresHealthDamageAndNextEnemyAttackWithoutReplayingATurn` checks a quit during typing retains the stable turn and that resuming preserves HP and the next enemy attack.
+* `handleInput_sameSeed_repeatsRunAndRetainsHistory` checks replay through the menu without clearing typing history.
+
 The progression regressions in `GamePlayStateTest` include:
 
 * `normalPerformance_eachRepeatedEnemyType_survivesFiveScenariosAndBothBossPhases` checks the balance target across each regular enemy type.
@@ -535,7 +595,7 @@ The optional `sh ./run-game.sh` or `.\run-game.bat` launchers are alternatives f
 | Standalone JAR launch | Run `java -jar KeyboardWarrior.jar` with only the JAR and Java 25 available | Menu appears without requiring Gradle or a source launcher |
 | Redirected launch | Launch the JAR with piped `exit` input, then with empty input | Plain-text menu appears and both runs exit cleanly without terminal setup warnings |
 | Plain-mode late input | In an IDE Run console, start a challenge, wait past its displayed allowance and submit a partial passage with Enter | Passage remains visible while waiting; submitted text is scored using actual elapsed time; no empty turn is submitted before Enter |
-| Countdown and skill allowance | Start a run; choose each skill across several passages | Timer stays above the passage, updates while typing and uses the displayed length-based allowance |
+| Countdown and skill allowance | Start a run; choose each skill across several passages | Timer stays above the passage and updates while typing; ordinary skills use length-based allowances with minimums, while Encryption uses a fixed 60-second base, all scaled by game difficulty |
 | Early submission | Submit a partly correct passage before expiry | Four metrics and damage appear; no wrong-word list; surviving enemy retaliates once |
 | Timeout capture | Type part of a passage, correct a character, then let time expire without Enter | Final current input is scored; nonempty text has nonzero WPM; no separate late penalty; next input is clear |
 | Empty timeout | Enter no text before expiry | Zero WPM, accuracy and damage; a surviving enemy takes its turn |
@@ -545,14 +605,18 @@ The optional `sh ./run-game.sh` or `.\run-game.bat` launchers are alternatives f
 | Phase-boundary defeat | Reach phase 2 with low HP, then make a nonlethal or empty attempt | Boss response can defeat player; no later phase or victory is announced |
 | Restart and exit | Start after victory/defeat; try `exit` during a prompt | New run begins at scenario 1 with the selected mode's starting HP; exit ends the game cleanly |
 | Game difficulty | Choose each mode by number or name, then Start | HP is 400/200/100/80; Encryption countdown is 240/120/60/48 seconds; selection persists after a run |
+| Seed replay | Start with a chosen numeric or text seed; record enemies and passages, then restart with the same seed, difficulty and sequence of skills and turns | The same random choices recur; a blank seed instead generates and displays a fresh seed |
+| Continue a current save | Complete a turn, note both HP values, exit, restart from the same folder and enter `5` or `continue` | Saved difficulty, encounter, HP, attack rotation and future random sequence are restored without an extra enemy turn |
+| Interrupted passage | Select a skill, type without submitting, exit, then Continue and choose the same skill | Previous stable turn is restored with the same passage and a fresh timer; unfinished input is not restored |
+| Run completion and save slot | Win or lose, then choose Continue | No active run remains; Records and Leaderboard remain available |
 | History and restart | Complete an attempt, return to the menu, enter `2` or `records`, then restart from the same folder | Saved WPM and accuracy remain visible; at most the latest ten attempts appear, oldest first; the full menu follows the records |
 | Persistent leaderboard | Record a best attempt, then at least eleven lower-WPM attempts; restart from the same folder and enter `6` or `leaderboard` | Exactly one best attempt is shown even though it has left Records; the full menu follows the result |
 | Improved best | Beat the stored best WPM, return to the menu and view Leaderboard; restart and view it again | The higher score replaces the old best and persists; exact ties and lower scores do not replace it |
 | Menu after empty results | Launch in a fresh temporary working folder, choose a nondefault difficulty, then view Records and Leaderboard | Each empty message is followed by all six menu options and the selected difficulty; Start remains available |
 | Menu after loading errors | In an isolated test folder, use malformed history for Records and malformed high-score data for Leaderboard | The appropriate loading error appears, followed by the full menu; malformed files remain unchanged |
 
-For a balance check, sustain at least 50 WPM and 95% character accuracy on each attempt. Confirm at
-least 40 damage per attack, at most two attacks per regular enemy or boss phase, and at least 10 HP
+For a balance check, select **Hard** and sustain at least 50 WPM and 95% character accuracy on each
+attempt. Confirm at least 40 damage per attack, at most two attacks per regular enemy or boss phase, and at least 10 HP
 remaining at victory. Use deterministic automated tests for the strongest regular enemy rotations;
 random manual runs demonstrate the flow but cannot establish the worst-case bound by themselves.
 
@@ -575,7 +639,8 @@ System.out.print(TypingResultFormatter.formatTypingResult(result));
 
 Expected: 34.00 WPM, 88.24% accuracy, elapsed 6.00 and required 10.00 seconds. The detailed formatter
 still identifies word 2 as expected `the`, typed `teh`. Its positional word diagnostic does not set
-the character score. The player damage formula yields 20 for this result.
+the character score. The player damage formula yields 20 for this result on Hard (multiplier 1).
+The damage column below also assumes Hard; metrics themselves are independent of game difficulty.
 
 | Typed text (same expected text, six seconds) | WPM | Character accuracy | Player damage |
 | --- | --- | --- | --- |
