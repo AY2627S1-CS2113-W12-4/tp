@@ -61,4 +61,3 @@ A complete run consists of five regular encounters followed by a two-phase final
   ([PR #25](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/25)): retained the same history store
   across menu/gameplay transitions, isolated tests from real saved records and fixed
   locale-dependent enemy lookup. Synchronized source, tests and documentation while preserving
-  the teammate's storage feature.
