@@ -1,0 +1,38 @@
+@startuml
+hide footbox
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+title Plain console: one complete line at a time
+
+participant "KeyboardWarrior" as main <<class>>
+participant "reader:BufferedReader" as reader
+participant "machine:StateMachine" as machine
+participant "current:State" as state
+
+note over main, state
+  Scope: runPlainGame(...) after initial-state setup.
+  All shown calls execute on the main thread.
+  The input-handling example retains the current state.
+end note
+loop while running
+  main -> reader : readLine()
+  reader --> main : line
+  alt line is null (EOF)
+    main -> machine : stop()
+    machine --> main
+  else complete input line
+    main -> machine : handleInput(line)
+    machine -> state : handleInput(line)
+    state --> machine
+    machine --> main
+  end
+end
+note over main, state
+  No periodic StateMachine.update() call runs here.
+  Enter delivers the typed text; evaluation uses its actual elapsed time.
+  Output and shutdown internals are omitted.
+end note
+@enduml

@@ -1,0 +1,61 @@
+@startuml
+hide footbox
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+title Live terminal: input and updates on separate threads
+
+box "Background input thread"
+participant "inputThread:\nThread" as input
+participant "reader:\nCountdownReader" as reader
+end box
+queue "inputQueue:\nBlockingQueue<String>" as queue
+box "Main thread"
+participant "KeyboardWarrior" as main <<class>>
+participant "machine:\nStateMachine" as machine
+participant "current:\nState" as state
+end box
+
+note over input, state
+  Scope: loops after terminal and initial-state setup.
+  Only the main thread changes application states.
+  Illustrated iterations retain the current state.
+end note
+
+par background reader
+  loop until interrupted or input ends
+    input -> reader : readLine(...)
+    reader --> input : line
+    input -> queue : offer(line)
+    queue --> input
+  end
+else main game loop
+  loop while running
+    loop for each queued line
+      main -> queue : poll()
+      queue --> main : input
+      main -> machine : handleInput(input)
+      machine -> state : handleInput(input)
+      state --> machine
+      machine --> main
+    end
+    main -> machine : update()
+    machine -> state : update()
+    state --> machine
+    machine --> main
+    note right of main
+      Wait 100 ms before the next iteration.
+      A stop request ends the loop
+      before its next update.
+    end note
+  end
+end
+
+note over input, queue
+  A read can block without blocking main-thread updates.
+  Reader EOF/interruption or failure enqueues "exit".
+end note
+@enduml

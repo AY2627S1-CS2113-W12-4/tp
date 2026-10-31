@@ -8,26 +8,58 @@ standard library.
 
 ## Design and implementation
 
+### Architecture overview
+
+`KeyboardWarrior` selects the input mode and drives a `StateMachine`. The active state coordinates
+UI output, typing evaluation, one combat encounter and persistence. The diagram shows dependencies
+between these responsibilities; it does not imply strict layers or MVC. Both the state machine
+and concrete states call the UI directly.
+
+![Architecture overview and component dependencies](diagrams/architecture-overview.svg)
+
+[Editable PlantUML source](diagrams/architecture-overview.puml).
+
+Typing evaluation measures performance without reading the terminal or applying damage. `combat` contains
+participants, skills and damage rules; `encounter` manages turns. `storage` persists local files,
+while `seed` supplies reproducible random choices. The following diagrams expand these boundaries
+only where their internal structure or interaction matters.
+
 ### Runtime and terminal input
 
-`KeyboardWarrior.java` selects an input mode and starts the main menu. When no native console is
-available, it selects plain input before initializing JLine. Capable interactive terminals use
-JLine and `CountdownReader` to keep the live countdown above the passage while preserving edited
-input. A JLine terminal without redraw capabilities also falls back to plain input instead of
-returning before the menu. Both input modes accept `exit` and handle end-of-input as a clean shutdown.
+With a capable terminal, JLine and `CountdownReader` preserve edited input while displaying the
+countdown. The background thread supplies complete lines through a queue; only the main thread
+dispatches commands and updates the active state. Each main-loop iteration processes queued input,
+calls `update()` and sleeps for 100 milliseconds. The sequence diagram omits prompt rendering and
+shutdown handling to make that thread boundary visible.
 
-The live input loop queues complete lines on a background reader; the main thread processes input
-and updates the state machine every 100 milliseconds. Plain mode uses a synchronous buffered line
-reader, prints the initial time allowance and passage, and handles each line on Enter without an
-automatic-expiry update tick. A line-buffered console may withhold typed characters until Enter,
-so plain mode waits for that line rather than scoring an empty input before it arrives. The clock
-still measures actual elapsed time, and a late line uses the ordinary evaluator and damage formula.
+![Live terminal input queue and main-thread state updates](diagrams/runtime-input.svg)
 
-`MainMenuState` accepts `start`, asks for a seed and enters `GamePlayState` after the seed input.
-An empty seed line chooses a random seed. The gameplay state owns the run's player, current encounter,
-clock and challenge factory. The same player and prompt selection history survive scenario and boss
-phase transitions. `exit` stops the application from the menu, seed prompt, skill selection or an
-active typing challenge.
+[Editable PlantUML source](diagrams/runtime-input.puml).
+
+If there is no native console or JLine cannot redraw it, plain mode uses the synchronous path below.
+It waits for Enter without an automatic-expiry tick, because a buffered console may not deliver
+unfinished text. The clock still measures actual elapsed time; late submitted text is evaluated
+normally. Both modes start at the main menu and stop cleanly on `exit` or end-of-input.
+
+![Plain input fallback without automatic update ticks](diagrams/plain-input.svg)
+
+[Editable PlantUML source](diagrams/plain-input.puml).
+
+### State management
+
+The state machine retains one current `State` and delegates `handleInput(...)` and `update()` to it.
+`transitState(...)` exits the old state before entering its replacement. Concrete states keep their
+own interaction rules; the menu's pending seed input is a flag, not a separate state class.
+
+![State hierarchy and active-state reference](diagrams/state-structure.svg)
+
+[Editable PlantUML source](diagrams/state-structure.puml).
+
+Start accepts a seed before entering gameplay; Choose Difficulty returns to the menu with the
+selected mode; Continue restores a saved run. Victory and defeat return to the menu. Records and
+Leaderboard display results inside the existing menu and do not trigger a state transition.
+
+### Source launchers and release startup
 
 `run-game.bat` and `run-game.sh` first invoke Gradle's `prepareTerminalRun` task. That task depends on
 `classes`, writes the runtime classpath and the build JVM's Java home, and does not create a JAR.
@@ -67,41 +99,38 @@ the trimmed string's `hashCode()` if numeric parsing fails. Blank input generate
 `long`. Text seeds are case-sensitive, and an out-of-range integer is handled as text. The resolved
 numeric seed is displayed. At this prompt `exit` quits; `3` is a seed, not the menu's Exit shortcut.
 
-The menu constructs one `RunRandom` for the run. `GamePlayState` shares it between `EnemyFactory`
-and `PromptBank`, including Encryption generation. `RunRandom` extends `Random` and implements the
-same 48-bit linear congruential sequence, including Java's seed scrambling. Its `snapshot()` records
-the current internal position; `restore(...)` validates that position and resumes without replaying
-earlier draws. Gameplay uses `nextInt(...)` for its random choices.
+One `RunRandom` supplies enemy and prompt choices, including Encryption. It follows Java `Random`'s
+48-bit sequence. `snapshot()` stores its position and `restore(...)` resumes without replaying draws.
+`PromptBank` separately remembers the previous passage at each difficulty to avoid immediate repeats.
 
-`PromptBank` also tracks the last selected passage index for each `TypingChallenge.Difficulty`,
-excluding that passage from the next selection at that level. Switching skills does not clear the
-other levels' history. The bank and generator are shared across all scenarios and boss phases.
-Repeating a seed reproduces random choices for the same sequence of challenge requests and encounter
-transitions in the same product version. A different number of attempts or different skills can consume
-different draws; seeds do not fix typing speed, accuracy or combat outcomes.
+The object diagram is an illustrative snapshot while choosing a skill, not an additional class
+structure. The gameplay state and encounter reference the same player and challenge factory; the
+bank and state share the generator. Replacing an encounter preserves these run-wide objects.
+
+![Example active-run objects and shared references](diagrams/active-run-objects.svg)
+
+[Editable PlantUML source](diagrams/active-run-objects.puml).
+
+Repeating the same seed and sequence of challenge requests reproduces choices in the same product
+version. Different skills or turn counts consume different draws; typing performance is not fixed.
 
 ### Records and all-time leaderboard
 
 #### Responsibilities and stored data
 
-Records shows the latest ten typing attempts, oldest first. Leaderboard shows one all-time best
-attempt, even after that attempt leaves the ten-entry history. Both contain WPM and character
-accuracy rather than combat damage, player names or whole-run scores. Evaluated partial and empty
-attempts are eligible too; the first zero-score attempt creates a high score if none exists.
+`SaveStore` retains the latest ten attempts, oldest first; its `LeaderboardStore` retains one best
+attempt after history rotation. Each immutable `SavedRecord` contains WPM and character accuracy,
+without a difficulty, seed, timestamp or player identifier. All runs using the same files share
+these views; row numbers are display positions. Partial and zero-score attempts are eligible.
 
-| Class | Responsibility |
-| --- | --- |
-| `state.MainMenuState` | Handle Records and Leaderboard commands, report loading errors and redisplay the main menu |
-| `state.GamePlayState` | Save each evaluated attempt before resolving its combat effects |
-| `storage.SaveStore` | Retain the latest ten records and coordinate high-score initialization and updates |
-| `storage.SaveStore.SavedRecord` | Hold one immutable pair of WPM and accuracy values |
-| `storage.LeaderboardStore` | Load the all-time best and replace it only when a candidate ranks higher |
-| `storage.FileStore` | Share absolute file locations and safe replacement through a temporary file |
-| `ui.StateUi` | Format records, the best attempt or an empty message using the shared terminal output |
+![Persistence classes, inheritance and the high-score store reference](diagrams/storage-structure.svg)
 
-`SaveStore` and `LeaderboardStore` extend `FileStore`. `SaveStore` owns a `LeaderboardStore` whose
-path is derived from the history filename, so an injected history location also isolates its high score.
-The default files are relative to the directory from which the game is launched:
+[Editable PlantUML source](diagrams/storage-structure.puml).
+
+All three stores inherit safe replacement from `FileStore`. The menu and gameplay reuse the same
+history store. Gameplay retains its run store; the menu creates one locally when Continue is chosen.
+An injected history path also determines the sibling high-score path and the run-save directory.
+Default files are relative to the launch directory:
 
 | File | Contents | Retention |
 | --- | --- | --- |
@@ -113,24 +142,22 @@ Neither file contains resumable game state; that belongs to `GameSaveStore`.
 
 #### Saving attempts and preserving the best score
 
-After evaluating an attempt, `GamePlayState` displays its typing summary and calls
-`SaveStore.save(result)` before `CombatEncounter.submitTypingResult(result)`. Saving follows this order:
+The sequence follows one evaluated attempt through history saving and combat. The nested
+`loadHighScore()` call initializes the best available history entry before rotation if an
+installation has no high-score file yet. File-format details are outside this store-level sequence.
 
-1. Call `loadHighScore()` to preserve the best existing history entry if no high-score file exists.
-2. Pass the new `SavedRecord` to `LeaderboardStore.saveIfHigher(...)`.
-3. Read the existing history, append the new attempt and write only the latest ten entries.
+![Saving typing metrics before resolving a combat turn](diagrams/history-saving.svg)
+
+[Editable PlantUML source](diagrams/history-saving.puml).
 
 `LeaderboardStore.SCORE_ORDER` compares full-precision WPM first, then accuracy. Higher WPM wins
 regardless of accuracy; higher accuracy wins when WPM is equal. Lower scores and exact ties leave
 the high-score file untouched. For example, after `60,95`, an attempt of `50,100` cannot replace it,
 `60,98` can, and `70,80` then becomes the best. The UI rounds values to two decimal places only for display.
 
-`loadHighScore()` returns `Optional<SavedRecord>`. If the high-score file is missing, it finds the
-maximum among the available history records and persists it before returning. This supports existing
-installations and happens both when viewing the leaderboard and before saving another attempt.
-Initializing before history rotation prevents the oldest record from being discarded before it can
-become the initial high score. Attempts discarded before this feature existed cannot be recovered.
-Once a valid high-score file exists, loading it does not depend on the history file.
+`loadHighScore()` returns `Optional<SavedRecord>` and initializes from available history only when
+the high-score file is absent. Attempts already discarded cannot be recovered. Once the high-score
+file exists, reading it does not depend on history.
 
 Both stores use `FileStore.writeSafely(...)`: write a complete temporary file in the destination
 directory, then replace the destination with an atomic move where supported, or a regular replacement
@@ -148,20 +175,18 @@ The gameplay state reports the `IOException` as a typing-history saving error an
 | `2` or `records` | `SaveStore.load()` returns an immutable list, passed to `StateUi.showRecords(...)` |
 | `6` or `leaderboard` | `SaveStore.loadHighScore()` selects `StateUi.showLeaderboard(SavedRecord)` or `StateUi.showEmptyLeaderboard()` through `ifPresentOrElse(...)` |
 
-After either result, empty message or loading error, the state calls `StateUi.showMainMenu(difficulty)`.
-The full menu appears below the output and accepts the next command immediately. No separate Records
-or Leaderboard state is created: the existing `MainMenuState`, selected difficulty and `SaveStore`
-remain active. The UI accepts a concrete `SavedRecord`; handling the optional result belongs to the state.
-
-The same `SaveStore` is passed into gameplay and back to the menu after victory or defeat, preserving
-the file location across runs. `StateUi.printLine(...)` routes output through the attached terminal
-or standard output, so these views work with both live and plain input modes.
+After results, an empty message or a loading error, `showMainMenu(difficulty)` redisplays all options
+without changing state or difficulty. The state unwraps optional records before passing them to the
+UI. `StateUi` routes output through the attached terminal or standard output in either input mode.
 
 A missing history file produces an empty list. A missing high-score file triggers initialization;
 if there is also no history, the leaderboard shows its empty message. Loaded WPM must be finite and
 nonnegative, and accuracy must be finite and within 0-100. Each record needs exactly two fields, and
 the high-score file must contain exactly one line. Malformed loaded data and unreadable files produce
 `IOException`; an invalid high-score file is not silently overwritten or replaced from history.
+`SavedRecord` itself has no validating constructor. `SaveStore.load()` validates the latest ten
+history lines it returns, while `LeaderboardStore` validates loaded scores and candidates passed to
+`saveIfHigher(...)`. Earlier lines in an oversized history file are ignored by `load()`.
 Records reports `Could not load typing history: ...`; Leaderboard reports `Could not load leaderboard: ...`.
 
 #### Design choices and alternatives
@@ -259,8 +284,11 @@ The encounter delegates damage to `SkillResolver`, preserving the boundary betwe
 | `SkillResolver` | Convert WPM and character accuracy into player damage and apply health changes |
 | `TypingChallengeFactory` | Select a skill's prompt and base deadline, then scale by the run difficulty |
 
-The sequence below focuses on evaluation. The calls to `TypingEvaluator` and `AccuracyCalculator`
-are static operations; formatting and combat happen after the result returns.
+The sequence follows the evaluator's collaborator calls after validation and normalization: retained
+word diagnostics, gross WPM, character accuracy, then result construction. `<<class>>` participants
+receive static calls; `result:TypingResult` is the newly created object. The caller, terminal,
+formatting and combat are outside this diagram's scope. Edit-distance internals are explained below
+rather than expanded into the same sequence.
 
 ![Sequence diagram for evaluating one typing attempt](diagrams/typing-evaluation.svg)
 
@@ -468,9 +496,9 @@ helpers `startScenario()`, `startBossPhase()` and `advanceAfterVictory()` separa
 from transition decisions. `StateUi.showBossPhase(phase, total)` announces the phase without putting
 combat rules into the UI.
 
-The focused class diagram shows the run's references and factory dependencies. Multiplicities apply
-to active gameplay; old encounters are replaced during progression. The diagram omits unrelated UI,
-skill and clock classes.
+The class diagram shows references and creation dependencies during active gameplay; old encounters
+are replaced during progression. Target-end role names match stored fields, while dashed arrows
+denote temporary dependencies. The diagram omits unrelated UI, skill and clock classes.
 
 ![Class diagram for scenario and boss progression](diagrams/run-progression.svg)
 
@@ -494,11 +522,11 @@ zero, it completes victory and returns before executing an enemy turn. Otherwise
 player defeat is checked before the next turn is offered. `GamePlayState` inspects the completed
 encounter and advances only on victory. It does not infer success merely because a challenge ended.
 
-The following sequence covers the boundary after a lethal attack against boss phase 1. The next
-encounter is created only after the first one has completed. Activation boxes show execution;
-dashed arrows show returns. The omitted health check is explained in the note. For readability,
-the diagram omits the selected `difficulty` argument passed to the new `CombatEncounter`;
-the implementation passes it after the shared challenge factory.
+The sequence covers a lethal phase-1 attack through the creation of phase 2. Nested activation bars
+follow the real `advanceAfterVictory()` and `startBossPhase()` calls; phase changes are explained in
+a note rather than appended to a method label. The factory is a class-level participant and the
+new encounter is an object. UI and persistence calls are outside this transition's scope.
+Abbreviated constructor arguments include the same player, enemy, UI, shared factory and difficulty.
 
 ![Sequence diagram for moving from boss phase 1 to phase 2](diagrams/boss-phase-transition.svg)
 
@@ -735,10 +763,9 @@ throw `NullPointerException`. Exit JShell with `/exit`.
 
 ## Maintaining the documentation
 
-The diagrams are ordinary SVG images so GitHub and GitHub Pages display them without Mermaid support
-or a server-side renderer. Each image has a neighboring `.puml` source for editing with PlantUML.
-The checked-in SVGs were laid out from those sources; keep each source and rendered image aligned
-when changing the design. [Diagram maintenance notes](diagrams/README.md) describe their scope.
+The website embeds SVGs generated from the neighboring `.puml` sources with PlantUML. After editing
+a source, regenerate and visually check its SVG rather than adjusting activation bars or arrows by
+hand. [Diagram maintenance notes](diagrams/README.md) list figure scopes and the rendering command.
 
 When gameplay or storage behavior changes, update the corresponding guide sections, examples and
 testing instructions. Regenerate the PDF copies after updating the Markdown guides so the online

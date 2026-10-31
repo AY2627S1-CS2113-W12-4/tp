@@ -1,0 +1,44 @@
+@startuml
+!pragma layout smetana
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam classAttributeIconSize 0
+hide circle
+hide empty members
+top to bottom direction
+title State management
+
+class StateMachine {
+  +transitState(nextState)
+  +handleInput(input)
+  +update()
+}
+abstract class State {
+  +enter()
+  +exit()
+  +handleInput(input)
+  +update()
+}
+class MainMenuState
+class DifficultySelectionState
+class GamePlayState
+
+StateMachine --> "0..1\ncurrentState" State
+State --> "1\nstateMachine" StateMachine
+State <|-- MainMenuState
+State <|-- DifficultySelectionState
+State <|-- GamePlayState
+
+note bottom of MainMenuState
+  Start waits for seed input in this state.
+  Records and Leaderboard are menu actions,
+  not additional State subclasses.
+end note
+note top of StateMachine
+  currentState is absent before start();
+  one state is active after startup.
+end note
+@enduml

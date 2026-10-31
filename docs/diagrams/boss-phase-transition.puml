@@ -1,44 +1,60 @@
 @startuml
-' Focus: a lethal attack against boss phase 1. Nonlethal and defeat paths are omitted.
+' Scope: boss phase 1 is defeated; evaluation, UI and persistence calls are omitted.
 hide footbox
 skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam backgroundColor white
 skinparam shadowing false
-participant "game:GamePlayState" as game
-participant "phase1:CombatEncounter" as phase1
-participant "EnemyFactory" as factory
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+participant "game:\nGamePlayState" as game
+participant "phase1:\nCombatEncounter" as phase1
+participant "outcome:\nEncounterOutcome" as outcome
+participant "EnemyFactory" as factory <<class>>
+
 activate game
-game -> phase1 : submitTypingResult(result)
+note over game : Inside finishAttempt(...).
+game -> phase1 : submitTypingResult(...)
 activate phase1
 note right of phase1
-  Resolve attack; enemy reaches 0 HP.
-  Complete victory and return before retaliation.
+  Enemy reaches 0 HP.
+  No retaliation.
 end note
-phase1 --> game
-deactivate phase1
+return
+
 game -> phase1 : getIsCompleted()
 activate phase1
-phase1 --> game : true
-deactivate phase1
+return true
 game -> phase1 : getEncounterOutcome()
 activate phase1
-phase1 --> game : victory outcome
-deactivate phase1
-game -> game : advanceAfterVictory(); bossPhase = 2
+return outcome
+game -> outcome : getIsVictory()
+activate outcome
+return true
+
+game -> game : advanceAfterVictory()
+activate game
+note over game : bossPhase becomes 2.
+game -> game : startBossPhase()
 activate game
 game -> factory : createBossPhase(2)
 activate factory
-factory --> game : fresh enemy (70 HP, attack 20)
-deactivate factory
-create participant "phase2:CombatEncounter" as phase2
-game -> phase2 : new CombatEncounter(samePlayer, enemy, ui, challengeFactory)
+return enemy
+
+create participant "phase2:\nCombatEncounter" as phase2
+game -> phase2 : CombatEncounter(...)
+activate phase2
+return
 game -> phase2 : begin()
 activate phase2
-phase2 --> game : ready for player turn
-deactivate phase2
-deactivate game
+return
+return
+return true
+
 note over game, phase2
-  Player HP carries unchanged. No healing, overflow damage or transition attack.
-  Phase 2 starts at full HP; defeating phase 1 does not win the run.
+  Same player, prompt factory and difficulty.
+  Phase 2: 70 HP; excess damage is discarded.
+  No healing or transition attack.
 end note
 deactivate game
 @enduml
