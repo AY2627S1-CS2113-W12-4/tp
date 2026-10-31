@@ -1,37 +1,49 @@
 @startuml
-' Focus: evaluation of a snapshot; terminal and combat calls are intentionally omitted.
+' Scope: successful snapshot evaluation; input, formatting and combat are outside this interaction.
 hide footbox
 skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam backgroundColor white
 skinparam shadowing false
+skinparam defaultFontSize 14
 skinparam sequenceMessageAlign center
-participant "game:GamePlayState" as game
-participant "TypingEvaluator" as evaluator
-participant "AccuracyCalculator" as accuracy
-note over evaluator, accuracy
-  Evaluator and calculator operations are static.
+participant "TypingEvaluator" as evaluator <<class>>
+participant "WordErrorFinder" as errors <<class>>
+participant "WpmCalculator" as speed <<class>>
+participant "AccuracyCalculator" as accuracy <<class>>
+
+[-> evaluator : evaluateTyping(...)
+activate evaluator
+note over evaluator, errors
+  Validate inputs; normalize both strings;
+  prepare the expected and typed word arrays.
 end note
-game -> evaluator : evaluateTyping(expected, typed, elapsed, required)
-activate evaluator
-evaluator -> evaluator : validate inputs and normalize text
-activate evaluator
-deactivate evaluator
-evaluator -> accuracy : calculate(normalizedExpected, normalizedTyped)
+
+evaluator -> errors : find(...)
+activate errors
+errors --> evaluator : wordErrors
+deactivate errors
+
+evaluator -> speed : calculate(...)
+activate speed
+speed --> evaluator : wpm
+deactivate speed
+
+evaluator -> accuracy : calculate(...)
 activate accuracy
-accuracy -> accuracy : editDistance(codePoints)
-activate accuracy
-deactivate accuracy
 accuracy --> evaluator : accuracyPercent
 deactivate accuracy
-evaluator -> evaluator : calculate gross WPM and retained word diagnostics
-activate evaluator
+
+create participant "result:TypingResult" as result
+evaluator -> result : TypingResult(...)
+activate result
+result --> evaluator : result
+deactivate result
+
+[<-- evaluator : result
 deactivate evaluator
-evaluator -> evaluator : create immutable TypingResult
-activate evaluator
-deactivate evaluator
-evaluator --> game : result
-deactivate evaluator
-note over game, evaluator
-  The state formats the result and submits it to the encounter.
-  Deadline status is metadata; it does not reduce damage.
+note over evaluator, result
+  The result is immutable. Deadline status does not reduce damage.
+  Accuracy calculation internals are outside this diagram's scope.
 end note
 @enduml
