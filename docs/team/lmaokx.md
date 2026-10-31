@@ -74,7 +74,3 @@ A complete run consists of five regular encounters followed by a two-phase final
 - Fixed [cursor positioning for symbol passages](https://github.com/AY2627S1-CS2113-W12-4/tp/commit/51b8e1f)
   and [typing-runner test failures](https://github.com/AY2627S1-CS2113-W12-4/tp/commit/e3922e4),
   adding regression coverage and a controllable clock for timing tests without sleeps.
-
-### Review/mentoring contributions
-
-### Contributions beyond the project team
