@@ -39,15 +39,20 @@ public class TypingChallengeFactory {
         this(bank, GameDifficulty.HARD);
     }
 
-    /** Retains passage selection history and applies the selected run's countdown multiplier. */
+    /**
+     * Retains passage selection history and applies the selected run's countdown
+     * multiplier.
+     */
     public TypingChallengeFactory(PromptBank bank, GameDifficulty gameDifficulty) {
         this.bank = Objects.requireNonNull(bank);
         this.gameDifficulty = Objects.requireNonNull(gameDifficulty);
     }
 
     /**
-     * Creates a skill's challenge, giving Encryption random symbols and a base time of sixty seconds.
-     * Other skills retain their difficulty-based passages and length-aware deadlines.
+     * Creates a skill's challenge, giving Encryption random symbols and a base time
+     * of sixty seconds.
+     * Other skills retain their difficulty-based passages and length-aware
+     * deadlines.
      *
      * @param skill selected player skill
      * @return challenge for the selected skill
@@ -58,6 +63,10 @@ public class TypingChallengeFactory {
             return new TypingChallenge(bank.getEncryptionPrompt(), gameDifficulty.scaleCountdown(60));
         }
         return generate(skill.getDifficulty());
+    }
+
+    public TypingChallenge generateCustom(String customText, int baseTimeLimit) {
+        return new TypingChallenge(customText, gameDifficulty.scaleCountdown(baseTimeLimit));
     }
 
     /**
@@ -79,7 +88,8 @@ public class TypingChallengeFactory {
     }
 
     /**
-     * Returns the difficulty's minimum; longer passages receive a length-aware allowance.
+     * Returns the difficulty's minimum; longer passages receive a length-aware
+     * allowance.
      *
      * @param difficulty difficulty whose minimum deadline is requested
      * @return minimum allowed duration in seconds

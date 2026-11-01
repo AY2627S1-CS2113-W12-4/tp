@@ -1,6 +1,8 @@
 package seedu.keyboardwarrior.encounter;
 
 import seedu.keyboardwarrior.combat.Player;
+import seedu.keyboardwarrior.typing.TypingChallenge;
+import seedu.keyboardwarrior.typing.TypingChallengeFactory;
 import seedu.keyboardwarrior.ui.EventUi;
 
 /**
@@ -16,6 +18,11 @@ public abstract class EventEncounter extends Encounter {
         this.ui = ui;
     }
 
-    public abstract void submitAnswer(String input);
+    public abstract TypingChallenge prepareEvent(TypingChallengeFactory factory);
 
+    public abstract TypingChallenge submitAnswer(String input, TypingChallengeFactory factory);
+
+    public TypingChallenge updateEvent(TypingChallengeFactory factory) {
+        return null;
+    }
 }

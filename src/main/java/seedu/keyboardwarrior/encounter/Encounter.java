@@ -24,11 +24,6 @@ public abstract class Encounter {
     }
 
     /**
-     * Runs the encounter until it reaches a final outcome.
-     */
-    public abstract void start();
-
-    /**
      * Returns a short description suitable for menus and logs.
      *
      * @return encounter description
