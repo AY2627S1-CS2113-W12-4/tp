@@ -1,0 +1,69 @@
+@startuml
+hide footbox
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+title Save one attempt before resolving combat
+
+participant "game:GamePlayState" as game
+participant "history:SaveStore" as history
+participant "best:LeaderboardStore" as best
+participant "encounter:CombatEncounter" as encounter
+
+note over game, encounter
+  Scope: successful persistence inside finishAttempt(...), after evaluation.
+  Low-level file reads, validation and replacement internals are omitted.
+end note
+activate game
+game -> history : save(result)
+activate history
+history -> history : loadHighScore()
+activate history
+history -> best : load()
+activate best
+best --> history : previousBest
+deactivate best
+opt no saved high score
+  history -> history : load()
+  activate history
+  history --> history : records
+  deactivate history
+  opt records contain a best attempt
+    note right of history
+      Select previousBest by WPM, then accuracy.
+    end note
+    history -> best : saveIfHigher(previousBest)
+    activate best
+    best --> history
+    deactivate best
+  end
+end
+history --> history : previousBest
+deactivate history
+history -> best : saveIfHigher(candidate)
+activate best
+best --> history
+deactivate best
+note right of history
+  Append the result to existing history
+  and retain the latest ten entries.
+end note
+history -> history : writeSafely(...)
+activate history
+history --> history
+deactivate history
+history --> game
+deactivate history
+game -> encounter : submitTypingResult(result)
+activate encounter
+encounter --> game
+deactivate encounter
+deactivate game
+note over game, best
+  High score and history are separate writes, not one transaction.
+  If a storage call throws IOException, game reports it and still submits combat.
+end note
+@enduml

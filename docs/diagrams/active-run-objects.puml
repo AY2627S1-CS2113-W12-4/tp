@@ -1,0 +1,51 @@
+@startuml
+!pragma layout smetana
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam classAttributeIconSize 0
+top to bottom direction
+title Example object snapshot at skill selection
+
+object "game:GamePlayState" as game {
+  scenarioIndex = 2
+  bossPhase = 0
+  challenge = null
+}
+object "encounter:CombatEncounter" as encounter {
+  isStarted = true
+  pendingSkill = null
+}
+object "player:Player" as player {
+  health = 90
+}
+object "enemy:Enemy" as enemy {
+  health = 25
+}
+object "factory:TypingChallengeFactory" as factory
+object "bank:PromptBank" as bank
+object "random:RunRandom" as random
+
+game --> encounter : encounter
+game --> player : player
+encounter --> player : player
+encounter --> enemy : enemy
+game --> factory : challengeFactory
+encounter --> factory : challengeFactory
+game --> bank : promptBank
+factory --> bank : bank
+game --> random : random
+bank --> random : random
+
+note bottom of player
+  Both references point to this one Player.
+  Later encounters reuse the same player,
+  factory, prompt bank and random source.
+end note
+legend bottom
+  Illustrative values, not a captured heap.
+  Links name actual fields; unrelated objects are omitted.
+endlegend
+@enduml

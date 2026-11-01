@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam classAttributeIconSize 0
+skinparam nodesep 150
+hide circle
+hide empty members
+top to bottom direction
+title Storage inheritance and high-score ownership
+
+abstract class FileStore {
+  #filePath : Path
+  +getDirectory() : Path
+  #writeSafely(...)
+}
+class SaveStore {
+  +load()
+  +loadHighScore()
+  +save(result)
+}
+class LeaderboardStore {
+  +load()
+  +saveIfHigher(candidate)
+}
+class GameSaveStore {
+  +load()
+  +save(snapshot)
+  +delete()
+}
+
+FileStore <|-- SaveStore
+FileStore <|-- LeaderboardStore
+FileStore <|-- GameSaveStore
+SaveStore -right-> "1\nleaderboardStore" LeaderboardStore
+@enduml

@@ -1,0 +1,38 @@
+@startuml
+!pragma layout smetana
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam componentStyle rectangle
+top to bottom direction
+title Main responsibilities and dependencies
+
+component "Input and dispatch\nKeyboardWarrior, StateMachine" as runtime
+component "Application states\nMainMenuState\nDifficultySelectionState\nGamePlayState" as states
+component "Presentation\nStateUi, CombatUi\nCountdownReader / JLine" as ui
+component "Typing\nChallenges and prompt bank\nEvaluation and feedback" as typing
+component "Combat and encounters\nParticipants, skills\nCombatEncounter" as combat
+component "Run randomness\nSeedGenerator, RunRandom" as seed
+component "Storage\nSaveStore, LeaderboardStore\nGameSaveStore, FileStore" as storage
+folder "Local data files\nHistory, best attempt\nActive run" as files
+
+runtime --> states
+runtime --> ui
+states --> ui
+states --> typing
+states --> combat
+states --> seed
+states --> storage
+combat --> typing
+combat --> ui
+typing --> seed
+storage --> files
+
+legend bottom
+  Arrows mean uses. Names inside components are representative.
+  State and combat code call presentation directly; these are not strict layers.
+  Plain input uses standard I/O; live input and redraw use JLine.
+endlegend
+@enduml

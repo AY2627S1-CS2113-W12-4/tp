@@ -5,8 +5,7 @@
 Keyboard Warrior is a terminal typing combat game. Choose a skill, type its passage and deal
 damage based on your WPM and character accuracy. Survive five regular scenarios and both phases
 of the final Kernel Overlord boss to win. Your starting HP depends on the selected game difficulty and carries
-between all encounters;
-there is no healing during a run.
+between all encounters; there is no healing during a run.
 
 ## Quick Start
 
@@ -40,8 +39,10 @@ java -ea -jar KeyboardWarrior.jar
 
 ## Saved typing history
 
-At the main menu, type `records` and press Enter to view the latest ten typing attempts, oldest
-first. Each entry shows WPM and accuracy. The full main menu appears again after the records, where you
+At the main menu, type `2` or `records` and press Enter to view the latest ten typing attempts, oldest
+first. Each entry represents one submitted passage, not a whole game, and shows WPM and accuracy.
+The `#` column is its position in the displayed history, not a permanent record ID or score rank.
+The full main menu appears again after the records, where you
 can enter `start`, `records`, `exit`, `choose difficulty`, `continue` or `leaderboard`.
 
 Every submitted attempt is saved automatically, including partial or empty text captured when
@@ -49,20 +50,26 @@ the live timer expires in a supported terminal. History survives restarting the 
 `data/keyboardwarrior.txt`, relative to the folder from which the game is launched.
 
 If there is no history yet, the menu displays an empty-history message. If the file cannot be read
-or contains an invalid record, it displays an error. A saving error is reported while the current
-combat turn continues.
+or contains an invalid record, it displays an error. The full menu also reappears after an empty
+message or loading error, keeping your selected difficulty. A saving error is reported while the
+current combat turn continues; that attempt may not appear in Records.
 
 ## Leaderboard
 
 At the main menu, enter `6` or `leaderboard` to view your single all-time highest-scoring attempt.
-The display shows its WPM and accuracy.
-The highest WPM wins, with higher accuracy breaking WPM ties. Exact ties still produce only one entry.
+The display shows the WPM and accuracy of one typing attempt, not total combat damage or a whole-game score.
+This is a local leaderboard shared by attempts across all difficulty modes and seeds in the same game folder.
+The highest WPM wins, with higher accuracy breaking WPM ties. There is no minimum accuracy requirement.
+Exact ties leave the saved best unchanged. Values are displayed to two decimal places, but the
+comparison uses their full precision, so two attempts that look equal may still differ.
 The high score is saved separately in `data/keyboardwarrior.txt.high-score` and survives restarting
 the game and removal of older attempts from the ten-entry history. Only a better attempt replaces it.
 On first use, existing typing history supplies the initial best score; attempts already discarded
 before this feature was added cannot be recovered.
 The full main menu appears again after the leaderboard. The chronological Records view remains unchanged.
 If no attempts are saved, an empty message appears. Unreadable or invalid high-score data displays an error.
+Initialization can also fail if existing history cannot be read or the initial high score cannot be saved.
+The full menu reappears after either an empty message or an error, keeping your selected difficulty.
 
 ## Main menu and game difficulty
 
@@ -95,12 +102,33 @@ Starting health is multiplied once at the start of a run; health is not restored
 Enemy health and attacks are unchanged. Game difficulty does not change the passages selected by skills
 or your recorded WPM and accuracy.
 
+## Seeds and repeatable runs
+
+A seed controls the run's random enemy and passage choices. After entering `start`, you can enter:
+
+* A signed 64-bit whole number, such as `42` or `-19`. The game uses that exact number.
+* Any nonblank text, such as `practice-run`. The same text is consistently converted to the same
+  numeric seed.
+* An empty line. The game generates and displays a random numeric seed.
+
+Reusing a seed reproduces the same choices when you make the same decisions in the same order. Enemy
+selection and prompt selection share one random sequence. Choosing different skills, especially
+Encryption, consumes that sequence differently and can change later enemies or passages. A seed is
+intended for repeatable gameplay and testing, not for security.
+
+The game also remembers where it is in that sequence whenever it autosaves. Continuing a current
+save preserves future enemy and passage choices as well as the rule that the same passage difficulty
+does not immediately repeat its previous passage. You do not need to enter the original seed again.
+Older saves created before random-state saving was added can still load, but their future random
+choices start from a new random sequence.
+
 ## Saving and continuing a run
 
 The game uses one save slot at `data/game-save.properties`, relative to the launch folder.
 It saves automatically at the start of every encounter and after the player attack and any enemy
 retaliation finish. The save contains your remaining HP, difficulty, scenario or boss phase,
-enemy identity and remaining HP, and the enemy's next attack in its rotation.
+enemy identity and remaining HP, and the enemy's next attack in its rotation. It also preserves the
+random sequence position and previous passage selections.
 
 To leave and return later:
 
@@ -113,11 +141,19 @@ no save command is needed.
 
 Quitting or closing the terminal during typing retains the previous stable turn. The unfinished
 answer and timer are not saved, and you can select a skill again after continuing. Future random
-enemies and passages are selected afresh; previous passage selection history is not restored.
+choices resume from that saved point, including the passage history used to avoid immediate
+repeats. With the same skill choices and combat progression, future passages and enemies match
+an uninterrupted run. Older saves without this random-selection information still load their combat progress,
+but begin a fresh random sequence.
 
 Start begins a new run and replaces the previous slot after encounter setup succeeds. Winning or
-losing deletes the active run save, while your typing history remains available through Records.
+losing deletes the active run save, while your typing history and high score remain available
+through Records and Leaderboard.
 Choosing a different difficulty in the menu does not alter a saved run; Continue restores its original mode.
+
+All three data files are relative to the folder where you launch the application. Launching from a
+different folder can show different records, leaderboard and saved progress. Keep the `data` folder
+with your game folder when moving your saved data.
 
 If no save exists, Continue displays a message and keeps you in the menu. Invalid, unsupported or
 unreadable saves display an error without starting a run. Saving failures are reported but combat
