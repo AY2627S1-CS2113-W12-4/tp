@@ -7,6 +7,8 @@ import java.util.Random;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
+import seedu.keyboardwarrior.typing.PuzzleBank;
+import seedu.keyboardwarrior.typing.ReactionBank;
 import seedu.keyboardwarrior.typing.TypingChallengeFactory;
 import seedu.keyboardwarrior.ui.CombatUi;
 import seedu.keyboardwarrior.ui.EventUi;
@@ -17,9 +19,19 @@ import seedu.keyboardwarrior.ui.EventUi;
 public class EncounterFactory {
 
     private final Random random;
+    private final PuzzleBank puzzleBank;
+    private final ReactionBank reactionBank;
+
+    private enum EventType {
+        PuzzleEvent,
+        ReactionEvent,
+        DialogueEvent
+    }
 
     public EncounterFactory(Random random) {
         this.random = random;
+        this.puzzleBank = new PuzzleBank(random);
+        this.reactionBank = new ReactionBank(random);
     }
 
     public List<Encounter> generateChoices(Player player, CombatUi combatUi, EventUi eventUi,
@@ -41,12 +53,18 @@ public class EncounterFactory {
     }
 
     private EventEncounter getRandomEvent(Player player, EventUi eventUi) {
-        int eventType = random.nextInt(2);
+        EventType[] allTypes = EventType.values();
+        EventType eventType = allTypes[random.nextInt(allTypes.length)];
         switch (eventType) {
-        case 0:
-        case 1:
+        case PuzzleEvent:
+            return new PuzzleEncounter(player, eventUi, puzzleBank.getRandomPuzzle());
+        case ReactionEvent:
+            return new ReactionEncounter(player, eventUi, reactionBank.getRandomReaction(), random);
+        case DialogueEvent:
+            // TODO: Replace with DialogueEvent once implemented.
+            return new PuzzleEncounter(player, eventUi, puzzleBank.getRandomPuzzle());
         default:
-            return null;
+            return new PuzzleEncounter(player, eventUi, puzzleBank.getRandomPuzzle());
         }
     }
 }
