@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 /**
- * Represents a combat participant with health and a collection of usable skills.
+ * Represents a combat participant with health and a collection of usable
+ * skills.
  */
 public abstract class Entity {
     /**
@@ -27,9 +28,9 @@ public abstract class Entity {
     /**
      * Creates a living combat participant without any active skills.
      *
-     * @param name name displayed during combat
+     * @param name   name displayed during combat
      * @param health starting health points
-     * @throws NullPointerException if the name is null
+     * @throws NullPointerException     if the name is null
      * @throws IllegalArgumentException if the name is blank or health is negative
      */
     public Entity(String name, int health) {

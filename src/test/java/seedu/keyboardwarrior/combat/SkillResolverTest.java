@@ -47,7 +47,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
-        Skill skill = new Skill("Enemy Strike", 15, Difficulty.EASY);
+        Skill skill = new Skill("Enemy Strike", 15, 0, Difficulty.EASY);
 
         resolver.execute(SOURCE, target, skill, null);
 
@@ -65,7 +65,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 200);
-        Skill skill = new Skill("Measured Strike", 100, Difficulty.EASY);
+        Skill skill = new Skill("Measured Strike", 100, 0, Difficulty.EASY);
         TypingResult result = TypingEvaluator.evaluateTyping("abcde", "abcde", 60.0, 60.0);
 
         resolver.execute(SOURCE, target, skill, result);
@@ -132,7 +132,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 200);
-        Skill skill = new Skill("Measured Strike", 100, Difficulty.EASY);
+        Skill skill = new Skill("Measured Strike", 100, 0, Difficulty.EASY);
         TypingResult result = TypingEvaluator.evaluateTyping("abcdefghij", "abcdeXXXXX", 2.4, 15.0);
 
         resolver.execute(SOURCE, target, skill, result);
@@ -161,7 +161,7 @@ class SkillResolverTest {
             assertEquals(40, ui.reportedDamage);
         }
         Enemy target = new Enemy("Target", 100);
-        resolver.execute(SOURCE, target, new Skill("No Base Damage", 0, Difficulty.EASY), result);
+        resolver.execute(SOURCE, target, new Skill("No Base Damage", 0, 0, Difficulty.EASY), result);
         assertEquals(60, target.getHealth());
     }
 
@@ -173,7 +173,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
-        Skill skill = new Skill("Missed Strike", 100, Difficulty.EASY);
+        Skill skill = new Skill("Missed Strike", 100, 0, Difficulty.EASY);
         TypingResult result = TypingEvaluator.evaluateTyping("aaaaa", "bbbbb", 1.0, 15.0);
 
         resolver.execute(SOURCE, target, skill, result);
@@ -191,7 +191,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
-        Skill skill = new Skill("Empty Strike", 20, Difficulty.EASY);
+        Skill skill = new Skill("Empty Strike", 20, 0, Difficulty.EASY);
         TypingResult result = TypingEvaluator.evaluateTyping("abcde", "", 61.0, 60.0);
 
         resolver.execute(SOURCE, target, skill, result);
@@ -225,7 +225,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 10);
-        Skill skill = new Skill("Heavy Strike", 25, Difficulty.EASY);
+        Skill skill = new Skill("Heavy Strike", 25, 0, Difficulty.EASY);
 
         resolver.execute(SOURCE, target, skill, null);
 
@@ -249,7 +249,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
-        Skill skill = new Skill("Strike", 15, Difficulty.EASY);
+        Skill skill = new Skill("Strike", 15, 0, Difficulty.EASY);
 
         assertThrows(NullPointerException.class, () -> resolver.execute(null, target, skill, null));
         assertThrows(NullPointerException.class, () -> resolver.execute(SOURCE, null, skill, null));
@@ -268,7 +268,7 @@ class SkillResolverTest {
         RecordingCombatUi ui = new RecordingCombatUi();
         SkillResolver resolver = new SkillResolver(ui);
         Enemy target = new Enemy("Target", 80);
-        Skill skill = new Skill("Wait", 0, Difficulty.EASY);
+        Skill skill = new Skill("Wait", 0, 0, Difficulty.EASY);
 
         resolver.execute(SOURCE, target, skill, null);
 

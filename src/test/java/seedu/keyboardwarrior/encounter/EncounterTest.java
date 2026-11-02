@@ -46,7 +46,6 @@ class EncounterTest {
         /**
          * Completes the fixture encounter with a defeat outcome.
          */
-        @Override
         public void start() {
             complete(false);
         }

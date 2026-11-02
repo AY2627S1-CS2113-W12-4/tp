@@ -20,7 +20,7 @@ class CombatModelTest {
     @Test
     void enemy_newAndUpdated_preservesCombatState() {
         Enemy enemy = new Enemy("Training Bot", 50);
-        Skill skill = new Skill("Test Strike", 12, Difficulty.EASY);
+        Skill skill = new Skill("Test Strike", 12, 0, Difficulty.EASY);
 
         assertEquals("Training Bot", enemy.getName());
         assertEquals(50, enemy.getHealth());
@@ -60,7 +60,7 @@ class CombatModelTest {
      */
     @Test
     void skill_new_exposesConfiguredValues() {
-        Skill skill = new Skill("Test Strike", 12, Difficulty.HARD);
+        Skill skill = new Skill("Test Strike", 12, 0, Difficulty.HARD);
 
         assertEquals("Test Strike", skill.getName());
         assertEquals(12, skill.getBaseDamage());
@@ -114,11 +114,11 @@ class CombatModelTest {
      */
     @Test
     void skill_invalidArguments_rejectsConstruction() {
-        assertThrows(NullPointerException.class, () -> new Skill(null, 12, Difficulty.EASY));
-        assertThrows(IllegalArgumentException.class, () -> new Skill("", 12, Difficulty.EASY));
-        assertThrows(IllegalArgumentException.class, () -> new Skill(" \t", 12, Difficulty.EASY));
-        assertThrows(IllegalArgumentException.class, () -> new Skill("Strike", -1, Difficulty.EASY));
-        assertThrows(NullPointerException.class, () -> new Skill("Strike", 12, null));
+        assertThrows(NullPointerException.class, () -> new Skill(null, 12, 0, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill("", 12, 0, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill(" \t", 12, 0, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill("Strike", -1, 0, Difficulty.EASY));
+        assertThrows(NullPointerException.class, () -> new Skill("Strike", 12, 0, null));
     }
 
     /**
@@ -126,7 +126,7 @@ class CombatModelTest {
      */
     @Test
     void skill_zeroDamage_isAllowed() {
-        Skill skill = new Skill("Wait", 0, Difficulty.EASY);
+        Skill skill = new Skill("Wait", 0, 0, Difficulty.EASY);
 
         assertEquals(0, skill.getBaseDamage());
     }

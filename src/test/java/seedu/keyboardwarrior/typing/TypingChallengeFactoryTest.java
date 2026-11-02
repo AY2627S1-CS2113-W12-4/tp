@@ -20,6 +20,20 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
  * Tests length-aware deadlines, difficulty minimums and shared passage history.
  */
 class TypingChallengeFactoryTest {
+    /** Signed extreme bonuses must preserve countdown bounds for passages and Encryption alike. */
+    @Test
+    void generateForSkill_extremeBonus_saturatesWithoutWrapping() {
+        for (GameDifficulty difficulty : GameDifficulty.values()) {
+            TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("short"), difficulty);
+            for (String skillId : new String[] {"ping", "encryption"}) {
+                assertEquals(difficulty.scaleCountdown(Integer.MAX_VALUE),
+                        factory.generateForSkill(SkillRegistry.getSkill(skillId), Integer.MAX_VALUE).getTime());
+                assertEquals(difficulty.scaleCountdown(10),
+                        factory.generateForSkill(SkillRegistry.getSkill(skillId), Integer.MIN_VALUE).getTime());
+            }
+        }
+    }
+
     /**
      * Checks that every prompt allows fifty WPM with twenty percent extra time.
      */
@@ -38,12 +52,12 @@ class TypingChallengeFactoryTest {
                     difficulties[mode]);
             for (int skill = 0; skill < skillIds.length; skill++) {
                 assertEquals(expectedSeconds[mode][skill],
-                        factory.generateForSkill(SkillRegistry.getSkill(skillIds[skill])).getTime());
+                        factory.generateForSkill(SkillRegistry.getSkill(skillIds[skill]), 0).getTime());
             }
         }
         TypingChallengeFactory coderFactory = new TypingChallengeFactory(
                 new FixedPromptBank("a".repeat(420)), GameDifficulty.CODER);
-        assertEquals(97, coderFactory.generateForSkill(SkillRegistry.getSkill("sigkill")).getTime(),
+        assertEquals(97, coderFactory.generateForSkill(SkillRegistry.getSkill("sigkill"), 0).getTime(),
                 "Coder scales the full base deadline, then rounds 96.8 seconds up.");
     }
 
@@ -55,7 +69,7 @@ class TypingChallengeFactoryTest {
 
         assertEquals(Difficulty.ULTIMATE, SkillRegistry.getSkill("encryption").getDifficulty());
         for (int attempt = 0; attempt < 100; attempt++) {
-            TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("encryption"));
+            TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("encryption"), 0);
             assertEquals(60, challenge.getTime());
             assertTrue(challenge.getText().length() >= 420 && challenge.getText().length() <= 426);
             for (String word : challenge.getText().split(" ", -1)) {
@@ -71,11 +85,11 @@ class TypingChallengeFactoryTest {
     void generateForSkill_sigkill_keepsUltimatePassageAndLengthAwareDeadline() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("a".repeat(420)));
 
-        TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("sigkill"));
+        TypingChallenge challenge = factory.generateForSkill(SkillRegistry.getSkill("sigkill"), 0);
 
         assertEquals("a".repeat(420), challenge.getText());
         assertEquals(121, challenge.getTime());
-        assertThrows(NullPointerException.class, () -> factory.generateForSkill(null));
+        assertThrows(NullPointerException.class, () -> factory.generateForSkill(null, 0));
     }
 
     @Test
@@ -85,7 +99,7 @@ class TypingChallengeFactoryTest {
         for (Difficulty difficulty : Difficulty.values()) {
             Set<String> checkedPrompts = new HashSet<>();
             for (int attempt = 0; attempt < 100; attempt++) {
-                TypingChallenge challenge = factory.generate(difficulty);
+                TypingChallenge challenge = factory.generate(difficulty, 0);
                 if (!checkedPrompts.add(challenge.getText())) {
                     continue;
                 }
@@ -110,10 +124,10 @@ class TypingChallengeFactoryTest {
     void generate_shortPrompt_preservesDifficultyMinimums() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("short"));
 
-        assertEquals(15, factory.generate(Difficulty.EASY).getTime());
-        assertEquals(30, factory.generate(Difficulty.MEDIUM).getTime());
-        assertEquals(30, factory.generate(Difficulty.HARD).getTime());
-        assertEquals(45, factory.generate(Difficulty.ULTIMATE).getTime());
+        assertEquals(15, factory.generate(Difficulty.EASY, 0).getTime());
+        assertEquals(30, factory.generate(Difficulty.MEDIUM, 0).getTime());
+        assertEquals(30, factory.generate(Difficulty.HARD, 0).getTime());
+        assertEquals(45, factory.generate(Difficulty.ULTIMATE, 0).getTime());
     }
 
     /**
@@ -123,7 +137,7 @@ class TypingChallengeFactoryTest {
     void generate_longPrompt_normalizesWhitespaceAndRoundsAllowanceUp() {
         TypingChallengeFactory factory = new TypingChallengeFactory(new FixedPromptBank("  abcdefghij  ".repeat(10)));
         // Ten ten-character words and nine normalized spaces require ceil(109 * 0.288) seconds.
-        assertEquals(32, factory.generate(Difficulty.EASY).getTime());
+        assertEquals(32, factory.generate(Difficulty.EASY, 0).getTime());
     }
 
     /**
@@ -133,7 +147,7 @@ class TypingChallengeFactoryTest {
     void generate_nullDifficulty_throwsException() {
         TypingChallengeFactory factory = new TypingChallengeFactory();
 
-        assertThrows(NullPointerException.class, () -> factory.generate(null));
+        assertThrows(NullPointerException.class, () -> factory.generate(null, 0));
     }
 
     /**
@@ -145,8 +159,8 @@ class TypingChallengeFactoryTest {
         TypingChallengeFactory firstFactory = new TypingChallengeFactory(bank);
         TypingChallengeFactory nextFactory = new TypingChallengeFactory(bank);
 
-        assertNotEquals(firstFactory.generate(Difficulty.MEDIUM).getText(),
-                nextFactory.generate(Difficulty.MEDIUM).getText());
+        assertNotEquals(firstFactory.generate(Difficulty.MEDIUM, 0).getText(),
+                nextFactory.generate(Difficulty.MEDIUM, 0).getText());
     }
 
     /**
