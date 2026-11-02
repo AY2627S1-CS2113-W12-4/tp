@@ -60,4 +60,13 @@ public abstract class State {
      * Performs time-based work while this state is active.
      */
     public abstract void update();
+
+    /**
+     * Advances work that does not inspect or submit the player's unfinished input.
+     * Plain consoles use this hook while waiting for Enter, so a delayed event may reveal
+     * its prompt without enabling automatic typing submission in a line-buffered console.
+     * States without delayed work need no additional behavior.
+     */
+    public void updateWaiting() {
+    }
 }

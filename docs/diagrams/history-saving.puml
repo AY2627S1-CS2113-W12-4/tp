@@ -6,16 +6,17 @@ skinparam defaultFontName Arial
 skinparam backgroundColor white
 skinparam defaultFontSize 14
 skinparam sequenceMessageAlign center
-title Save one attempt before resolving combat
+title Save one response before resolving its encounter
 
-participant "game:GamePlayState" as game
-participant "history:SaveStore" as history
-participant "best:LeaderboardStore" as best
-participant "encounter:CombatEncounter" as encounter
+participant "game:\nGamePlayState" as game
+participant "history:\nSaveStore" as history
+participant "best:\nLeaderboardStore" as best
+participant "encounter:\nCombatEncounter" as encounter
+participant "event:\nEventEncounter" as event
 
 note over game, encounter
-  Scope: successful persistence inside finishAttempt(...), after evaluation.
-  Low-level file reads, validation and replacement internals are omitted.
+  Scope: finishAttempt(...) after evaluation.
+  File I/O internals and validation are omitted.
 end note
 activate game
 game -> history : save(result)
@@ -33,7 +34,8 @@ opt no saved high score
   deactivate history
   opt records contain a best attempt
     note right of history
-      Select previousBest by WPM, then accuracy.
+      Select previousBest by WPM,
+      then accuracy.
     end note
     history -> best : saveIfHigher(previousBest)
     activate best
@@ -57,13 +59,33 @@ history --> history
 deactivate history
 history --> game
 deactivate history
-game -> encounter : submitTypingResult(result)
-activate encounter
-encounter --> game
-deactivate encounter
+alt selected encounter is combat
+  game -> encounter : submitTypingResult(result)
+  activate encounter
+  encounter --> game
+  deactivate encounter
+else selected encounter is an event
+  note over game, event
+    Overdue: response is empty.
+    Otherwise: submitted text.
+  end note
+  game -> event : submitAnswer(...)
+  activate event
+  event --> game : nextChallenge
+  deactivate event
+  game -> game : activateEventChallenge(...)
+  activate game
+  note over game, history
+    A non-null challenge starts
+    the next event stage.
+  end note
+  game --> game
+  deactivate game
+end
 deactivate game
 note over game, best
-  High score and history are separate writes, not one transaction.
-  If a storage call throws IOException, game reports it and still submits combat.
+  High score and history are separate writes.
+  IOException is reported; response resolution continues.
+  Progression and run autosaves are omitted.
 end note
 @enduml

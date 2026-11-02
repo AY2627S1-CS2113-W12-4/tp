@@ -1,5 +1,6 @@
 package seedu.keyboardwarrior.encounter;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.function.LongSupplier;
@@ -154,5 +155,36 @@ public class ReactionEncounter extends EventEncounter {
     @Override
     public String getDisplayText() {
         return "Event: A Sudden Ambush";
+    }
+
+    /** Saves the chosen command and remaining wait without drawing another delay. */
+    @Override
+    public EncounterSnapshot snapshot() {
+        requireStablePhase();
+        long remainingDelay = phase == EventPhase.WAITING
+                ? Math.max(0, delayMillis - Math.max(0, currentTimeMillis.getAsLong() - startTime)) : 0;
+        return new EncounterSnapshot("reaction", Map.of("phase", phase.name(), "targetWord", targetWord,
+                "delayMillis", Long.toString(remainingDelay)));
+    }
+
+    /** Resumes a pending ambush or redisplays its active command with a fresh response deadline. */
+    @Override
+    public TypingChallenge resumeEvent(TypingChallengeFactory factory) {
+        if (phase == EventPhase.WAITING) {
+            ui.showReaction();
+            return null;
+        }
+        requirePhase(EventPhase.ACCEPTING_ANSWER);
+        TypingChallenge challenge = factory.generateCustom(targetWord, 2);
+        ui.showReactionWord(targetWord);
+        return challenge;
+    }
+
+    /** Restarts only the saved remaining wait; elapsed offline time does not consume the ambush delay. */
+    void restorePhase(String savedPhase, long remainingDelay) {
+        requirePhase(EventPhase.NOT_STARTED);
+        phase = EventPhase.valueOf(savedPhase);
+        delayMillis = remainingDelay;
+        startTime = currentTimeMillis.getAsLong();
     }
 }

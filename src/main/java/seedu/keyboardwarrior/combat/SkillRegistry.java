@@ -3,6 +3,7 @@ package seedu.keyboardwarrior.combat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
@@ -10,6 +11,10 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
  * Provides shared definitions for every skill identified by the game.
  */
 public class SkillRegistry {
+
+    /** Ordered starting loadout, also used when migrating older run saves. */
+    private static final List<String> DEFAULT_PLAYER_SKILLS = List.of(
+            "ping", "brute_force", "buffer_overflow", "sigkill", "encryption");
 
     private static final HashMap<String, Skill> SKILL_DATABASE = new HashMap<>();
 
@@ -37,6 +42,20 @@ public class SkillRegistry {
         Skill skill = SKILL_DATABASE.get(id);
         assert skill != null : "Registered skill identifiers must map to a skill";
         return skill;
+    }
+
+    /** Returns the stable identifier of a shared registered skill for persistence. */
+    public static String getId(Skill skill) {
+        Objects.requireNonNull(skill, "Skill must not be null");
+        return SKILL_DATABASE.entrySet().stream()
+                .filter(entry -> entry.getValue() == skill)
+                .map(java.util.Map.Entry::getKey)
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("Skill is not registered"));
+    }
+
+    /** Returns the immutable identifiers of the five skills available at the start of a run. */
+    public static List<String> getDefaultPlayerSkillIds() {
+        return DEFAULT_PLAYER_SKILLS;
     }
 
     /**

@@ -1,5 +1,6 @@
 package seedu.keyboardwarrior.encounter;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
@@ -126,5 +127,29 @@ public class PuzzleEncounter extends EventEncounter {
     @Override
     public String getDisplayText() {
         return "Event: A Mysterious Puzzle";
+    }
+
+    /** Saves the selected question and answer so continuing never draws a different puzzle. */
+    @Override
+    public EncounterSnapshot snapshot() {
+        requireStablePhase();
+        return new EncounterSnapshot("puzzle", Map.of("phase", phase.name(),
+                "question", puzzle.question(), "answer", puzzle.answer()));
+    }
+
+    /** Recreates the current question and countdown without awarding or penalizing the player. */
+    @Override
+    public TypingChallenge resumeEvent(TypingChallengeFactory factory) {
+        requirePhase(EventPhase.ACCEPTING_ANSWER);
+        int adjustedTime = (int) Math.min(Integer.MAX_VALUE, (long) BASE_TIME_LIMIT + player.getBonusTime());
+        TypingChallenge challenge = factory.generateCustom(puzzle.answer(), adjustedTime);
+        ui.showPuzzle(puzzle);
+        return challenge;
+    }
+
+    /** Restores only the lifecycle marker; content is supplied to the normal constructor. */
+    void restorePhase(String savedPhase) {
+        requirePhase(EventPhase.NOT_STARTED);
+        phase = EventPhase.valueOf(savedPhase);
     }
 }

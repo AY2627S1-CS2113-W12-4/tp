@@ -2,8 +2,11 @@ package seedu.keyboardwarrior.encounter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
+import seedu.keyboardwarrior.GameDifficulty;
 import seedu.keyboardwarrior.combat.Enemy;
 import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
@@ -86,15 +89,36 @@ public class EncounterFactory {
      */
     public List<Encounter> generateChoices(Player player, CombatUi combatUi, EventUi eventUi,
             TypingChallengeFactory typingChallengeFactory) {
+        return generateChoices(player, combatUi, eventUi, typingChallengeFactory, GameDifficulty.HARD, 0);
+    }
+
+    /**
+     * Creates the same three choices using the current scenario's combat health and run difficulty.
+     * A zero scenario retains the legacy default-enemy behavior for standalone callers.
+     *
+     * @param player run's shared player
+     * @param combatUi combat display
+     * @param eventUi event display
+     * @param typingChallengeFactory shared prompt and countdown factory
+     * @param difficulty selected run damage multiplier
+     * @param scenarioNumber current regular scenario, one through five, or zero for default health
+     * @return combat, event and one further random choice
+     */
+    public List<Encounter> generateChoices(Player player, CombatUi combatUi, EventUi eventUi,
+            TypingChallengeFactory typingChallengeFactory, GameDifficulty difficulty, int scenarioNumber) {
+        Objects.requireNonNull(difficulty, "Run difficulty must not be null");
+        if (scenarioNumber < 0 || scenarioNumber > 5) {
+            throw new IllegalArgumentException("Scenario number must be zero through five");
+        }
         List<Encounter> choices = new ArrayList<>();
 
-        Enemy enemy = EnemyFactory.createRandomEnemy(random);
-        choices.add(new CombatEncounter(player, enemy, combatUi, typingChallengeFactory));
+        Enemy enemy = createChoiceEnemy(scenarioNumber);
+        choices.add(new CombatEncounter(player, enemy, combatUi, typingChallengeFactory, difficulty));
         choices.add(getRandomEvent(player, eventUi));
 
         if (random.nextBoolean()) {
-            Enemy enemy2 = EnemyFactory.createRandomEnemy(random);
-            choices.add(new CombatEncounter(player, enemy2, combatUi, typingChallengeFactory));
+            Enemy enemy2 = createChoiceEnemy(scenarioNumber);
+            choices.add(new CombatEncounter(player, enemy2, combatUi, typingChallengeFactory, difficulty));
         } else {
             choices.add(getRandomEvent(player, eventUi));
         }
@@ -103,6 +127,79 @@ public class EncounterFactory {
         assert choices.get(0) instanceof CombatEncounter && choices.get(1) instanceof EventEncounter
                 : "Every offer must include both combat and an event";
         return choices;
+    }
+
+    /** Selects an opponent with balanced scenario HP without drawing extra randomness. */
+    private Enemy createChoiceEnemy(int scenarioNumber) {
+        return scenarioNumber == 0 ? EnemyFactory.createRandomEnemy(random)
+                : EnemyFactory.createRandomEnemy(random, scenarioNumber);
+    }
+
+    /** Saves already selected content for a combat offer, stable combat turn or unfinished event. */
+    public EncounterSnapshot snapshot(Encounter encounter) {
+        Objects.requireNonNull(encounter, "Encounter must not be null");
+        if (encounter instanceof EventEncounter event) {
+            return event.snapshot();
+        }
+        if (encounter instanceof CombatEncounter combat) {
+            CombatEncounter.CombatSnapshot snapshot = combat.snapshotForSave();
+            return new EncounterSnapshot("combat", Map.of("enemyType", snapshot.enemyType(),
+                    "enemyHealth", Integer.toString(snapshot.enemyHealth()),
+                    "nextEnemySkillIndex", Integer.toString(snapshot.nextEnemySkillIndex())));
+        }
+        throw new IllegalArgumentException("Unsupported encounter class");
+    }
+
+    /**
+     * Recreates saved content without consuming randomness or applying player effects.
+     * The caller starts a combat with its saved attack index, or resumes an active event.
+     *
+     * @param snapshot selected content and stable stage
+     * @param player restored player shared by every offer
+     * @param combatUi combat display
+     * @param eventUi event display
+     * @param typingChallengeFactory shared countdown factory retained by combat
+     * @param difficulty saved run difficulty
+     * @param scenarioNumber one-based regular scenario, or six during the boss
+     * @param bossPhase zero for regular scenarios, otherwise one or two
+     * @return unstarted combat or event at its saved lifecycle stage
+     */
+    public Encounter restore(EncounterSnapshot snapshot, Player player, CombatUi combatUi, EventUi eventUi,
+            TypingChallengeFactory typingChallengeFactory, GameDifficulty difficulty,
+            int scenarioNumber, int bossPhase) {
+        Objects.requireNonNull(snapshot, "Encounter snapshot must not be null");
+        Map<String, String> data = snapshot.data();
+        switch (snapshot.type()) {
+        case "combat":
+            Enemy enemy = bossPhase == 0
+                    ? EnemyFactory.createScenarioEnemy(data.get("enemyType"), scenarioNumber)
+                    : EnemyFactory.createBossPhase(bossPhase);
+            if (bossPhase != 0 && !data.get("enemyType").equals("kernel_overlord")) {
+                throw new IllegalArgumentException("A boss snapshot must contain the Kernel Overlord");
+            }
+            int health = Integer.parseInt(data.get("enemyHealth"));
+            int attackIndex = Integer.parseInt(data.get("nextEnemySkillIndex"));
+            if (health > enemy.getHealth() || attackIndex >= enemy.getActiveSkills().size()) {
+                throw new IllegalArgumentException("Saved combat data exceeds the opponent's bounds");
+            }
+            enemy.setHealth(health);
+            return new CombatEncounter(player, enemy, combatUi, typingChallengeFactory, difficulty);
+        case "puzzle":
+            PuzzleEncounter puzzle = new PuzzleEncounter(player, eventUi,
+                    new PuzzleBank.Puzzle(data.get("question"), data.get("answer")), random, rewardPool);
+            puzzle.restorePhase(data.get("phase"));
+            return puzzle;
+        case "reaction":
+            ReactionEncounter reaction = new ReactionEncounter(player, eventUi, data.get("targetWord"), random);
+            reaction.restorePhase(data.get("phase"), Long.parseLong(data.get("delayMillis")));
+            return reaction;
+        case "dialogue":
+            DialogueEncounter dialogue = new DialogueEncounter(player, eventUi, rewardPool);
+            dialogue.restorePhase(data.get("phase"), Integer.parseInt(data.get("node")));
+            return dialogue;
+        default:
+            throw new IllegalArgumentException("Unsupported saved encounter: " + snapshot.type());
+        }
     }
 
     /**

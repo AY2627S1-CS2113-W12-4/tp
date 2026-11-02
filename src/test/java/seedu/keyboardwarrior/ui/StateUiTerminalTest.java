@@ -18,8 +18,10 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.Test;
 
 import seedu.keyboardwarrior.CountdownReader;
+import seedu.keyboardwarrior.typing.TypingChallenge;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -27,6 +29,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Simulated terminals use stream-based output consistently across operating systems.
  */
 class StateUiTerminalTest {
+    @Test
+    void eventCountdown_hidesPuzzleAnswerAndPreservesEditableResponse() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (Terminal terminal = TerminalBuilder.builder().system(false).provider("exec").type("xterm")
+                .streams(new ByteArrayInputStream(new byte[0]), output).paused(true).build()) {
+            terminal.setSize(new Size(80, 24));
+            CountdownReader reader = new CountdownReader(terminal);
+            StateUi.attachTerminal(reader);
+            reader.getBuffer().write("my guess");
+            StateUi.showEventChallenge(new TypingChallenge("secret-answer", 30), true);
+            StateUi.updateCountdown(29);
+
+            String display = reader.getDisplayedBufferWithPrompts(new java.util.ArrayList<>()).toString();
+            assertTrue(display.startsWith("Time remaining: 29s"));
+            assertTrue(display.contains("Enter your response before time runs out:"));
+            assertTrue(display.contains("Answer the puzzle shown above."));
+            assertFalse(display.contains("secret-answer"));
+            assertFalse(display.contains("press Enter to attack"));
+            assertEquals("my guess", reader.getBuffer().toString());
+        } finally {
+            StateUi.detachTerminal();
+        }
+    }
+
     /**
      * Checks that countdown redraws preserve the editable input and update the displayed seconds.
      */

@@ -28,7 +28,7 @@ class LeaderboardStore {
 }
 class GameSaveStore {
   +load()
-  +save(snapshot)
+  +save(...)
   +delete()
 }
 

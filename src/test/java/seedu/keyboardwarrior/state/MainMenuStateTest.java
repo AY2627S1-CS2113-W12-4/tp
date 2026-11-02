@@ -142,6 +142,7 @@ class MainMenuStateTest {
 
             machine.handleInput("start");
             machine.handleInput("42");
+            machine.handleInput("1");
             machine.handleInput("Ping");
             machine.handleInput("");
 
@@ -178,6 +179,7 @@ class MainMenuStateTest {
             machine.start(new MainMenuState(machine, new SaveStore(tempDir.resolve("history.txt"))));
             machine.handleInput("start");
             machine.handleInput(seed);
+            machine.handleInput("1");
             machine.handleInput("Ping");
             machine.handleInput("exit");
         } finally {
@@ -185,6 +187,7 @@ class MainMenuStateTest {
         }
         String report = output.toString(StandardCharsets.UTF_8);
         assertTrue(report.contains("Scenario 1/5"));
+        assertTrue(report.contains("Type the following text and press Enter to attack:"));
         return report.substring(report.indexOf("Scenario 1/5"));
     }
 

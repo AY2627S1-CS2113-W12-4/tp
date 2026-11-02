@@ -1,5 +1,6 @@
 package seedu.keyboardwarrior.encounter;
 
+import java.util.Map;
 import java.util.Objects;
 
 import seedu.keyboardwarrior.combat.Player;
@@ -204,5 +205,36 @@ public class DialogueEncounter extends EventEncounter {
     @Override
     public String getDisplayText() {
         return "Event: A Suspicious Merchant";
+    }
+
+    /** Retains the current branch without granting its pending reward or consuming a response. */
+    @Override
+    public EncounterSnapshot snapshot() {
+        requireStablePhase();
+        return new EncounterSnapshot("dialogue", Map.of("phase", phase.name(),
+                "node", Integer.toString(dialogueNode)));
+    }
+
+    /** Redisplays the saved dialogue stage without replaying its preceding response or effects. */
+    @Override
+    public TypingChallenge resumeEvent(TypingChallengeFactory factory) {
+        requirePhase(EventPhase.ACCEPTING_ANSWER);
+        TypingChallenge challenge = factory.generateCustom(currentExpectedAnswer, dialogueNode == 2 ? 5 : 10);
+        if (dialogueNode == 0) {
+            ui.showDialogueText("A suspicious merchant blocks your path, demanding a toll!");
+            ui.showDialogueText("Stand your ground and haggle:");
+        } else {
+            ui.showDialogueText(dialogueNode == 1 ? "Secure the deal" : "Dodge the guards:");
+        }
+        return challenge;
+    }
+
+    /** Reconstructs the expected response from the saved branch, without drawing rewards. */
+    void restorePhase(String savedPhase, int node) {
+        requirePhase(EventPhase.NOT_STARTED);
+        dialogueNode = node;
+        currentExpectedAnswer = node == 0 ? "I will not be extorted"
+                : node == 1 ? "Show me your rare wares" : "flee";
+        phase = EventPhase.valueOf(savedPhase);
     }
 }

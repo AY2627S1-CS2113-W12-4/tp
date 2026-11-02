@@ -1,7 +1,7 @@
 @startuml
-' Scope: references during active gameplay and the dependency that creates opponents.
+' Scope: retained run references, encounter variants and opponent creation.
 !pragma layout smetana
-left to right direction
+top to bottom direction
 skinparam monochrome true
 skinparam defaultFontName Arial
 skinparam backgroundColor white
@@ -14,29 +14,42 @@ hide circle
 class GamePlayState {
   -scenarioIndex : int
   -bossPhase : int
-  -startScenario() : void
-  -startBossPhase() : void
-  -advanceAfterVictory() : boolean
+  -startScenario()
+  -startBossPhase()
+  -advanceAfterVictory()
 }
-class Player {
-  +getHealth() : int
+abstract class Encounter {
+  +getIsCompleted()
+  +getEncounterOutcome()
 }
+class Player
 class CombatEncounter {
-  +begin() : void
-  +preparePlayerTurn(...) : TypingChallenge
-  +submitTypingResult(...) : void
+  +begin()
+  +preparePlayerTurn(...)
+  +submitTypingResult(...)
 }
-class Enemy {
-  +getHealth() : int
+abstract class EventEncounter {
+  +prepareEvent(...)
+  +updateEvent(...)
+  +submitAnswer(...)
+  +resumeEvent(...)
 }
-class EnemyFactory {
-  {static} +createRandomEnemy(...) : Enemy
-  {static} +createBossPhase(...) : Enemy
+class EncounterFactory {
+  +generateChoices(...)
+  +snapshot(...)
+  +restore(...)
 }
+class Enemy
+class EnemyFactory
 
 GamePlayState --> "1\nplayer" Player
-GamePlayState --> "1\nencounter" CombatEncounter
+GamePlayState --> "0..1\nencounter" Encounter
+GamePlayState --> "0..3\nchoices" Encounter
+GamePlayState --> "1\nencounterFactory" EncounterFactory
 GamePlayState ..> EnemyFactory
+Encounter <|-- CombatEncounter
+Encounter <|-- EventEncounter
+EncounterFactory ..> EnemyFactory
 CombatEncounter --> "1\nplayer" Player
 CombatEncounter --> "1\nenemy" Enemy
 EnemyFactory ..> Enemy : <<create>>
@@ -44,5 +57,6 @@ EnemyFactory ..> Enemy : <<create>>
 note bottom of GamePlayState
   bossPhase = 0 in regular scenarios;
   1 or 2 in the final boss encounter.
+  Either three offers or one selected encounter.
 end note
 @enduml

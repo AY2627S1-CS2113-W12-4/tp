@@ -1,0 +1,30 @@
+:root { color-scheme: light; --ink:#233247; --navy:#15283f; --gold:#a8762c; --line:#d8e0e8; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:#f4f6f8; font:17px/1.65 Georgia,serif; }
+header { background:var(--navy); color:white; padding:18px max(24px,calc((100vw - 1080px)/2)); }
+header a { color:white; text-decoration:none; margin-right:24px; font:15px/1.6 Arial,sans-serif; }
+header .brand { font-weight:bold; color:#f0c781; }
+main { max-width:1080px; margin:auto; padding:36px 52px 70px; background:white; min-height:85vh; }
+h1,h2,h3,h4 { font-family:Arial,sans-serif; line-height:1.25; color:var(--navy); }
+h1 { font-size:34px; padding-bottom:16px; border-bottom:3px solid var(--gold); }
+h2 { font-size:25px; margin-top:42px; }
+h3 { font-size:20px; margin-top:32px; }
+h4 { font-size:17px; color:var(--gold); }
+a { color:#80551d; text-underline-offset:3px; overflow-wrap:anywhere; }
+p,li { overflow-wrap:break-word; }
+li { margin-bottom:7px; }
+table { width:100%; border-collapse:collapse; margin:22px 0; font:14px/1.55 Arial,sans-serif; }
+th { text-align:left; background:var(--navy); color:white; }
+td,th { padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+tbody tr:nth-child(even) { background:#f4f3ef; }
+code,pre { font-family:Consolas,monospace; font-size:.87em; }
+code { overflow-wrap:anywhere; background:#f4f3ef; padding:1px 3px; }
+pre { background:#f4f3ef; padding:18px; white-space:pre-wrap; overflow-wrap:anywhere; border-left:3px solid var(--gold); }
+pre code { padding:0; }
+img { max-width:100%; height:auto; }
+p:has(> img[src$='.svg']) { text-align:center; }
+img[src$='.svg'] { max-height:850px; }
+blockquote { border-left:3px solid var(--gold); margin-left:0; padding-left:20px; }
+footer { color:#617080; font:13px Arial,sans-serif; margin-top:40px; border-top:1px solid var(--line); padding-top:14px; }
+.source-note { color:#617080; font:13px Arial,sans-serif; }
+@media (max-width:700px) { main { padding:22px; } header a { margin-right:12px; } table { display:block; overflow-x:auto; } }

@@ -77,6 +77,25 @@ public abstract class EventEncounter extends Encounter {
         return null;
     }
 
+    /** Captures an offered event or an active stage before its answer has been consumed. */
+    public abstract EncounterSnapshot snapshot();
+
+    /**
+     * Redisplays a restored active stage with a fresh deadline, without applying rewards or drawing randomness.
+     * Waiting reaction events return {@code null} until a later update reveals their command.
+     *
+     * @param factory run's shared challenge factory
+     * @return recreated current challenge, or {@code null} during a reaction wait
+     */
+    public abstract TypingChallenge resumeEvent(TypingChallengeFactory factory);
+
+    /** Rejects snapshotting partially applied effects or completed events. */
+    protected final void requireStablePhase() {
+        if (phase == EventPhase.RESOLVING || phase == EventPhase.COMPLETED) {
+            throw new IllegalStateException("Only unfinished, stable events can be saved");
+        }
+    }
+
     /**
      * Rejects a lifecycle operation before it can change player state or consume randomness.
      *

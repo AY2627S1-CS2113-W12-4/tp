@@ -5,6 +5,7 @@ import java.util.Locale;
 
 import seedu.keyboardwarrior.CountdownReader;
 import seedu.keyboardwarrior.GameDifficulty;
+import seedu.keyboardwarrior.encounter.Encounter;
 import seedu.keyboardwarrior.storage.SaveStore.SavedRecord;
 import seedu.keyboardwarrior.typing.TypingChallenge;
 import seedu.keyboardwarrior.typing.TypingResult;
@@ -85,6 +86,33 @@ public final class StateUi {
             printLine("Type the following text and press Enter to attack:");
             printLine(challenge.getText());
         }
+    }
+
+    /** Shows event timing and instructions while keeping puzzle answers hidden. */
+    public static void showEventChallenge(TypingChallenge challenge, boolean hideAnswer) {
+        String displayedText = hideAnswer ? "Answer the puzzle shown above." : challenge.getText();
+        if (reader != null) {
+            reader.showEventChallenge(displayedText, challenge.getTime());
+        } else {
+            showRemainingTime(challenge.getTime());
+            printLine("Time limit: " + challenge.getTime() + " seconds");
+            printLine("Enter your response before time runs out:");
+            printLine(displayedText);
+        }
+    }
+
+    /** Presents the run's already generated encounters without consuming randomness. */
+    public static void showEncounterChoices(List<Encounter> choices) {
+        printLine("Choose your encounter:");
+        for (int index = 0; index < choices.size(); index++) {
+            printLine((index + 1) + ". " + choices.get(index).getDisplayText());
+        }
+        printLine("Enter a choice number, or Exit to quit.");
+    }
+
+    /** Explains invalid encounter input without replacing the current choices. */
+    public static void showInvalidEncounterChoice() {
+        printLine("Invalid encounter. Enter 1, 2 or 3, or Exit to quit.");
     }
 
     /**
@@ -210,7 +238,7 @@ public final class StateUi {
      * Announces entry into gameplay.
      */
     public static void showGameplayStart() {
-        printLine("Begin gameplay. Choose a skill, then type its prompt to attack.");
+        printLine("Begin gameplay. Choose an encounter; in combat, choose a skill and type its prompt to attack.");
         printLine("Your remaining health carries into the next scenario. Type Exit at any time to quit.");
     }
 

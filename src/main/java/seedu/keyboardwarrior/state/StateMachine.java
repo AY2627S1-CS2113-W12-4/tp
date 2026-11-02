@@ -76,6 +76,17 @@ public class StateMachine {
     }
 
     /**
+     * Advances delayed work that is safe while a plain console holds unfinished input.
+     * Unlike a full update, this must not capture or automatically submit typed text.
+     *
+     * @throws IllegalStateException if the machine has not started or has stopped
+     */
+    public void updateWaiting() {
+        requireActiveState();
+        this.currentState.updateWaiting();
+    }
+
+    /**
      * Leaves the active state and requests that the application stop.
      * Repeated calls after stopping do nothing.
      *
