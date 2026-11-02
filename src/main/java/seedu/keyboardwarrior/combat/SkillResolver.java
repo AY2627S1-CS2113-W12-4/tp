@@ -9,10 +9,13 @@ import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
 /**
- * Calculates combat damage and applies a selected skill's countdown effect to a player.
+ * Calculates combat damage and applies a selected skill's countdown effect to a
+ * player.
  */
 public class SkillResolver {
-    /** WPM at which perfect typing on Hard earns the skill's full base time bonus. */
+    /**
+     * WPM at which perfect typing on Hard earns the skill's full base time bonus.
+     */
     private static final double TIME_BONUS_BASELINE_WPM = 50.0;
     /**
      * Optional combat diagnostics; FINE messages do not appear in normal gameplay.
@@ -47,11 +50,15 @@ public class SkillResolver {
      * end. The selected skill's base
      * damage and the time limit do not modify this result. A {@code null} result
      * applies the skill's base damage directly for automated enemy turns.
-     * A player's time adjustment is {@code floor(baseBonus * (WPM / 50) * accuracy^4 * multiplier)},
-     * using the unrounded performance calculation. Zero speed or accuracy earns no bonus;
+     * A player's time adjustment is
+     * {@code floor(baseBonus * (WPM / 50) * accuracy^4 * multiplier)},
+     * using the unrounded performance calculation. Zero speed or accuracy earns no
+     * bonus;
      * exceeding the deadline adds no separate penalty, just as for damage.
-     * The adjustment and accumulated total saturate at integer limits rather than wrapping.
-     * It affects subsequent challenges before their usual countdown scaling, consumes no randomness,
+     * The adjustment and accumulated total saturate at integer limits rather than
+     * wrapping.
+     * It affects subsequent challenges before their usual countdown scaling,
+     * consumes no randomness,
      * and is not applied on the {@code null}-result path.
      *
      * @param source      entity using the skill
@@ -79,7 +86,8 @@ public class SkillResolver {
         assert calculatedDamage >= 0 : "Calculated damage must not be negative";
         if (source instanceof Player && chosenSkill.getTimeBonus() != 0) {
             Player player = (Player) source;
-            // Use unrounded damage to retain fractional performance; the cast saturates at integer limits.
+            // Use unrounded damage to retain fractional performance; the cast saturates at
+            // integer limits.
             int scaledBonus = (int) Math.floor(chosenSkill.getTimeBonus() * (damage / TIME_BONUS_BASELINE_WPM));
             int appliedBonus = player.addBonusTime(scaledBonus);
             if (appliedBonus != 0) {
@@ -98,10 +106,11 @@ public class SkillResolver {
     private void applyDamage(Entity target, int damage) {
         assert damage >= 0 : "Resolved damage must not be negative";
         int currentHealth = target.getHealth();
-        int newHealth = Math.max(0, currentHealth - damage);
-        assert newHealth >= 0 && newHealth <= currentHealth : "Damage must not increase or make health negative";
-        target.setHealth(newHealth);
-        assert target.getHealth() == newHealth : "Target health must reflect the resolved damage";
+        target.setHealth(currentHealth - damage);
+        int newHealth = target.getHealth();
+        assert newHealth == Math.max(0, currentHealth - damage)
+                : "Target health must reflect damage clamped at zero";
+        assert newHealth <= currentHealth : "Damage must not increase health";
 
         LOGGER.log(Level.FINE, "Applied {0} damage to {1}; health changed from {2} to {3}",
                 new Object[] { damage, target.getName(), currentHealth, newHealth });
