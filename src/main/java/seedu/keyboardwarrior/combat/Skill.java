@@ -10,18 +10,20 @@ import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 public class Skill {
     private String name;
     private int baseDamage;
+    private int timeBonus;
     private Difficulty difficulty;
 
     /**
      * Creates a skill.
      *
-     * @param name name displayed in the combat interface
+     * @param name       name displayed in the combat interface
      * @param baseDamage damage before typing performance is applied
      * @param difficulty difficulty of the associated typing challenge
-     * @throws NullPointerException if the name or difficulty is null
-     * @throws IllegalArgumentException if the name is blank or base damage is negative
+     * @throws NullPointerException     if the name or difficulty is null
+     * @throws IllegalArgumentException if the name is blank or base damage is
+     *                                  negative
      */
-    public Skill(String name, int baseDamage, Difficulty difficulty) {
+    public Skill(String name, int baseDamage, int timeBonus, Difficulty difficulty) {
         this.name = Objects.requireNonNull(name, "Skill name must not be null");
         if (name.isBlank()) {
             throw new IllegalArgumentException("Skill name must not be blank");
@@ -30,6 +32,7 @@ public class Skill {
             throw new IllegalArgumentException("Base damage must not be negative");
         }
         this.baseDamage = baseDamage;
+        this.timeBonus = timeBonus;
         this.difficulty = Objects.requireNonNull(difficulty, "Skill difficulty must not be null");
     }
 
@@ -49,6 +52,10 @@ public class Skill {
      */
     public int getBaseDamage() {
         return baseDamage;
+    }
+
+    public int getTimeBonus() {
+        return timeBonus;
     }
 
     /**

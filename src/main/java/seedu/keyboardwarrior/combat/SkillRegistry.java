@@ -1,6 +1,8 @@
 package seedu.keyboardwarrior.combat;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import seedu.keyboardwarrior.typing.TypingChallenge.Difficulty;
 
@@ -12,12 +14,12 @@ public class SkillRegistry {
     private static final HashMap<String, Skill> SKILL_DATABASE = new HashMap<>();
 
     static {
-        SKILL_DATABASE.put("ping", new Skill("Ping", 10, Difficulty.EASY));
-        SKILL_DATABASE.put("brute_force", new Skill("Brute Force", 20, Difficulty.MEDIUM));
-        SKILL_DATABASE.put("buffer_overflow", new Skill("Buffer Overflow", 40, Difficulty.HARD));
-        SKILL_DATABASE.put("sigkill", new Skill("SIGKILL", 80, Difficulty.ULTIMATE));
-        SKILL_DATABASE.put("encryption", new Skill("Encryption", 80, Difficulty.ULTIMATE));
-        assert SKILL_DATABASE.size() == 5 : "Every standard skill must have a unique identifier";
+        SKILL_DATABASE.put("ping", new Skill("Ping", 10, 0, Difficulty.EASY));
+        SKILL_DATABASE.put("brute_force", new Skill("Brute Force", 20, 0, Difficulty.MEDIUM));
+        SKILL_DATABASE.put("buffer_overflow", new Skill("Buffer Overflow", 40, 0, Difficulty.HARD));
+        SKILL_DATABASE.put("sigkill", new Skill("SIGKILL", 80, 0, Difficulty.ULTIMATE));
+        SKILL_DATABASE.put("encryption", new Skill("Encryption", 80, 0, Difficulty.ULTIMATE));
+        SKILL_DATABASE.put("overclock", new Skill("Overclick", 0, 20, Difficulty.EASY));
     }
 
     /**
@@ -35,5 +37,9 @@ public class SkillRegistry {
         Skill skill = SKILL_DATABASE.get(id);
         assert skill != null : "Registered skill identifiers must map to a skill";
         return skill;
+    }
+
+    public static List<Skill> getAllSkills() {
+        return new ArrayList<>(SKILL_DATABASE.values());
     }
 }

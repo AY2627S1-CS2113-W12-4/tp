@@ -159,6 +159,7 @@ public class CombatEncounter extends Encounter {
 
     /**
      * Prepares a chosen skill's challenge without blocking for a submission.
+     * The player's signed bonus time is applied before the factory scales the countdown.
      *
      * @param chosenSkill skill selected by the player
      * @return challenge to display and time before submitting its result

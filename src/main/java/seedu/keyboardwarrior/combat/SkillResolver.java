@@ -29,7 +29,10 @@ public class SkillResolver {
         this(ui, GameDifficulty.HARD);
     }
 
-    /** Uses the selected run multiplier for typing attacks while keeping enemy base damage unchanged. */
+    /**
+     * Uses the selected run multiplier for typing attacks while keeping enemy base
+     * damage unchanged.
+     */
     public SkillResolver(CombatUi ui, GameDifficulty difficulty) {
         this.ui = Objects.requireNonNull(ui, "Combat interface must not be null");
         this.difficulty = Objects.requireNonNull(difficulty, "Game difficulty must not be null");
@@ -38,14 +41,15 @@ public class SkillResolver {
     /**
      * Resolves one skill use against a target.
      * Player damage is WPM multiplied by the fourth power of character accuracy
-     * as a fraction and the run difficulty multiplier, rounded down once at the end. The selected skill's base
+     * as a fraction and the run difficulty multiplier, rounded down once at the
+     * end. The selected skill's base
      * damage and the time limit do not modify this result. A {@code null} result
      * applies the skill's base damage directly for automated enemy turns.
      *
-     * @param source entity using the skill
-     * @param target entity receiving any damage
+     * @param source      entity using the skill
+     * @param target      entity receiving any damage
      * @param chosenSkill skill being used
-     * @param result typing performance, or {@code null} to use base damage
+     * @param result      typing performance, or {@code null} to use base damage
      * @throws NullPointerException if a participant or the chosen skill is null
      */
     public void execute(Entity source, Entity target, Skill chosenSkill, TypingResult result) {
@@ -61,9 +65,15 @@ public class SkillResolver {
         double damage = result.getWpm() * Math.pow(accuracy, 4) * difficulty.getMultiplier();
         assert accuracy >= 0.0 && accuracy <= 1.0 : "Typing accuracy must be normalized";
         assert Double.isFinite(damage) && damage >= 0.0 : "Typing damage must be valid";
-        // Retain fractional precision until the final conversion; Java caps extreme values at Integer.MAX_VALUE.
+        // Retain fractional precision until the final conversion; Java caps extreme
+        // values at Integer.MAX_VALUE.
         int calculatedDamage = (int) damage;
         assert calculatedDamage >= 0 : "Calculated damage must not be negative";
+        if (source instanceof Player && chosenSkill.getTimeBonus() != 0) {
+            Player player = (Player) source;
+            player.setBonusTime(player.getBonusTime() + chosenSkill.getTimeBonus());
+            ui.showTimeBonus(chosenSkill.getTimeBonus());
+        }
         applyDamage(target, calculatedDamage);
     }
 
@@ -82,7 +92,7 @@ public class SkillResolver {
         assert target.getHealth() == newHealth : "Target health must reflect the resolved damage";
 
         LOGGER.log(Level.FINE, "Applied {0} damage to {1}; health changed from {2} to {3}",
-                new Object[] {damage, target.getName(), currentHealth, newHealth});
+                new Object[] { damage, target.getName(), currentHealth, newHealth });
 
         ui.showDamage(target.getName(), damage);
     }
