@@ -2,6 +2,7 @@ package seedu.keyboardwarrior;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.IOException;
@@ -109,18 +110,87 @@ public class KeyboardWarrior {
     private static void runPlainGame(Reader input) throws IOException {
         StateUi.detachTerminal();
         StateUi.printLine("Live countdown is unavailable in this console. Press Enter to submit each passage.");
-        BufferedReader reader = new BufferedReader(input);
         StateMachine stateMachine = new StateMachine();
         stateMachine.start(new MainMenuState(stateMachine));
-        while (stateMachine.isRunning()) {
-            StateUi.showInputPrompt();
-            String line = reader.readLine();
-            if (line == null) {
-                stateMachine.stop();
-                break;
+        runPlainLoop(input, stateMachine);
+    }
+
+    /**
+     * Dispatches complete lines and safe waiting updates on the main thread.
+     * A separate reader permits delayed events to reveal their prompt without Enter;
+     * full typing updates remain disabled because unfinished text is not available.
+     * EOF and failures are queued after earlier lines, preserving the final unterminated line.
+     * The caller owns the stream; the daemon reader is interrupted rather than closing it.
+     *
+     * @param input line-buffered console stream
+     * @param stateMachine already-started state machine receiving input and waiting updates
+     * @throws IOException if the console reader fails
+     */
+    static void runPlainLoop(Reader input, StateMachine stateMachine) throws IOException {
+        BlockingQueue<PlainInput> inputQueue = new LinkedBlockingQueue<>();
+        Thread inputThread = startPlainReader(new BufferedReader(input), inputQueue);
+        StateUi.showInputPrompt();
+        try {
+            while (stateMachine.isRunning()) {
+                PlainInput next = inputQueue.poll(TICK_MILLIS, TimeUnit.MILLISECONDS);
+                if (next != null) {
+                    if (next.failure() != null) {
+                        throw next.failure();
+                    }
+                    if (next.line() == null) {
+                        stateMachine.stop();
+                        break;
+                    }
+                    stateMachine.handleInput(next.line());
+                    if (stateMachine.isRunning()) {
+                        StateUi.showInputPrompt();
+                    }
+                }
+                if (stateMachine.isRunning()) {
+                    stateMachine.updateWaiting();
+                }
             }
-            stateMachine.handleInput(line);
+        } catch (InterruptedException exception) {
+            LOGGER.fine("Plain game loop interrupted");
+            Thread.currentThread().interrupt();
+        } finally {
+            inputThread.interrupt();
+            if (stateMachine.isRunning()) {
+                stateMachine.stop();
+            }
         }
+    }
+
+    /**
+     * Reads complete plain-console lines without changing gameplay state.
+     *
+     * @param reader buffered input owned by the caller
+     * @param inputQueue FIFO receiving lines followed by EOF or an input failure
+     * @return started daemon reader, interrupted when the game loop stops
+     */
+    private static Thread startPlainReader(BufferedReader reader, BlockingQueue<PlainInput> inputQueue) {
+        Thread inputThread = new Thread(() -> {
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    String line = reader.readLine();
+                    inputQueue.offer(new PlainInput(line, null));
+                    if (line == null) {
+                        return;
+                    }
+                }
+            } catch (IOException exception) {
+                inputQueue.offer(new PlainInput(null, exception));
+            } catch (RuntimeException exception) {
+                inputQueue.offer(new PlainInput(null, new IOException("Console input reader failed", exception)));
+            }
+        }, "keyboard-warrior-plain-input");
+        inputThread.setDaemon(true);
+        inputThread.start();
+        return inputThread;
+    }
+
+    /** A queued line, or EOF when both fields are null, or a console failure. */
+    private record PlainInput(String line, IOException failure) {
     }
 
     /**

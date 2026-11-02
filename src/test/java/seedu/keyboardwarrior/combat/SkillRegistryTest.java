@@ -59,4 +59,17 @@ class SkillRegistryTest {
         assertEquals(6, SkillRegistry.getAllSkills().size());
         assertSame(first, SkillRegistry.getAllSkills().getFirst());
     }
+
+    /** Stable identifiers round-trip all shared definitions and reject lookalike custom skills. */
+    @Test
+    void getId_registeredSkills_roundTripAndRejectUnknownDefinitions() {
+        for (Skill skill : SkillRegistry.getAllSkills()) {
+            assertSame(skill, SkillRegistry.getSkill(SkillRegistry.getId(skill)));
+        }
+        assertThrows(NullPointerException.class, () -> SkillRegistry.getId(null));
+        assertThrows(IllegalArgumentException.class,
+                () -> SkillRegistry.getId(new Skill("Ping", 10, 0, Difficulty.EASY)));
+        assertEquals(List.of("ping", "brute_force", "buffer_overflow", "sigkill", "encryption"),
+                SkillRegistry.getDefaultPlayerSkillIds());
+    }
 }

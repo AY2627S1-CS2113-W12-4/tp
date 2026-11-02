@@ -1,26 +1,31 @@
 # Keyboard Warrior
 
-Keyboard Warrior is a terminal typing combat game. Choose a skill and type its passage to deal
-damage based on your typing speed and character accuracy. Survive five regular scenarios and
-both phases of the Kernel Overlord boss to win.
+Turn typing practice into an adventure. Complete five scenarios by choosing combat, a puzzle,
+a sudden ambush or a merchant conversation, then defeat both phases of the Kernel Overlord.
+Typing speed and character accuracy determine combat damage. Events can award Overclock,
+restore health or reduce future challenge allowances.
 
-Choose Easy, Normal, Hard or Coder difficulty, replay a run with a seed, and continue saved progress.
-Records shows your latest ten typing attempts; Leaderboard keeps your all-time best attempt.
-The game runs on Java 25 on Windows, macOS and Linux. Supported terminals provide a live countdown
-and automatic submission; other consoles use plain-text input submitted with Enter.
+Choose Easy, Normal, Hard or Coder difficulty, replay a seed, and continue your saved run.
+Records shows your latest ten typing responses; Leaderboard retains your all-time best.
+The same release JAR runs with JDK 25 on Windows, macOS and Linux. Supported terminals provide
+a live countdown and automatic submission; other consoles accept complete responses with Enter.
+
+## Get started
+
+1. [Download the release JAR](https://github.com/AY2627S1-CS2113-W12-4/tp/releases).
+2. With JDK 25 installed, run `java -jar "KeyboardWarrior.jar"` from its folder, substituting
+   the downloaded filename if necessary.
+3. Enter `start`, provide a seed or leave it blank, and choose one of the three displayed encounters.
 
 ## Guides
 
-- **[User Guide - read online](UserGuide.md):** Installation, menu commands, skills, scoring,
-  difficulty, seeds, saved progress, records and the leaderboard.
-- **[User Guide - download PDF](UserGuide.pdf):** A printable copy of the player instructions.
-- **[Developer Guide - read online](DeveloperGuide.md):** Architecture, implementation, UML
-  diagrams, storage formats and testing instructions.
-- **[Developer Guide - download PDF](DeveloperGuide.pdf):** A printable copy of the current guide,
-  including its UML diagrams.
+- **[User Guide - read online](UserGuide.md):** Installation, commands, encounters, skills,
+  deadlines, scoring, difficulty, seeds, saved progress, Records and Leaderboard.
+- **[Developer Guide - read online](DeveloperGuide.md):** Architecture, encounter lifecycle,
+  implementation, UML, persistence and testing.
 
 ## Project
 
-- [Download a release](https://github.com/AY2627S1-CS2113-W12-4/tp/releases)
+- [Releases](https://github.com/AY2627S1-CS2113-W12-4/tp/releases)
 - [Source code](https://github.com/AY2627S1-CS2113-W12-4/tp)
-- [About Us](AboutUs.md)
+- [About Us and project portfolios](AboutUs.md)

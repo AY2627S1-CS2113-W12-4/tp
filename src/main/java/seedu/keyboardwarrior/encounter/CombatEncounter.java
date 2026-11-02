@@ -151,6 +151,19 @@ public class CombatEncounter extends Encounter {
         if (!isStarted || isCompleted || pendingSkill != null) {
             throw new IllegalStateException("Combat can only be saved between active turns");
         }
+        return snapshotForSave();
+    }
+
+    /**
+     * Captures either an unselected combat offer or a stable player turn.
+     * Unfinished attacks and completed fights cannot be restored as fresh turns.
+     *
+     * @return current opponent and its next attack index
+     */
+    public CombatSnapshot snapshotForSave() {
+        if (isCompleted || pendingSkill != null) {
+            throw new IllegalStateException("Combat offers and stable turns alone can be saved");
+        }
         assert player.getHealth() > 0 && enemy.getHealth() > 0 : "Saved combat must have living participants";
         assert enemySkillIndex >= 0 && enemySkillIndex < enemy.getActiveSkills().size()
                 : "Saved combat must identify a valid next enemy attack";

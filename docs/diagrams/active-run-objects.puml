@@ -20,6 +20,7 @@ object "encounter:CombatEncounter" as encounter {
 }
 object "player:Player" as player {
   health = 90
+  bonusTime = 7
 }
 object "enemy:Enemy" as enemy {
   health = 25
@@ -27,6 +28,8 @@ object "enemy:Enemy" as enemy {
 object "factory:TypingChallengeFactory" as factory
 object "bank:PromptBank" as bank
 object "random:RunRandom" as random
+object "offers:EncounterFactory" as offers
+object "rewards:RewardPool" as rewards
 
 game --> encounter : encounter
 game --> player : player
@@ -38,11 +41,15 @@ game --> bank : promptBank
 factory --> bank : bank
 game --> random : random
 bank --> random : random
+game --> offers : encounterFactory
+offers --> random : random
+offers --> rewards : rewardPool
 
 note bottom of player
   Both references point to this one Player.
   Later encounters reuse the same player,
   factory, prompt bank and random source.
+  Earned skills and bonus time stay with the player.
 end note
 legend bottom
   Illustrative values, not a captured heap.

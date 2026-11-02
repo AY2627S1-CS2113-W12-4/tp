@@ -1032,6 +1032,29 @@ class GamePlayStateTest {
      */
     private static class RecordingStateMachine extends StateMachine {
         private State nextState;
+        private State activeState;
+
+        /** Selects the first combat offer so existing combat regressions keep following that path. */
+        @Override
+        public void start(State initialState) {
+            activeState = initialState;
+            super.start(initialState);
+            chooseCombatOffer();
+        }
+
+        /** Drives the combat-only route explicitly after each completed regular encounter. */
+        @Override
+        public void handleInput(String input) {
+            super.handleInput(input);
+            chooseCombatOffer();
+        }
+
+        /** Automates only encounter selection; skill selection and answers remain test-controlled. */
+        private void chooseCombatOffer() {
+            if (isRunning() && activeState instanceof GamePlayState gameplay && gameplay.isChoosingEncounter()) {
+                super.handleInput("1");
+            }
+        }
 
         /**
          * Records the requested destination and performs the normal state transition.
@@ -1041,7 +1064,9 @@ class GamePlayStateTest {
         @Override
         public void transitState(State nextState) {
             this.nextState = nextState;
+            activeState = nextState;
             super.transitState(nextState);
+            chooseCombatOffer();
         }
     }
 }

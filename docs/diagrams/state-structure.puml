@@ -15,12 +15,14 @@ class StateMachine {
   +transitState(nextState)
   +handleInput(input)
   +update()
+  +updateWaiting()
 }
 abstract class State {
   +enter()
   +exit()
   +handleInput(input)
   +update()
+  +updateWaiting()
 }
 class MainMenuState
 class DifficultySelectionState

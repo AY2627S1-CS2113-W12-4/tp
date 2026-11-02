@@ -1,5 +1,9 @@
 package seedu.keyboardwarrior.combat;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+
 /**
  * Represents the player and initializes the skills available to them.
  */
@@ -17,16 +21,22 @@ public class Player extends Entity {
      * @param health starting health points
      */
     public Player(String name, int health) {
-        super(name, health);
-
-        addSkill(SkillRegistry.getSkill("ping"));
-        addSkill(SkillRegistry.getSkill("brute_force"));
-        addSkill(SkillRegistry.getSkill("buffer_overflow"));
-        addSkill(SkillRegistry.getSkill("sigkill"));
-        addSkill(SkillRegistry.getSkill("encryption"));
+        this(name, health, SkillRegistry.getDefaultPlayerSkillIds().stream().map(SkillRegistry::getSkill).toList(), 0);
 
         assert activeSkills.size() == 5 && !activeSkills.contains(null)
                 : "Players must receive the complete standard skill loadout";
+    }
+
+    /** Restores an owned registered loadout and signed time adjustment without replaying rewards. */
+    public Player(String name, int health, List<Skill> skills, int bonusTime) {
+        super(name, health);
+        List<Skill> restoredSkills = List.copyOf(Objects.requireNonNull(skills, "Player skills must not be null"));
+        if (restoredSkills.isEmpty() || new HashSet<>(restoredSkills).size() != restoredSkills.size()) {
+            throw new IllegalArgumentException("Player skills must be nonempty and distinct");
+        }
+        restoredSkills.forEach(SkillRegistry::getId);
+        restoredSkills.forEach(this::addSkill);
+        this.bonusTime = bonusTime;
     }
 
     /**

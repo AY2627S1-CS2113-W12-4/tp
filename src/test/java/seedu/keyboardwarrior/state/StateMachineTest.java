@@ -21,6 +21,7 @@ class StateMachineTest {
 
         assertThrows(IllegalStateException.class, () -> machine.handleInput("start"));
         assertThrows(IllegalStateException.class, machine::update);
+        assertThrows(IllegalStateException.class, machine::updateWaiting);
         assertThrows(IllegalStateException.class, () -> machine.transitState(state));
         assertThrows(IllegalStateException.class, machine::stop);
         assertEquals(0, state.enterCount);
@@ -80,6 +81,23 @@ class StateMachineTest {
         assertEquals("start", second.lastInput);
     }
 
+    /** Checks that plain-console ticks use the safe hook on the current state only. */
+    @Test
+    void updateWaiting_activeState_delegatesWithoutFullUpdate() {
+        StateMachine machine = new StateMachine();
+        RecordingState first = new RecordingState(machine);
+        RecordingState second = new RecordingState(machine);
+        machine.start(first);
+        machine.updateWaiting();
+        machine.transitState(second);
+        machine.updateWaiting();
+
+        assertEquals(1, first.waitingUpdateCount);
+        assertEquals(1, second.waitingUpdateCount);
+        assertEquals(0, first.updateCount);
+        assertEquals(0, second.updateCount);
+    }
+
     /**
      * Checks that repeated stopping exits once and rejects further lifecycle operations.
      */
@@ -95,6 +113,7 @@ class StateMachineTest {
         assertEquals(1, state.exitCount);
         assertThrows(IllegalStateException.class, () -> machine.handleInput("start"));
         assertThrows(IllegalStateException.class, machine::update);
+        assertThrows(IllegalStateException.class, machine::updateWaiting);
         assertThrows(IllegalStateException.class, () -> machine.transitState(new RecordingState(machine)));
         assertThrows(IllegalStateException.class, () -> machine.start(new RecordingState(machine)));
     }
@@ -114,6 +133,7 @@ class StateMachineTest {
         private int enterCount;
         private int exitCount;
         private int updateCount;
+        private int waitingUpdateCount;
         private String lastInput;
 
         /**
@@ -157,6 +177,12 @@ class StateMachineTest {
         @Override
         public void update() {
             updateCount++;
+        }
+
+        /** Counts safe waiting callbacks independently from full typing updates. */
+        @Override
+        public void updateWaiting() {
+            waitingUpdateCount++;
         }
     }
 }

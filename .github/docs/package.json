@@ -1,0 +1,9 @@
+{
+  "name": "keyboardwarrior-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Builds the product website directly from the maintained Markdown guides and PPPs.",
+  "dependencies": {
+    "marked": "17.0.5"
+  }
+}
