@@ -26,12 +26,15 @@ public class ReactionEncounter extends EventEncounter {
     private final String targetWord;
     /** Same master random instance used to select the encounter and its command. */
     private final Random random;
-    /** Supplies wall-clock milliseconds; tests can advance time without sleeping. */
+    /**
+     * Supplies wall-clock milliseconds; tests can advance time without sleeping.
+     */
     private final LongSupplier currentTimeMillis;
     /** Wall-clock time in milliseconds at which preparation began. */
     private long startTime;
     /** Delay before revealing the command, in milliseconds. */
     private long delayMillis;
+
     /**
      * Creates a reaction event without consuming randomness until preparation.
      *
@@ -48,10 +51,10 @@ public class ReactionEncounter extends EventEncounter {
     /**
      * Creates a reaction event with a controllable clock for lifecycle tests.
      *
-     * @param player player whose health changes after the response
-     * @param ui interface for reaction prompts and results
-     * @param targetWord command to enter when revealed
-     * @param random run's shared random instance
+     * @param player            player whose health changes after the response
+     * @param ui                interface for reaction prompts and results
+     * @param targetWord        command to enter when revealed
+     * @param random            run's shared random instance
      * @param currentTimeMillis supplier of wall-clock milliseconds
      */
     ReactionEncounter(Player player, EventUi ui, String targetWord, Random random, LongSupplier currentTimeMillis) {
@@ -114,14 +117,16 @@ public class ReactionEncounter extends EventEncounter {
      * @param factory shared factory; unused because this event has no follow-up
      *                challenge
      * @return {@code null}, as this event has finished
-     * @throws IllegalStateException if the reaction prompt is not currently accepting an answer
-     * @throws NullPointerException if the submitted input is null
+     * @throws IllegalStateException if the reaction prompt is not currently
+     *                               accepting an answer
+     * @throws NullPointerException  if the submitted input is null
      */
     @Override
     public TypingChallenge submitAnswer(String input, TypingChallengeFactory factory) {
         requirePhase(EventPhase.ACCEPTING_ANSWER);
         String answer = Objects.requireNonNull(input, "Reaction answer must not be null").trim();
-        // Consume the answer before applying effects so callbacks or failures cannot repeat rewards.
+        // Consume the answer before applying effects so callbacks or failures cannot
+        // repeat rewards.
         phase = EventPhase.RESOLVING;
         if (answer.equalsIgnoreCase(targetWord)) {
             int previousHealth = player.getHealth();

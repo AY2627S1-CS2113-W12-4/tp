@@ -4,7 +4,8 @@ import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.typing.PuzzleBank.Puzzle;
 
 /**
- * Displays puzzle and reaction prompts and their reported rewards or penalties.
+ * Displays puzzle, reaction and dialogue prompts and their reported rewards or penalties.
+ * These methods only print feedback; encounters are responsible for applying player effects.
  */
 public class EventUi {
 
@@ -83,29 +84,55 @@ public class EventUi {
         StateUi.printLine("You took " + damage + " damage! You have " + currentHP + " HP remaining.");
     }
 
+    /**
+     * Prints one line of conversation or instructions for a dialogue response.
+     *
+     * @param text dialogue text to display
+     */
     public void showDialogueText(String text) {
         StateUi.printLine(text);
     }
 
+    /**
+     * Announces the name of the skill granted by a successful trade.
+     *
+     * @param newSkill awarded skill
+     */
     public void showDialogueVictory(Skill newSkill) {
         StateUi.printLine("Deal struck! You earned a new Skill.");
+        StateUi.printLine("You have received: " + newSkill.getName() + "!");
     }
 
+    /**
+     * Announces the potion reward offered when the merchant's skill pool is empty.
+     * This method reports the supplied values without changing player health.
+     *
+     * @param increaseAmount reported health reward
+     * @param currentHP player's health supplied by the encounter
+     */
     public void showAltDialogueVictory(int increaseAmount, int currentHP) {
         StateUi.printLine("He has no Skills left. Take a potion!");
         StateUi.printLine("HP increased by " + increaseAmount + ". Current HP: " + currentHP);
 
     }
 
+    /** Announces a failed trade response and the resulting future-countdown penalty. */
     public void showDialogueDefeat1() {
         StateUi.printLine("You hesitated! He revokes the deal and kicks you out.");
         StateUi.printLine("The event left you a little dazed. Your reply time has been reduced.");
     }
 
+    /** Announces a successful escape with no reward or penalty. */
     public void showDialogueNeutral() {
         StateUi.printLine("You escaped the guards without a scratch");
     }
 
+    /**
+     * Reports a failed escape, guard damage and the player's remaining health.
+     *
+     * @param damage reported guard damage
+     * @param currentHP player's health after damage
+     */
     public void showDialogueDefeat2(int damage, int currentHP) {
         StateUi.printLine("The guards catch you!");
         StateUi.printLine("You took " + damage + " damage! You have " + currentHP + " HP remaining.");

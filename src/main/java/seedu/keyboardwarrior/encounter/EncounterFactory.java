@@ -34,26 +34,29 @@ public class EncounterFactory {
      */
     private final ReactionBank reactionBank;
 
-    /** Shared pool of unclaimed skill rewards, initialized for the constructor's player. */
+    /**
+     * Shared pool of unclaimed skill rewards, initialized for the constructor's
+     * player.
+     */
     private final RewardPool rewardPool;
 
     /**
-     * Event categories sampled uniformly; dialogue currently uses the puzzle
-     * placeholder.
+     * Event categories sampled uniformly from the implemented encounters.
      */
     private enum EventType {
         /** Presents a question and checks the submitted answer. */
         PuzzleEvent,
         /** Delays a command before requesting a quick response. */
         ReactionEvent,
-        /** Reserved for dialogue events; currently creates a puzzle instead. */
+        /** Runs a branching merchant conversation. */
         DialogueEvent
     }
 
     /**
      * Creates the event banks and reward pool using the supplied random instance.
      * The pool excludes skills owned by the supplied player at construction.
-     * Keep this factory for that player's run so offered puzzles share the remaining rewards.
+     * Keep this factory for that player's run so offered puzzles share the
+     * remaining rewards.
      *
      * @param random nonnull master random instance shared by the current run
      * @param player player whose existing skills are excluded from the reward pool
@@ -73,7 +76,8 @@ public class EncounterFactory {
      * Combat currently uses default enemy health and the constructor's default
      * damage difficulty.
      *
-     * @param player                 same player used to initialize this factory's reward pool
+     * @param player                 same player used to initialize this factory's
+     *                               reward pool
      * @param combatUi               interface for combat encounters
      * @param eventUi                interface for event encounters
      * @param typingChallengeFactory run's shared prompt factory, backed by the same
@@ -105,12 +109,12 @@ public class EncounterFactory {
      * Samples an event category and its content from the run's shared random
      * sequence.
      * Reaction encounters retain that same instance for their later delay
-     * selection. Puzzle encounters share the factory's reward pool and draw a reward
-     * only when a correct answer is submitted.
+     * selection. Puzzle and dialogue encounters share the factory's reward pool
+     * and draw rewards only when their reward conditions are met.
      *
      * @param player  player receiving the event's effects
      * @param eventUi interface used to display the event
-     * @return a fresh event, with dialogue temporarily represented by a puzzle
+     * @return a fresh puzzle, reaction or dialogue event
      */
     private EventEncounter getRandomEvent(Player player, EventUi eventUi) {
         EventType[] allTypes = EventType.values();
@@ -122,8 +126,7 @@ public class EncounterFactory {
         case ReactionEvent:
             return new ReactionEncounter(player, eventUi, reactionBank.getRandomReaction(), random);
         case DialogueEvent:
-            // TODO: Replace with DialogueEvent once implemented.
-            return new PuzzleEncounter(player, eventUi, puzzleBank.getRandomPuzzle(), random, rewardPool);
+            return new DialogueEncounter(player, eventUi, rewardPool);
         default:
             return new PuzzleEncounter(player, eventUi, puzzleBank.getRandomPuzzle(), random, rewardPool);
         }
