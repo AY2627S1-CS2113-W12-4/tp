@@ -176,7 +176,7 @@ public class CombatEncounter extends Encounter {
             throw new IllegalArgumentException("Chosen skill must be available to the player.");
         }
         assert player.getHealth() > 0 && enemy.getHealth() > 0 : "A player turn requires living participants";
-        TypingChallenge challenge = challengeFactory.generateForSkill(chosenSkill);
+        TypingChallenge challenge = challengeFactory.generateForSkill(chosenSkill, player.getBonusTime());
         assert challenge != null : "The challenge factory must generate a challenge";
         ui.showTypingPrep();
         pendingSkill = chosenSkill;

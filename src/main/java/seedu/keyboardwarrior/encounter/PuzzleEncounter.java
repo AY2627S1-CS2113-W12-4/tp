@@ -13,8 +13,8 @@ public class PuzzleEncounter extends EventEncounter {
 
     private final Puzzle puzzle;
 
-    private static final int PUZZLE_BASE_TIME_LIMIT = 30;
-    private static final int PUZZLE_BASE_DAMAGE = 15;
+    private static final int BASE_TIME_LIMIT = 30;
+    private static final int BONUS_TIME_REDUCTION = -2;
 
     public PuzzleEncounter(Player player, EventUi ui, Puzzle puzzle) {
         super(player, ui);
@@ -24,7 +24,7 @@ public class PuzzleEncounter extends EventEncounter {
     @Override
     public TypingChallenge prepareEvent(TypingChallengeFactory factory) {
         ui.showPuzzle(puzzle);
-        return factory.generateCustom(puzzle.answer(), PUZZLE_BASE_TIME_LIMIT);
+        return factory.generateCustom(puzzle.answer(), BASE_TIME_LIMIT + player.getBonusTime());
     }
 
     @Override
@@ -33,8 +33,8 @@ public class PuzzleEncounter extends EventEncounter {
             // TODO: generate Skill reward, then call ui.showVictory(skill)
             this.outcome.setVictory(true);
         } else {
-            player.setHealth(player.getHealth() - PUZZLE_BASE_DAMAGE);
-            ui.showDefeat(PUZZLE_BASE_DAMAGE, player.getHealth());
+            player.setBonusTime(player.getBonusTime() + BONUS_TIME_REDUCTION);
+            ui.showPuzzleDefeat();
             this.outcome.setVictory(player.getHealth() > 0);
         }
 

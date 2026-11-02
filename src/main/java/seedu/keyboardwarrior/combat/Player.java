@@ -4,10 +4,12 @@ package seedu.keyboardwarrior.combat;
  * Represents the player and initializes the skills available to them.
  */
 public class Player extends Entity {
+    private int bonusTime = 0;
+
     /**
      * Creates a player with all skills from the standard player loadout.
      *
-     * @param name name displayed during combat
+     * @param name   name displayed during combat
      * @param health starting health points
      */
     public Player(String name, int health) {
@@ -21,5 +23,13 @@ public class Player extends Entity {
 
         assert activeSkills.size() == 5 && !activeSkills.contains(null)
                 : "Players must receive the complete standard skill loadout";
+    }
+
+    public void setBonusTime(int time) {
+        this.bonusTime = time;
+    }
+
+    public int getBonusTime() {
+        return bonusTime;
     }
 }
