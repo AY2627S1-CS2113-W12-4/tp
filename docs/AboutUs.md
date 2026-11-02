@@ -8,3 +8,4 @@ Display | Name | GitHub profile | Portfolio
 <img src="https://avatars.githubusercontent.com/u/182413031?v=4" width="60" height="60"> | Nguyen Duc Khoa | [Github](https://github.com/Lmaokx) | [Portfolio](team/lmaokx.md)
 <img src="https://avatars.githubusercontent.com/u/205896500?v=4" width="60" height="60"> | Truong Phi Hung | [GitHub](https://github.com/vanitasluna) | [Portfolio](team/vanitasluna.md)
 <img src="https://avatars.githubusercontent.com/u/219258069?v=4" width="60" height="60"> | Tiu Sheng Yang | [Github](https://github.com/shengyang2010) | [Portfolio](team/shengyang2010.md)
+
