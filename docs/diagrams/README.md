@@ -1,10 +1,12 @@
 # Developer Guide diagrams
 
-These figures accompany enhancements 8.1 and 8.2 in the [Developer Guide](../DeveloperGuide.md).
+These figures explain typing evaluation, run progression and persistent typing records in the
+[Developer Guide](../DeveloperGuide.md).
 
 | Figure | Scope | Source | Display image |
 | --- | --- | --- | --- |
 | Typing evaluation | Static evaluation calls and immutable result return | [PlantUML](typing-evaluation.puml) | [SVG](typing-evaluation.svg) |
+| Typing-history save | Initialize and update the all-time best before rotating the latest-ten history; successful save path | [PlantUML](typing-history-save.puml) | [SVG](typing-history-save.svg) |
 | Run progression | References among the state, encounter, participants and factory | [PlantUML](run-progression.puml) | [SVG](run-progression.svg) |
 | Boss phase transition | Phase 1 victory creating and beginning phase 2 | [PlantUML](boss-phase-transition.puml) | [SVG](boss-phase-transition.svg) |
 
