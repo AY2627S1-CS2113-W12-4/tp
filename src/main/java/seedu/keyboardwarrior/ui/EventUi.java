@@ -29,6 +29,12 @@ public class EventUi {
         StateUi.printLine("You have received: " + newSkill.getName() + "!");
     }
 
+    /**
+     * Announces the health reward given when a solved puzzle has no remaining skill rewards.
+     *
+     * @param increaseAmount health awarded instead of a skill
+     * @param currentHP player's health after the reward
+     */
     public void showAltPuzzleVictory(int increaseAmount, int currentHP) {
         StateUi.printLine("You have learned all that I can teach you. Come, rest with me and we shall learn together.");
         StateUi.printLine("HP increased by " + increaseAmount + ". Current HP: " + currentHP);

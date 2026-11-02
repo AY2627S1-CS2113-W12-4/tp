@@ -41,6 +41,19 @@ public class Player extends Entity {
     }
 
     /**
+     * Adds a signed countdown adjustment, saturating at the integer limits instead of wrapping.
+     *
+     * @param seconds adjustment to add before challenge difficulty scaling
+     * @return actual change, which may be smaller in magnitude at an integer limit
+     */
+    public int addBonusTime(int seconds) {
+        int previousTime = bonusTime;
+        bonusTime = (int) Math.max(Integer.MIN_VALUE,
+                Math.min(Integer.MAX_VALUE, (long) bonusTime + seconds));
+        return bonusTime - previousTime;
+    }
+
+    /**
      * Returns the adjustment carried between encounters in this player instance.
      *
      * @return signed countdown adjustment in seconds

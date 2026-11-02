@@ -65,8 +65,7 @@ public class TypingChallengeFactory {
     public TypingChallenge generateForSkill(Skill skill, int bonusTime) {
         Objects.requireNonNull(skill, "Skill must not be null");
         if (skill.getName().equalsIgnoreCase("Encryption")) {
-            assert (long) 60 + bonusTime <= Integer.MAX_VALUE : "Adjusted Encryption time must not overflow";
-            int finalTime = Math.max(60 + bonusTime, MIN_TYPING_TIME);
+            int finalTime = adjustedSkillTime(60, bonusTime);
             return new TypingChallenge(bank.getEncryptionPrompt(), gameDifficulty.scaleCountdown(finalTime));
         }
         return generate(skill.getDifficulty(), bonusTime);
@@ -106,10 +105,20 @@ public class TypingChallengeFactory {
         int passageTime = (int) Math.ceil(characterCount * 60.0 / (5.0 * TARGET_WPM) * TIME_ALLOWANCE);
         int timeLimit = Math.max(getMinimumTimeLimit(difficulty), passageTime);
 
-        assert (long) timeLimit + bonusTime <= Integer.MAX_VALUE : "Adjusted passage time must not overflow";
-        int finalTime = Math.max(timeLimit + bonusTime, MIN_TYPING_TIME);
+        int finalTime = adjustedSkillTime(timeLimit, bonusTime);
 
         return new TypingChallenge(selectedText, gameDifficulty.scaleCountdown(finalTime));
+    }
+
+    /**
+     * Adds a signed adjustment without overflow, preserving the skill countdown minimum.
+     *
+     * @param baseTime positive unadjusted countdown in seconds
+     * @param bonusTime signed adjustment before difficulty scaling
+     * @return adjusted seconds between the skill minimum and {@link Integer#MAX_VALUE}
+     */
+    private int adjustedSkillTime(int baseTime, int bonusTime) {
+        return (int) Math.max(MIN_TYPING_TIME, Math.min(Integer.MAX_VALUE, (long) baseTime + bonusTime));
     }
 
     /**

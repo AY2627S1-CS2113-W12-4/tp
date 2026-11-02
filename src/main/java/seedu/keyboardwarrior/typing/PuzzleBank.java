@@ -7,7 +7,7 @@ import java.util.Random;
 /**
  * Stores puzzle questions and answers and selects them using the run's shared
  * random source.
- * The bank currently contains only an empty placeholder puzzle.
+ * Includes riddles, word scrambles, sequences and decoding questions with fixed expected answers.
  */
 public class PuzzleBank {
 
@@ -20,7 +20,7 @@ public class PuzzleBank {
     public record Puzzle(String question, String answer) {
     }
 
-    /** Registered puzzle content, currently awaiting real questions and answers. */
+    /** Registered questions and their expected answers. */
     private final List<Puzzle> puzzles = new ArrayList<>();
     /** Master random instance supplied by the encounter factory. */
     private final Random random;
@@ -48,7 +48,8 @@ public class PuzzleBank {
 
         // Logic and Sequences
         puzzles.add(new Puzzle(
-                "If you multiply this number by any other number, the answer will always be the same. What is the number?",
+                "If you multiply this number by any other number, the answer will always be the same. "
+                        + "What is the number?",
                 "0"));
         puzzles.add(new Puzzle("What is the next letter in this sequence? O, T, T, F, F, S, S, E, __", "n"));
         puzzles.add(new Puzzle("Some months have 31 days. How many have 28?", "12"));
@@ -64,7 +65,7 @@ public class PuzzleBank {
     /**
      * Selects a registered puzzle; consecutive repeats are allowed.
      *
-     * @return selected puzzle record, which may currently be the empty placeholder
+     * @return selected question and expected answer
      */
     public Puzzle getRandomPuzzle() {
         assert !puzzles.isEmpty() && !puzzles.contains(null) : "The puzzle bank must contain selectable records";

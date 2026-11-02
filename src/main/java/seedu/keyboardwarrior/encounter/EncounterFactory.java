@@ -34,6 +34,7 @@ public class EncounterFactory {
      */
     private final ReactionBank reactionBank;
 
+    /** Shared pool of unclaimed skill rewards, initialized for the constructor's player. */
     private final RewardPool rewardPool;
 
     /**
@@ -50,10 +51,12 @@ public class EncounterFactory {
     }
 
     /**
-     * Creates the event banks without replacing or reseeding the supplied random
-     * source.
+     * Creates the event banks and reward pool using the supplied random instance.
+     * The pool excludes skills owned by the supplied player at construction.
+     * Keep this factory for that player's run so offered puzzles share the remaining rewards.
      *
      * @param random nonnull master random instance shared by the current run
+     * @param player player whose existing skills are excluded from the reward pool
      */
     public EncounterFactory(Random random, Player player) {
         this.random = random;
@@ -70,7 +73,7 @@ public class EncounterFactory {
      * Combat currently uses default enemy health and the constructor's default
      * damage difficulty.
      *
-     * @param player                 player shared by the offered encounters
+     * @param player                 same player used to initialize this factory's reward pool
      * @param combatUi               interface for combat encounters
      * @param eventUi                interface for event encounters
      * @param typingChallengeFactory run's shared prompt factory, backed by the same
@@ -102,7 +105,8 @@ public class EncounterFactory {
      * Samples an event category and its content from the run's shared random
      * sequence.
      * Reaction encounters retain that same instance for their later delay
-     * selection.
+     * selection. Puzzle encounters share the factory's reward pool and draw a reward
+     * only when a correct answer is submitted.
      *
      * @param player  player receiving the event's effects
      * @param eventUi interface used to display the event

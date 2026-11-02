@@ -167,6 +167,12 @@ public class CombatUi {
         StateUi.printLine("Dealt " + damage + " damage to " + name);
     }
 
+    /**
+     * Reports the time bonus that the resolver has added to the player's countdown adjustment.
+     * This display method does not change the player or an active challenge's timer.
+     *
+     * @param timeBonus time adjustment in seconds before difficulty scaling
+     */
     public void showTimeBonus(int timeBonus) {
         StateUi.printLine("Time increased! +" + timeBonus + " seconds.");
     }

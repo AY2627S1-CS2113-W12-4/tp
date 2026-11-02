@@ -19,7 +19,7 @@ public class SkillRegistry {
         SKILL_DATABASE.put("buffer_overflow", new Skill("Buffer Overflow", 40, 0, Difficulty.HARD));
         SKILL_DATABASE.put("sigkill", new Skill("SIGKILL", 80, 0, Difficulty.ULTIMATE));
         SKILL_DATABASE.put("encryption", new Skill("Encryption", 80, 0, Difficulty.ULTIMATE));
-        SKILL_DATABASE.put("overclock", new Skill("Overclick", 0, 20, Difficulty.EASY));
+        SKILL_DATABASE.put("overclock", new Skill("Overclock", 0, 20, Difficulty.EASY));
     }
 
     /**
@@ -39,7 +39,21 @@ public class SkillRegistry {
         return skill;
     }
 
+    /**
+     * Returns a mutable copy of the registered skills sorted by registry identifier.
+     * Removing entries from the returned list does not modify the registry.
+     * Skill objects themselves are shared. Stable ordering ensures that a seeded reward
+     * draw does not depend on the hash map's iteration order.
+     *
+     * @return a new list containing the registry's shared skill instances
+     */
     public static List<Skill> getAllSkills() {
-        return new ArrayList<>(SKILL_DATABASE.values());
+        List<String> skillIds = new ArrayList<>(SKILL_DATABASE.keySet());
+        skillIds.sort(String::compareTo);
+        List<Skill> skills = new ArrayList<>();
+        for (String id : skillIds) {
+            skills.add(SKILL_DATABASE.get(id));
+        }
+        return skills;
     }
 }

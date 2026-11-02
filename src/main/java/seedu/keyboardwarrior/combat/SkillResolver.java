@@ -9,9 +9,11 @@ import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
 
 /**
- * Calculates and applies the damage produced by a selected combat skill.
+ * Calculates combat damage and applies a selected skill's countdown effect to a player.
  */
 public class SkillResolver {
+    /** WPM at which perfect typing on Hard earns the skill's full base time bonus. */
+    private static final double TIME_BONUS_BASELINE_WPM = 50.0;
     /**
      * Optional combat diagnostics; FINE messages do not appear in normal gameplay.
      */
@@ -45,6 +47,12 @@ public class SkillResolver {
      * end. The selected skill's base
      * damage and the time limit do not modify this result. A {@code null} result
      * applies the skill's base damage directly for automated enemy turns.
+     * A player's time adjustment is {@code floor(baseBonus * (WPM / 50) * accuracy^4 * multiplier)},
+     * using the unrounded performance calculation. Zero speed or accuracy earns no bonus;
+     * exceeding the deadline adds no separate penalty, just as for damage.
+     * The adjustment and accumulated total saturate at integer limits rather than wrapping.
+     * It affects subsequent challenges before their usual countdown scaling, consumes no randomness,
+     * and is not applied on the {@code null}-result path.
      *
      * @param source      entity using the skill
      * @param target      entity receiving any damage
@@ -71,8 +79,12 @@ public class SkillResolver {
         assert calculatedDamage >= 0 : "Calculated damage must not be negative";
         if (source instanceof Player && chosenSkill.getTimeBonus() != 0) {
             Player player = (Player) source;
-            player.setBonusTime(player.getBonusTime() + chosenSkill.getTimeBonus());
-            ui.showTimeBonus(chosenSkill.getTimeBonus());
+            // Use unrounded damage to retain fractional performance; the cast saturates at integer limits.
+            int scaledBonus = (int) Math.floor(chosenSkill.getTimeBonus() * (damage / TIME_BONUS_BASELINE_WPM));
+            int appliedBonus = player.addBonusTime(scaledBonus);
+            if (appliedBonus != 0) {
+                ui.showTimeBonus(appliedBonus);
+            }
         }
         applyDamage(target, calculatedDamage);
     }
