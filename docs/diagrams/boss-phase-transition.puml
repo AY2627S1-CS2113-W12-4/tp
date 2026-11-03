@@ -14,6 +14,8 @@ participant "EnemyFactory" as factory <<class>>
 
 activate game
 note over game : Inside finishAttempt(...).
+game -> game : resolveAttempt(...)
+activate game
 game -> phase1 : submitTypingResult(...)
 activate phase1
 note right of phase1
@@ -21,7 +23,10 @@ note right of phase1
   No retaliation.
 end note
 return
+return
 
+game -> game : advanceAfterAttempt()
+activate game
 game -> phase1 : getIsCompleted()
 activate phase1
 return true
@@ -50,6 +55,7 @@ activate phase2
 return
 return
 return true
+return
 
 note over game, phase2
   Same player, prompt factory and difficulty.

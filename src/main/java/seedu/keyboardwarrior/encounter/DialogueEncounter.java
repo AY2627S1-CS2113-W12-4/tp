@@ -132,33 +132,10 @@ public class DialogueEncounter extends EventEncounter {
 
         switch (dialogueNode) {
         case 1:
-            if (answer.equalsIgnoreCase(currentExpectedAnswer)) {
-                Skill reward = rewardPool.popRandomReward();
-                if (reward != null) {
-                    player.addSkill(reward);
-                    ui.showDialogueVictory(reward);
-                } else {
-                    int previousHealth = player.getHealth();
-                    player.setHealth((int) Math.min(Integer.MAX_VALUE, (long) previousHealth + HEALTH_REWARD));
-                    assert player.getHealth() >= previousHealth : "Healing must not reduce health";
-                    ui.showAltDialogueVictory(player.getHealth() - previousHealth, player.getHealth());
-                }
-            } else {
-                player.addBonusTime(TIME_PENALTY);
-                ui.showDialogueDefeat1();
-            }
+            resolveTrade(answer);
             break;
         case 2:
-            if (answer.equalsIgnoreCase(currentExpectedAnswer)) {
-                ui.showDialogueNeutral();
-            } else {
-                player.setHealth(player.getHealth() - DAMAGE_PENALTY);
-                if (player.getHealth() == 0) {
-                    player.setIsDead(true);
-                }
-                assert player.getHealth() > 0 || player.getIsDead() : "Lethal guard damage must mark defeat";
-                ui.showDialogueDefeat2(DAMAGE_PENALTY, player.getHealth());
-            }
+            resolveEscape(answer);
             break;
         default:
             throw new IllegalStateException("Unsupported dialogue node: " + dialogueNode);
@@ -167,6 +144,44 @@ public class DialogueEncounter extends EventEncounter {
         this.outcome.setVictory(player.getHealth() > 0);
         completeEvent();
         return null;
+    }
+
+    /** Grants the trade reward or applies the failed response's countdown penalty. */
+    private void resolveTrade(String answer) {
+        if (answer.equalsIgnoreCase(currentExpectedAnswer)) {
+            grantTradeReward();
+        } else {
+            player.addBonusTime(TIME_PENALTY);
+            ui.showDialogueDefeat1();
+        }
+    }
+
+    /** Draws one available skill, falling back to healing only when the reward pool is empty. */
+    private void grantTradeReward() {
+        Skill reward = rewardPool.popRandomReward();
+        if (reward != null) {
+            player.addSkill(reward);
+            ui.showDialogueVictory(reward);
+        } else {
+            int previousHealth = player.getHealth();
+            player.setHealth((int) Math.min(Integer.MAX_VALUE, (long) previousHealth + HEALTH_REWARD));
+            assert player.getHealth() >= previousHealth : "Healing must not reduce health";
+            ui.showAltDialogueVictory(player.getHealth() - previousHealth, player.getHealth());
+        }
+    }
+
+    /** Reports a successful escape or applies guard damage and marks lethal defeat. */
+    private void resolveEscape(String answer) {
+        if (answer.equalsIgnoreCase(currentExpectedAnswer)) {
+            ui.showDialogueNeutral();
+        } else {
+            player.setHealth(player.getHealth() - DAMAGE_PENALTY);
+            if (player.getHealth() == 0) {
+                player.setIsDead(true);
+            }
+            assert player.getHealth() > 0 || player.getIsDead() : "Lethal guard damage must mark defeat";
+            ui.showDialogueDefeat2(DAMAGE_PENALTY, player.getHealth());
+        }
     }
 
     /**

@@ -42,6 +42,14 @@ public record GameSave(int version, GameDifficulty difficulty, int playerHealth,
         Objects.requireNonNull(enemyType, "Saved enemy type must not be null");
         skillIds = List.copyOf(Objects.requireNonNull(skillIds, "Saved skills must not be null"));
         choices = List.copyOf(Objects.requireNonNull(choices, "Saved choices must not be null"));
+        validateRunProgress(version, playerHealth, scenarioIndex, bossPhase);
+        validateSkills(skillIds);
+        validateEncounterSelection(choices, activeEncounter, scenarioIndex, bossPhase);
+        validateCombatFields(activeEncounter, enemyType, enemyHealth, nextEnemySkillIndex);
+    }
+
+    /** Rejects unsupported versions, defeated players and inconsistent scenario or boss progress. */
+    private static void validateRunProgress(int version, int playerHealth, int scenarioIndex, int bossPhase) {
         if (version != CURRENT_VERSION) {
             throw new IllegalArgumentException("Unsupported game save version: " + version);
         }
@@ -52,28 +60,47 @@ public record GameSave(int version, GameDifficulty difficulty, int playerHealth,
                 && !(bossPhase >= 1 && bossPhase <= 2 && scenarioIndex == 5)) {
             throw new IllegalArgumentException("Saved scenario and boss phase are inconsistent");
         }
+    }
+
+    /** Requires distinct registered skills containing the complete starting loadout. */
+    private static void validateSkills(List<String> skillIds) {
         if (new HashSet<>(skillIds).size() != skillIds.size()
                 || !skillIds.containsAll(SkillRegistry.getDefaultPlayerSkillIds())) {
             throw new IllegalArgumentException("Saved skills must be distinct and include the starting loadout");
         }
         skillIds.forEach(SkillRegistry::getSkill);
+    }
+
+    /** Requires pending choices or one active encounter, validating each against the run's progress. */
+    private static void validateEncounterSelection(List<EncounterSnapshot> choices, EncounterSnapshot activeEncounter,
+            int scenarioIndex, int bossPhase) {
         if (activeEncounter == null) {
-            if (bossPhase != 0 || choices.size() != 3
-                    || !choices.get(0).type().equals("combat") || choices.get(1).type().equals("combat")) {
-                throw new IllegalArgumentException("Saved selection must contain three valid encounter choices");
-            }
-            for (EncounterSnapshot choice : choices) {
-                if (!choice.type().equals("combat") && !choice.data().get("phase").equals("NOT_STARTED")) {
-                    throw new IllegalArgumentException("Offered events must not already be started");
-                }
-                validateEncounter(choice, scenarioIndex, bossPhase);
-            }
+            validateChoices(choices, scenarioIndex, bossPhase);
         } else {
             if (!choices.isEmpty()) {
                 throw new IllegalArgumentException("An active encounter cannot also contain pending choices");
             }
             validateEncounter(activeEncounter, scenarioIndex, bossPhase);
         }
+    }
+
+    /** Checks the offer's composition and ensures no offered event has already started. */
+    private static void validateChoices(List<EncounterSnapshot> choices, int scenarioIndex, int bossPhase) {
+        if (bossPhase != 0 || choices.size() != 3
+                || !choices.get(0).type().equals("combat") || choices.get(1).type().equals("combat")) {
+            throw new IllegalArgumentException("Saved selection must contain three valid encounter choices");
+        }
+        for (EncounterSnapshot choice : choices) {
+            if (!choice.type().equals("combat") && !choice.data().get("phase").equals("NOT_STARTED")) {
+                throw new IllegalArgumentException("Offered events must not already be started");
+            }
+            validateEncounter(choice, scenarioIndex, bossPhase);
+        }
+    }
+
+    /** Keeps legacy opponent fields consistent with the active encounter representation. */
+    private static void validateCombatFields(EncounterSnapshot activeEncounter, String enemyType,
+            int enemyHealth, int nextEnemySkillIndex) {
         if (activeEncounter != null && activeEncounter.type().equals("combat")) {
             Map<String, String> data = activeEncounter.data();
             if (!enemyType.equals(data.get("enemyType"))

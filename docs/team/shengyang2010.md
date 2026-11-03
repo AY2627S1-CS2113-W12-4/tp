@@ -37,6 +37,14 @@ repeatable seeded runs and saved progress.
   with a regular-move fallback. A simulated partial-write failure test verifies that the original
   file survives and temporary files are removed. This reduces duplicated storage logic; the
   separate history and high-score writes are not a single transaction.
+- **SLAP refactoring of gameplay and persistence**
+  ([commit 0c79083](https://github.com/AY2627S1-CS2113-W12-4/tp/commit/0c790835d17bd3195ea90f5733d9613a4ab88794)).
+  Applied the Single Level of Abstraction Principle to `GamePlayState`, `MainMenuState`,
+  `DialogueEncounter`, `GameSave`, `GameSaveStore` and `EncounterFactory`. Extracted private helpers
+  for attempt processing, menu actions, dialogue effects, save validation, serialization and
+  restoration so coordinating methods expose the order of operations. Preserved gameplay and
+  save formats, including history-write error handling and one-time rewards. Verified the changes
+  with all 263 existing tests and Checkstyle passing on Java 25.
 
 ### Contributions to the User Guide
 
@@ -52,6 +60,11 @@ repeatable seeded runs and saved progress.
 
 ### Contributions to the Developer Guide
 
+- Expanded [ChallengeClock implementation](../DeveloperGuide.md#challengeclock-implementation)
+  with monotonic timing, remaining-time rounding, expiry and restart behaviour, fractional elapsed
+  time and assertion checks. Documented the five existing
+  [clock unit tests](../DeveloperGuide.md#challengeclock-unit-tests), their expected results,
+  the focused test command and coverage limitations.
 - Expanded [Records and all-time leaderboard](../DeveloperGuide.md#records-and-all-time-leaderboard)
   with responsibilities, formats, initialization, save ordering, validation, menu behaviour and
   design alternatives. Documented regression coverage and manual checks in
@@ -62,6 +75,9 @@ repeatable seeded runs and saved progress.
   [editable PlantUML source](../diagrams/typing-history-save.puml). It explains initialization
   and high-score updates before history rotation, plus the boundary between storage errors and
   combat. Updated the diagram maintenance index.
+- Documented the [SLAP decomposition](../DeveloperGuide.md#single-level-of-abstraction-principle-slap),
+  including helper responsibilities and the ordering needed to preserve gameplay. Updated the
+  save/restoration explanation and boss-transition sequence to match the extracted helpers.
 
 ### Contributions to team-based tasks
 

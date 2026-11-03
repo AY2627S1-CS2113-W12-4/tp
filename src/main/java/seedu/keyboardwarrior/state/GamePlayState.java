@@ -246,32 +246,51 @@ public class GamePlayState extends State {
      */
     private void restoreRun() {
         assert restoredSave != null : "Restoration requires a validated run snapshot";
+        restoreRunProgress();
+        showRestoredProgress();
+        restorePendingEncounter();
+        assert player.getHealth() == restoredSave.playerHealth() : "Restoration must preserve health";
+    }
+
+    /** Restores the player and progression before reconstructing offered or active encounters. */
+    private void restoreRunProgress() {
         player = restoredSave.restorePlayer();
         encounterFactory = new EncounterFactory(random, player);
         scenarioIndex = restoredSave.scenarioIndex();
         bossPhase = restoredSave.bossPhase();
         challenge = null;
+    }
+
+    /** Announces the saved difficulty and current scenario or boss phase. */
+    private void showRestoredProgress() {
         StateUi.printLine("Resuming saved run. Difficulty: " + difficulty.getDisplayName());
         if (bossPhase == 0) {
             StateUi.showScenario(scenarioIndex + 1, SCENARIO_COUNT);
         } else {
             StateUi.showBossPhase(bossPhase, BOSS_PHASE_COUNT);
         }
+    }
+
+    /** Recreates saved choices or resumes the selected encounter without regenerating content. */
+    private void restorePendingEncounter() {
         if (restoredSave.activeEncounter() == null) {
             choices = restoredSave.choices().stream().map(this::restoreEncounter).toList();
             StateUi.showEncounterChoices(choices);
         } else {
-            EncounterSnapshot savedEncounter = restoredSave.activeEncounter();
-            encounter = restoreEncounter(savedEncounter);
-            if (encounter instanceof CombatEncounter combat) {
-                combat.begin(Integer.parseInt(savedEncounter.data().get("nextEnemySkillIndex")));
-            } else {
-                EventEncounter event = (EventEncounter) encounter;
-                activateEventChallenge(savedEncounter.data().get("phase").equals("NOT_STARTED")
-                        ? event.prepareEvent(challengeFactory) : event.resumeEvent(challengeFactory));
-            }
+            resumeActiveEncounter(restoredSave.activeEncounter());
         }
-        assert player.getHealth() == restoredSave.playerHealth() : "Restoration must preserve health";
+    }
+
+    /** Opens the saved combat turn or event stage without replaying its preceding effects. */
+    private void resumeActiveEncounter(EncounterSnapshot savedEncounter) {
+        encounter = restoreEncounter(savedEncounter);
+        if (encounter instanceof CombatEncounter combat) {
+            combat.begin(Integer.parseInt(savedEncounter.data().get("nextEnemySkillIndex")));
+        } else {
+            EventEncounter event = (EventEncounter) encounter;
+            activateEventChallenge(savedEncounter.data().get("phase").equals("NOT_STARTED")
+                    ? event.prepareEvent(challengeFactory) : event.resumeEvent(challengeFactory));
+        }
     }
 
     /** Restores a previously generated choice without consuming the shared random sequence. */
@@ -459,16 +478,33 @@ public class GamePlayState extends State {
     private void finishAttempt(String typedText, double elapsedSeconds) {
         assert challenge != null : "An active challenge is required to finish a typing attempt";
         boolean overdue = elapsedSeconds > challenge.getTime();
+        TypingResult result = evaluateAttempt(typedText, elapsedSeconds);
+        saveTypingHistory(result);
+        resolveAttempt(result, typedText, overdue);
+        advanceAfterAttempt();
+    }
+
+    /** Scores the active challenge and replaces its countdown with typing feedback. */
+    private TypingResult evaluateAttempt(String typedText, double elapsedSeconds) {
         TypingResult result = TypingEvaluator.evaluateTyping(challenge.getText(), typedText,
                 elapsedSeconds, challenge.getTime());
         challenge = null;
         StateUi.clearCountdown();
         StateUi.showTypingResult(result);
+        return result;
+    }
+
+    /** Reports history-write failures without preventing the encounter from resolving. */
+    private void saveTypingHistory(TypingResult result) {
         try {
             saveStore.save(result);
         } catch (IOException e) {
             StateUi.printLine("Could not save typing history: " + e.getMessage());
         }
+    }
+
+    /** Applies combat performance or an event answer, treating overdue event answers as failures. */
+    private void resolveAttempt(TypingResult result, String typedText, boolean overdue) {
         if (encounter instanceof CombatEncounter combat) {
             combat.submitTypingResult(result);
         } else {
@@ -476,6 +512,10 @@ public class GamePlayState extends State {
                     .submitAnswer(overdue ? "" : typedText, challengeFactory);
             activateEventChallenge(nextChallenge);
         }
+    }
+
+    /** Saves an unfinished encounter, starts the next encounter or ends the run. */
+    private void advanceAfterAttempt() {
         if (!encounter.getIsCompleted()) {
             saveCurrentRun();
             return;
@@ -488,6 +528,11 @@ public class GamePlayState extends State {
         } else {
             StateUi.showRunDefeat();
         }
+        finishRun();
+    }
+
+    /** Removes the finished run's save and returns to the menu even if deletion fails. */
+    private void finishRun() {
         try {
             gameSaveStore.delete();
         } catch (IOException exception) {
@@ -500,6 +545,16 @@ public class GamePlayState extends State {
      * Persists only stable player turns; storage failures leave combat playable.
      */
     private void saveCurrentRun() {
+        GameSave save = createRunSnapshot();
+        try {
+            gameSaveStore.save(save);
+        } catch (IOException exception) {
+            StateUi.printLine("Could not save game: " + exception.getMessage());
+        }
+    }
+
+    /** Captures stable progression, encounters and random history without writing to storage. */
+    private GameSave createRunSnapshot() {
         assert player != null && player.getHealth() > 0 : "Autosave requires a living player";
         assert !choices.isEmpty() || encounter != null && !encounter.getIsCompleted()
                 : "Autosave requires encounter choices or an active encounter";
@@ -508,16 +563,11 @@ public class GamePlayState extends State {
                 : "Autosave progression must identify a regular scenario or a final boss phase";
         RandomSnapshot randomSnapshot = random instanceof RunRandom runRandom
                 ? new RandomSnapshot(runRandom.snapshot(), promptBank.snapshotHistory()) : null;
-        GameSave save = !choices.isEmpty()
+        return !choices.isEmpty()
                 ? GameSave.forChoices(difficulty, player, scenarioIndex, randomSnapshot,
                         choices.stream().map(encounterFactory::snapshot).toList())
                 : GameSave.forEncounter(difficulty, player, scenarioIndex, bossPhase, randomSnapshot,
                         encounterFactory.snapshot(encounter));
-        try {
-            gameSaveStore.save(save);
-        } catch (IOException exception) {
-            StateUi.printLine("Could not save game: " + exception.getMessage());
-        }
     }
 
     /**
