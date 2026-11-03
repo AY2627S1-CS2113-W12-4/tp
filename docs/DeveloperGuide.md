@@ -400,6 +400,42 @@ Plain mode calls only the safe waiting-update hook; `handleInput(...)` evaluates
 arrives. Event matching remains deadline-sensitive in both modes: an overdue response is treated as
 incorrect, even though its actual typed text still supplies the displayed and saved metrics.
 
+#### ChallengeClock implementation
+
+[`ChallengeClock`](../src/main/java/seedu/keyboardwarrior/typing/ChallengeClock.java) measures time;
+it does not create a thread, sleep, print a countdown or submit an answer. The active state reads
+the clock and decides what to display or resolve. The [runtime diagrams](#runtime-and-terminal-input)
+show how state updates continue while the input reader waits for typing.
+
+The clock stores `startTimeNanos` and `durationNanos` as `long` values. `start(int durationSeconds)`
+converts seconds to nanoseconds using `1_000_000_000L` and records `System.nanoTime()`.
+This measures elapsed time independently of wall-clock adjustments. The absolute `nanoTime()` value
+has no calendar meaning and may be negative; only the difference between readings is used.
+
+| Method | Behavior |
+| --- | --- |
+| `start(durationSeconds)` | Starts or restarts the countdown by replacing both stored values. Zero expires immediately. A negative argument throws `IllegalArgumentException` before changing the existing timer. |
+| `getRemainingSeconds()` | Returns zero before starting or after a zero-duration start. Otherwise, subtracts elapsed nanoseconds from the duration, clamps the remainder to zero and rounds any partial second up. It continues returning zero after expiry. |
+| `getElapsedSeconds()` | Returns fractional seconds since the most recent positive-duration start. Returns `0.0` before starting or after a zero-duration start. Unlike remaining time, elapsed time continues increasing after expiry so late submissions retain their actual measured duration. |
+
+For a positive-duration timer, the remaining-time calculation is:
+
+```text
+elapsedNanos = System.nanoTime() - startTimeNanos
+remainingNanos = max(0, durationNanos - elapsedNanos)
+remainingSeconds = (remainingNanos + 1_000_000_000 - 1) / 1_000_000_000
+```
+
+The final division is integer division. For example, a ten-second timer with 8.2 seconds elapsed
+reports **2 seconds remaining**, while `getElapsedSeconds()` reports approximately **8.2**.
+At or beyond ten seconds it reports **0 remaining**. Use the fractional elapsed getter for WPM;
+subtracting the rounded remaining seconds from the duration would lose timing precision.
+
+Both getters assert that the stored duration and the measured elapsed difference are nonnegative.
+These assertions detect internal invariant violations when enabled with `-ea`; they do not require
+the absolute start timestamp to be positive. The negative-duration exception remains active even
+with assertions disabled. See [clock unit tests](#challengeclock-unit-tests) for current coverage.
+
 #### Validation and defensive checks
 
 Null text or dependency references cause `NullPointerException`. Blank normalized expected text,
@@ -716,6 +752,33 @@ change the player's records.
 Validation tests also run enemy lookup under a Turkish default locale. Component and simulated
 terminal tests complement the acceptance checks below; they do not replace trying the final JAR
 in a real terminal on each supported OS.
+
+### ChallengeClock unit tests
+
+[`ChallengeClockTest`](../src/test/java/seedu/keyboardwarrior/typing/ChallengeClockTest.java)
+contains the following five tests. Gradle enables assertions during tests.
+
+| Test | Setup and expected result |
+| --- | --- |
+| `getRemainingSeconds_beforeStart_returnsZero` | Construct a clock without starting it; remaining time is `0`. |
+| `start_zeroDuration_returnsZero` | Call `start(0)`; remaining time is immediately `0`. |
+| `start_negativeDuration_throwsException` | Call `start(-1)`; expect `IllegalArgumentException`. |
+| `getRemainingSeconds_afterExpiry_returnsZero` | Start a one-second timer, wait 1,100 ms, then read twice; both readings are `0`. The extra 100 ms avoids checking exactly at the deadline. |
+| `start_calledAgain_replacesDuration` | Start with `0`, restart with `60`, then restart with `0`; readings change to `60` and back to `0`. |
+
+Run just these tests using Java 25:
+
+```powershell
+.\gradlew.bat test --tests "seedu.keyboardwarrior.typing.ChallengeClockTest"
+```
+
+On macOS/Linux, use `./gradlew` instead of `.\gradlew.bat`.
+These tests cover initial state, validation, expiry and restarting. They do not directly test
+fractional elapsed-time precision, rounding at an exact second boundary or assertion failures.
+The expiry test uses real time, and the immediate 60-second restart check assumes execution is not
+paused for a full second between starting and reading. Neither test proves exact scheduling accuracy.
+Terminal placement and capture of unfinished input are integration concerns covered by
+`StateUiTerminalTest` and the [manual acceptance checks](#appendix-e-instructions-for-manual-testing).
 
 ## Maintaining the documentation
 
