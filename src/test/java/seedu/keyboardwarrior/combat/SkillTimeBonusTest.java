@@ -130,6 +130,7 @@ class SkillTimeBonusTest {
 
         assertEquals(7, player.getBonusTime());
         assertEquals(0, ui.bonusAnnouncements);
+        assertEquals(100, player.getHealth(), "Overclock must not deal damage for a nonplayer source either.");
     }
 
     /**
@@ -142,13 +143,16 @@ class SkillTimeBonusTest {
      */
     private void assertReward(String typedText, double elapsedSeconds, GameDifficulty difficulty, int expectedBonus) {
         Player player = new Player("Player", 100);
+        Enemy target = new Enemy("Target", 100);
         RecordingCombatUi ui = new RecordingCombatUi();
         TypingResult result = TypingEvaluator.evaluateTyping("abcde", typedText, elapsedSeconds, 120.0);
 
-        new SkillResolver(ui, difficulty).execute(player, new Enemy("Target", 100),
+        new SkillResolver(ui, difficulty).execute(player, target,
                 SkillRegistry.getSkill("overclock"), result);
 
         assertEquals(expectedBonus, player.getBonusTime());
+        assertEquals(100, target.getHealth(), "Overclock must never convert typing performance into damage.");
+        assertEquals(0, ui.reportedDamage);
         assertEquals(expectedBonus, ui.reportedBonus);
         assertEquals(expectedBonus == 0 ? 0 : 1, ui.bonusAnnouncements);
     }
@@ -157,6 +161,7 @@ class SkillTimeBonusTest {
     private static class RecordingCombatUi extends CombatUi {
         private int reportedBonus;
         private int bonusAnnouncements;
+        private int reportedDamage;
 
         @Override
         public void showTimeBonus(int timeBonus) {
@@ -166,6 +171,7 @@ class SkillTimeBonusTest {
 
         @Override
         public void showDamage(String name, int damage) {
+            reportedDamage = damage;
         }
     }
 }

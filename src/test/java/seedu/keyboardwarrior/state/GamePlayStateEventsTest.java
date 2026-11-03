@@ -284,6 +284,38 @@ class GamePlayStateEventsTest {
         assertEquals(2, combatUi.encounters);
     }
 
+    /** Support turns persist their bonus mid-combat, but winning clears it before the next checkpoint. */
+    @Test
+    void combat_overclockAndResume_clearsBonusOnlyAfterVictory() throws IOException {
+        Player player = new Player("Player", 100);
+        player.addSkill(SkillRegistry.getSkill("overclock"));
+        player.setBonusTime(7);
+        startSaved(GameSave.forChoices(GameDifficulty.HARD, player, 0, randomSnapshot(),
+                puzzleChoices("Question", "answer", 30)));
+        machine.handleInput("1");
+        machine.handleInput("Overclock");
+        submit(combatUi.challenge.getText(), 1.0);
+
+        GameSave midCombat = saved();
+        assertEquals(30, midCombat.enemyHealth());
+        assertEquals(90, midCombat.playerHealth());
+        assertTrue(midCombat.bonusTime() > 7);
+        machine.stop();
+        startSaved(midCombat);
+        assertEquals(midCombat.bonusTime(), combatUi.player.getBonusTime());
+        assertEquals(30, combatUi.enemy.getHealth());
+
+        machine.handleInput("Ping");
+        submit(combatUi.challenge.getText(), 0.000001);
+
+        GameSave next = saved();
+        assertEquals(1, next.scenarioIndex());
+        assertEquals(0, next.bonusTime());
+        assertTrue(next.skillIds().contains("overclock"));
+        machine.handleInput("1");
+        assertEquals(0, combatUi.player.getBonusTime());
+    }
+
     /** Starts a controlled controller while leaving the real encounter factory and storage in use. */
     private void start(GameDifficulty difficulty, Random random, GameSave saved) {
         machine = new RecordingStateMachine();

@@ -20,6 +20,7 @@ import seedu.keyboardwarrior.ui.CombatUi;
  * Runs turn-based combat between a player and an enemy.
  * Player skills are resolved through typing challenges, while enemy skills
  * apply their base damage automatically.
+ * The player's accumulated time adjustment is cleared on victory or defeat, not between turns.
  */
 public class CombatEncounter extends Encounter {
     /** Stable opponent data needed to resume at the next player turn. */
@@ -258,7 +259,7 @@ public class CombatEncounter extends Encounter {
     }
 
     /**
-     * Marks the enemy as defeated and completes the encounter as a victory.
+     * Marks the enemy as defeated, clears the player's time adjustment and completes the encounter as a victory.
      */
     private void executeVictory() {
         assert enemy.getHealth() == 0 : "Victory requires the enemy to have no health";
@@ -267,16 +268,17 @@ public class CombatEncounter extends Encounter {
         assert !isCompleted : "Victory must only complete an active encounter";
         LOGGER.fine(() -> "Player defeated " + enemy.getName());
         enemy.setIsDead(true);
+        player.setBonusTime(0);
         ui.showVictory(enemy);
 
         this.outcome.setVictory(true);
         this.isCompleted = true;
-        assert enemy.getIsDead() && outcome.getIsVictory() && isCompleted
+        assert enemy.getIsDead() && outcome.getIsVictory() && isCompleted && player.getBonusTime() == 0
                 : "Victory must finalize the enemy and encounter state";
     }
 
     /**
-     * Marks the player as defeated and completes the encounter as a loss.
+     * Marks the player as defeated, clears their time adjustment and completes the encounter as a loss.
      */
     private void executeDefeat() {
         assert player.getHealth() == 0 : "Defeat requires the player to have no health";
@@ -284,11 +286,12 @@ public class CombatEncounter extends Encounter {
         assert !isCompleted : "Defeat must only complete an active encounter";
         LOGGER.fine(() -> "Player was defeated by " + enemy.getName());
         player.setIsDead(true);
+        player.setBonusTime(0);
         ui.showDefeat();
 
         this.outcome.setVictory(false);
         this.isCompleted = true;
-        assert player.getIsDead() && !outcome.getIsVictory() && isCompleted
+        assert player.getIsDead() && !outcome.getIsVictory() && isCompleted && player.getBonusTime() == 0
                 : "Defeat must finalize the player and encounter state";
     }
 
