@@ -1,0 +1,64 @@
+@startuml
+' Focus: successful persistence of one evaluated attempt, before combat resolution.
+' File operations and saveIfHigher validation/comparison are summarized in notes.
+title Preserve the best attempt before rotating history
+hide footbox
+skinparam monochrome true
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+participant "game:GamePlayState" as game
+participant "history:SaveStore" as history
+participant "best:LeaderboardStore" as best
+
+activate game
+game -> history : save(result)
+activate history
+history -> history : loadHighScore()
+activate history
+history -> best : load()
+activate best
+best --> history : Optional<SavedRecord>
+deactivate best
+opt high-score file is missing
+    history -> history : load()
+    activate history
+    history --> history : latest history records
+    deactivate history
+    opt history contains at least one record
+        history -> best : saveIfHigher(existingBest)
+        activate best
+        best --> history
+        deactivate best
+    end
+end
+history --> history : Optional<SavedRecord>
+deactivate history
+history -> best : saveIfHigher(candidate)
+activate best
+note over history, best
+  Reload and validate the current best.
+  Write only if absent or beaten by WPM, then accuracy.
+  Lower scores and exact ties leave the file unchanged.
+end note
+best --> history
+deactivate best
+history -> history : read history; append candidate; retain latest ten
+activate history
+deactivate history
+history -> history : writeSafely(...)
+activate history
+note right of history
+  Inherited from FileStore: write a temporary file,
+  then replace history and clean up the temporary file.
+end note
+deactivate history
+history --> game : return
+deactivate history
+note over game, best
+  Successful path shown. Initialization precedes history rotation.
+  The high-score and history writes are separate, not a transaction.
+  An IOException aborts save(); GamePlayState reports it and still calls
+  CombatEncounter.submitTypingResult(result). Run autosaving is omitted.
+end note
+deactivate game
+@enduml

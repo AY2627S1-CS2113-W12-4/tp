@@ -158,6 +158,16 @@ installation has no high-score file yet. File-format details are outside this st
 
 [Editable PlantUML source](diagrams/history-saving.puml).
 
+The sequence below shows the successful save path, including first-use initialization from existing
+history. Preserving that best record before trimming the history prevents it from being lost when
+the oldest entry is removed. `candidate` is the WPM/accuracy pair from the new `TypingResult`, and
+`existingBest` is the highest-ranked record in the loaded history. File operations and the internals
+of `saveIfHigher(...)` are summarized to keep the ordering clear.
+
+![Sequence diagram showing high-score initialization and update before typing-history rotation](diagrams/typing-history-save.svg)
+
+[Editable PlantUML source](diagrams/typing-history-save.puml).
+
 `LeaderboardStore.SCORE_ORDER` compares full-precision WPM first, then accuracy. Higher WPM wins
 regardless of accuracy; higher accuracy wins when WPM is equal. Lower scores and exact ties leave
 the high-score file untouched. For example, after `60,95`, an attempt of `50,100` cannot replace it,
