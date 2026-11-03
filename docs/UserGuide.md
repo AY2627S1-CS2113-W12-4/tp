@@ -1,296 +1,445 @@
 # Keyboard Warrior User Guide
 
-Keyboard Warrior is a terminal game that turns typing practice into combat. Choose a skill, type
-its passage, and deal damage based on your words per minute (WPM) and character accuracy. Survive
-five regular encounters and both phases of the Kernel Overlord boss to win.
+## Introduction
 
-You can choose a game difficulty, replay seeded runs, continue saved progress, review your latest
-ten attempts, and try to beat your all-time best typing score. **HP** means health points: when
-your HP reaches zero, the run ends. Health carries between encounters without healing.
+Keyboard Warrior turns typing practice into a terminal adventure. Choose between combat, puzzles,
+reaction challenges and a merchant conversation. Complete five regular scenarios, then defeat
+both phases of the Kernel Overlord to win. Combat damage depends on typing speed and character
+accuracy. Events can award a skill, restore health or reduce the time available in later challenges.
+
+It is for players who want to practice English passages and special characters through a game
+and are comfortable opening a terminal. The difficulty settings let you choose a suitable challenge;
+Words-per-minute (WPM) and accuracy feedback help you see where to improve.
+
+Health points (HP) and earned effects carry through the run. Choose Easy, Normal, Hard or Coder difficulty,
+replay a seed, and continue saved progress. Records retains your latest ten typing responses;
+Leaderboard keeps your best response across runs.
 
 ## Contents
 
-- [Quick start](#quick-start)
+- [Quick Start](#quick-start)
 - [Features](#features)
   - [Command conventions](#command-conventions)
-  - [Starting a new run: `start`](#starting-a-new-run)
-  - [Choosing game difficulty: `choose difficulty`](#main-menu-and-game-difficulty)
-  - [Seeds and repeatable runs](#seeds-and-repeatable-runs)
+  - [Starting a new run](#starting-a-new-run)
+  - [Main menu and game difficulty](#main-menu-and-game-difficulty)
+  - [Encounter choices and events](#encounter-choices-and-events)
   - [Skills and countdown](#skills-and-countdown)
   - [Combat and progression](#combat-and-progression)
+  - [Seeds and repeatable runs](#seeds-and-repeatable-runs)
+  - [Saving and continuing a run](#saving-and-continuing-a-run)
+  - [Saved typing history](#saved-typing-history)
+  - [Leaderboard](#leaderboard)
   - [Typing feedback](#typing-feedback)
-  - [Viewing typing history: `records`](#saved-typing-history)
-  - [Viewing your best attempt: `leaderboard`](#leaderboard)
-  - [Continuing a saved run: `continue`](#saving-and-continuing-a-run)
-  - [Exiting the game: `exit`](#exiting-the-game)
-  - [Saving and moving your data](#saving-and-moving-your-data)
+  - [Exiting the game](#exiting-the-game)
 - [FAQ](#faq)
 - [Known issues](#known-issues)
 - [Command summary](#command-summary)
 
-## Quick start
+## Quick Start
 
-1. Install **Java 25**. In a terminal, run `java -version` and check that the reported major
-   version is `25`.
-2. Download `KeyboardWarrior.jar` from the project's
-   [Releases page](https://github.com/AY2627S1-CS2113-W12-4/tp/releases). Choose the JAR asset,
-   rather than the source-code archive.
-3. Put the JAR in a folder where you can create files. Open a terminal in that folder and run:
+1. Install **JDK 25**. Run `java -version` in a terminal to confirm version 25.
+2. Download the JAR from the [releases page](https://github.com/AY2627S1-CS2113-W12-4/tp/releases).
+   Put it in a writable folder and open a terminal there.
+3. Run `java -jar "KeyboardWarrior.jar"`. Substitute your downloaded filename if it differs.
+   The same JAR runs on Windows, macOS and Linux; Gradle and the source project are not required.
+4. Enter `start`, then a seed such as `42`, or press Enter on an empty seed line for a random run.
+5. At `Choose your encounter`, enter `1`, `2` or `3`. Choice 1 is combat, choice 2 is an event,
+   and choice 3 may be either.
+6. In combat, enter a displayed skill name such as `Ping`, then type its passage. For an event,
+   follow its question or displayed response instructions. Press Enter to submit.
+7. Complete five scenarios and both boss phases. Enter `exit` to quit; use `continue` at the
+   main menu when you return.
 
-   ```text
-   java -jar KeyboardWarrior.jar
-   ```
+![Game flow: choose and complete five encounters, then defeat both boss phases](diagrams/game-flow.svg)
 
-4. The main menu appears. The following excerpt omits the decorative banner:
+Repeat the encounter choice for each scenario. Both boss phases are required afterward;
+losing all HP ends the run at any point.
 
-   ```text
-   Current difficulty: Hard
-   1. Start
-   2. Records
-   3. Exit
-   4. Choose Difficulty
-   5. Continue
-   6. Leaderboard
-   Enter a number or option name.
-   ```
+Use a native terminal, Windows Terminal or IntelliJ's Terminal for a live countdown that captures
+unfinished input at expiry. The timer appears above the typing instructions. Corrections made
+before submission or expiry count; mistakes you already corrected do not affect the result.
 
-5. For a more forgiving first run, enter `4`, then enter `easy` when the difficulty menu appears.
-   You return to the main menu with 400 starting HP selected for your next run.
-6. Enter `start`. At the seed prompt, enter `42` or press Enter on an empty line for a random seed.
-7. When the game lists your skills, enter `Ping`. Type the displayed passage as one line, then
-   press Enter. In a supported terminal, the countdown also submits unfinished text at expiry.
-8. Read your typing feedback and combat result, then choose another skill when prompted.
-   Enter `exit` to quit; relaunch the game and use `continue` to resume an unfinished run.
+If the console redirects input/output or cannot redraw its input line, the game automatically
+uses plain-text mode. It prints the allowance once and waits for Enter. Reaction commands still
+appear after their waiting period without requiring an extra Enter. Plain mode cannot capture
+unfinished text or submit it automatically. Late combat input still deals damage from its measured
+speed and accuracy; a late event response fails that event stage.
 
-**Enter each command separately and wait for the next prompt.** During a typing attempt, your
-input is the answer to the passage; menu commands such as `records` do not open a menu there.
-The command `exit` is available at every input stage.
-
-The same release JAR runs on Windows, macOS and Linux with Java 25. No IDE, Gradle installation or
-source code is needed. Use a native terminal for live countdown support; on Windows, you can use
-Windows Terminal. If the game reports that the live countdown is unavailable, you can still play
-by pressing Enter to submit. See [Known issues](#known-issues).
-
-If you already have the source project, run `.\run-game.bat` on Windows or `sh ./run-game.sh` on
-macOS/Linux from the project folder to build and start the game. See the
-[project README](../README.md#running-the-game) for source setup.
+For a source checkout, optional launchers are `sh ./run-game.sh` on macOS/Linux and
+`.\run-game.bat` in Windows PowerShell. They compile through Gradle and start Java directly.
+They are not needed for a downloaded release.
 
 ## Features
 
 ### Command conventions
 
-- Type a command or answer and press **Enter**. Backticks in this guide identify text to type;
-  do not type the backticks themselves.
-- Menu commands, difficulty names and skill names are case-insensitive. For example, `START`
-  and `start` both work. **Capitalization and punctuation in typing passages affect accuracy.**
-- Enter the whole option name, including internal spaces: `choose difficulty` and `Brute Force`.
-  Leading and trailing spaces around commands are ignored.
-- Numbers refer to the menu currently displayed. At the main menu, `3` exits; in the difficulty
-  menu, `3` selects Hard; at the seed prompt, `3` is a seed. Skills are selected by name.
-- Commands do not take extra arguments. Enter `start`, then `42` at the seed prompt; do not enter
-  `start 42`. Likewise, choose a skill only when the skill list appears.
-- An invalid menu choice or skill name produces an explanatory message and lets you try again.
-  During typing, imperfect or empty answers are valid submissions and consume a combat turn.
+- Type each command or response and press Enter. In examples, enter each line separately
+  when the corresponding prompt appears.
+- Commands depend on the current prompt. For example, `2` opens Records at the main menu,
+  selects Normal at difficulty selection, and selects the event at encounter selection.
+- Menu names, difficulty names and skill names ignore capitalization and surrounding spaces.
+  For example, `START` and `start` work alike at the main menu.
+- Combat accuracy counts capitalization and punctuation. Event answers accept matches without
+  regard to capitalization or surrounding spaces, but their accuracy score still counts case.
+- `exit` is reserved for quitting at every input prompt, including a seed or typing challenge.
+  It is not submitted as a scored response. There is no manual `save` command.
 
-<a id="starting-a-new-run"></a>
+### Starting a new run
 
-### Starting a new run: `start`
+**Where:** Main menu. **Format:** `start` or `1`, followed by a seed at the next prompt.
 
-**Where:** Main menu. **Format:** `start` or `1`.
+Example:
 
-Starts at scenario 1 with full health for the selected game difficulty. You first enter a seed,
-then the game displays your opponent, HP and available skills. All five player skills are
-available from the start.
+```text
+start
+42
+```
 
-**Example:** Enter `start`, enter `42` at the seed prompt, then enter `Ping` at skill selection.
-The game displays a passage and its time allowance, and timing begins after the passage is shown.
+This starts scenario 1 with seed `42` and the currently selected difficulty. Press Enter on an
+empty seed line for a random seed, or use text such as `practice-run`. See
+[Seeds and repeatable runs](#seeds-and-repeatable-runs) for replay behavior.
 
-> **Starting a new run replaces your existing run save when the new encounter is successfully
-> saved.** There is one run-save slot and no overwrite confirmation. Use `continue` to keep
-> playing the saved run. Starting again keeps your typing history and leaderboard.
+> **Starting a new run replaces your previous saved run without asking for confirmation**
+> once the new encounter choices are successfully saved. Choose `continue` instead to resume
+> existing progress. Records and Leaderboard are retained.
 
-<a id="main-menu-and-game-difficulty"></a>
+### Main menu and game difficulty
 
-### Choosing game difficulty: `choose difficulty`
+**Where:** Main menu. **Format:** `choose difficulty` or `4`, followed by a displayed mode's
+name or number.
 
-**Where:** Main menu. **Format:** `choose difficulty` or `4`.
+Example: enter `choose difficulty`, then `easy` (or `1`). You return to the main menu with Easy
+selected; enter `start` to begin a new run in that mode.
 
-Opens a second menu. Enter a number or difficulty name to select a mode and return to the main menu.
+Choose Difficulty offers these modes, numbered 1 to 4 in the order below:
 
-| Selection in difficulty menu | Player damage multiplier | Countdown multiplier | Starting HP |
+| Game difficulty | Player damage multiplier | Countdown multiplier | Starting HP |
 | --- | --- | --- | --- |
-| `1` or `easy` | x4 | x4 | 400 |
-| `2` or `normal` | x2 | x2 | 200 |
-| `3` or `hard` | x1 | x1 | 100 |
-| `4` or `coder` | x0.8 | x0.8 | 80 |
+| Easy | x4 | x4 | 400 |
+| Normal | x2 | x2 | 200 |
+| Hard (default) | x1 | x1 | 100 |
+| Coder | x0.8 | x0.8 | 80 |
 
-**Example:** Enter `choose difficulty`, then `normal`. The main menu now shows
-`Current difficulty: Normal`; your next new run starts with 200 HP.
+In this guide, **base seconds** means the time before applying the countdown multiplier.
+For example, a two-second base allowance becomes four seconds on Normal.
 
-Hard is the default on application startup. Winning or losing returns to the menu with that run's
-difficulty selected. Choosing a different mode does not change an existing save: `continue`
-restores the saved run's difficulty, even if the main menu currently shows another mode.
+The mode appears in the main menu and at the start of the run. Countdowns round up to whole
+seconds after scaling. Enemy HP and enemy attack damage do not scale with the mode. Reaction
+waiting periods are unchanged; their response deadlines do scale.
 
-Game difficulty changes player damage, time allowances and starting HP. Enemy HP and attacks are
-unchanged. It does not change the passage bank or directly multiply recorded WPM and accuracy.
-Health is granted once at the start of a run and is not restored between fights.
+Selection remains active after victory or defeat in the current session. Restarting defaults new
+runs to Hard. Continue restores the saved run's own mode, even if you selected another in the menu.
+Difficulty does not alter recorded WPM or accuracy.
 
-Invalid input leaves you in the difficulty menu. Enter `exit` to quit the application.
+### Encounter choices and events
 
-### Seeds and repeatable runs
+**Where:** `Choose your encounter` prompt. **Format:** `1`, `2` or `3`.
 
-**Where:** Seed prompt after `start`. Enter one of the following:
+Example: enter `2` to begin the displayed event, then follow its instructions below.
 
-| Input | Result |
+Each regular scenario offers three numbered encounters. You play only the one you select.
+Choice 1 is combat, choice 2 is an event, and choice 3 is randomly combat or an event. An event
+may be a puzzle, a sudden ambush or a suspicious merchant. After the selected encounter finishes
+and you are still alive, the next scenario begins.
+
+An incorrect or late event answer can still let you advance if you survive its penalty. Events
+do not cause a separate combat enemy to attack. A merchant conversation counts as one scenario,
+even though it contains two responses.
+
+#### A Mysterious Puzzle
+
+Solve the displayed question and enter your answer before its deadline. Questions include riddles,
+word scrambles, sequences and decoding problems. The expected answer is deliberately hidden.
+
+A correct, on-time answer awards an unowned skill. With the starting loadout, the available reward
+is **Overclock**. Once you own all reward skills, a correct puzzle instead restores **20 HP**.
+An incorrect, empty or late answer reduces the accumulated allowance for future combat and puzzle
+challenges by **2 base seconds**. The puzzle then finishes.
+
+The initial allowance is 30 base seconds, adjusted by your accumulated time bonus or penalty and
+then multiplied by game difficulty. At least one base second is available before scaling.
+
+#### A Sudden Ambush
+
+Wait when the game displays `Something's afoot. Look out for danger...`. After a random wait of
+5 to just under 30 seconds, a command such as `TYPE 'DODGE' NOW` appears. Enter that command before
+its response deadline. Premature input does not answer the event; `exit` still quits.
+
+An on-time matching response restores **10 HP**. An incorrect, empty or late response deals
+**30 damage** to you. Surviving completes the scenario.
+
+| Mode | Time to respond after the command appears |
 | --- | --- |
-| A signed 64-bit whole number, such as `42` or `-19` | Uses that number as the seed |
-| Nonblank text, such as `practice-run` | Converts the trimmed text consistently to a numeric seed |
-| An empty or whitespace-only line | Generates a random numeric seed |
-| `exit`, in any capitalization | Quits the application; this word cannot be used as a seed |
+| Easy | 8 seconds |
+| Normal | 4 seconds |
+| Hard | 2 seconds |
+| Coder | 2 seconds |
 
-The game displays the numeric seed before starting. Save that number if you want to replay the
-run. Surrounding spaces are ignored; text seeds otherwise preserve capitalization. Numbers outside
-the signed 64-bit range are treated as text.
+Accumulated time bonuses do not alter the wait or response deadline. The command appears
+automatically in both live and plain-text modes. In plain mode, press Enter promptly: the same
+deadline applies even though the game cannot auto-submit your unfinished response.
 
-Reusing a seed reproduces the same random choices **when you make the same decisions in the same
-order**. Enemy and passage selection share a random sequence. Different skill choices, especially
-Encryption, can change later passages and opponents. Your typing performance still determines
-combat outcomes, so a seed alone does not guarantee an identical run.
+#### A Suspicious Merchant
 
-Continuing a current save restores its random sequence and previous passage selections. You do
-not need to re-enter the seed. Older saves without this information still restore combat progress,
-but future random choices begin from a new sequence.
+Type the displayed response for each stage:
+
+1. The opening asks you to stand your ground: `I will not be extorted`.
+2. An on-time matching opening leads to a trade: `Show me your rare wares`. An incorrect or late
+   opening leads to the guard escape response: `flee`.
+
+A successful trade awards an unowned skill, or **20 HP** when no reward skills remain. Failing
+or missing the trade reduces future combat and puzzle allowances by **5 base seconds**. A
+successful escape has no health or skill effect; failing or missing it deals **20 damage**.
+Surviving either branch completes the scenario.
+
+| Response | Easy | Normal | Hard | Coder |
+| --- | --- | --- | --- | --- |
+| Opening or trade | 40 seconds | 20 seconds | 10 seconds | 8 seconds |
+| Escape | 20 seconds | 10 seconds | 5 seconds | 4 seconds |
+
+Accumulated time bonuses and penalties do not change these conversation deadlines.
+
+#### Rewards and health
+
+Each reward skill is granted once per run. Overclock remains available in later fights and both
+boss phases after you earn it. Successful puzzles and trades offer healing after all reward skills
+are owned. Healing can raise your HP above its initial value.
+
+There is no automatic healing between scenarios or boss phases. Remaining HP, learned skills and
+time adjustments carry forward. They reset when you start a new run.
 
 ### Skills and countdown
 
-**Where:** Skill selection during a run. **Format:** Type one of the skill names below.
+**Where:** Combat skill selection. **Format:** a displayed skill name, such as `Ping`.
 
-| Skill name | Passage type | Base time allowance before game-difficulty scaling |
+Example: enter `Ping`, then type the passage shown and press Enter. Enter the skill name only
+at skill selection; typing it during an active challenge submits it as your response instead.
+
+In combat, enter a skill's displayed name. Five starting skills are always available; Overclock
+becomes available after a puzzle or trade awards it.
+
+| Skill | Passage difficulty | Initial base allowance on Hard |
 | --- | --- | --- |
 | `Ping` | Easy | At least 15 seconds |
 | `Brute Force` | Medium | At least 30 seconds |
 | `Buffer Overflow` | Hard | At least 30 seconds |
 | `SIGKILL` | Ultimate | At least 45 seconds |
-| `Encryption` | Random special characters | Exactly 60 seconds |
+| `Encryption` | Random special characters | 60 seconds |
+| `Overclock` (earned) | Easy | At least 15 seconds; adds time for later challenges |
 
-**Example:** Enter `Brute Force` when the skills appear. The game selects a Medium passage and
-shows its time limit. Type the passage itself next; typing another skill name at this point is
-scored as your answer.
+For ordinary passages, the game allows the greater of the listed minimum and the time needed to
+type the normalized character count at 50 WPM with a 20% buffer. It adds your accumulated time
+adjustment, keeps at least 10 base seconds, then applies the mode's multiplier. Check the displayed
+allowance for each attempt.
 
-For the first four skills, longer passages receive more time. The game calculates the time needed
-at 50 WPM, adds a 20% buffer and rounds up to a whole second, then takes the larger of that value
-and the skill's minimum. It applies the game-difficulty multiplier and rounds up again.
-**Use the displayed time limit for each attempt; the table gives minimums, not fixed deadlines.**
+Encryption generates symbols from `!@#$%^&*()\_+/*{}|:"<>?`, grouped into one to six characters.
+The passage is approximately as long as a SIGKILL passage. Before earned bonuses or penalties,
+its allowance is 240 seconds on Easy, 120 on Normal, 60 on Hard and 48 on Coder. Your accumulated
+adjustment changes its 60-second base before difficulty scaling.
 
-Encryption generates groups of one to six symbols separated by spaces, approximately as long as
-a SIGKILL passage. Its symbol pool is:
+Every player skill uses the same combat damage formula. Overclock also adds time for future
+combat and puzzle challenges according to typing performance:
 
 ```text
-!@#$%^&*()\_+/*{}|:"<>?
+Added base seconds = floor(20 * (WPM / 50) * (accuracy percentage / 100)^4 * game difficulty multiplier)
 ```
 
-Its countdown is exactly 240 seconds on Easy, 120 on Normal, 60 on Hard or 48 on Coder.
-
-The game's input mode determines how an attempt ends:
-
-| Behaviour | Supported terminal with live countdown | Plain-text console |
-| --- | --- | --- |
-| Time display | Updates above the passage while you type | Prints the time allowance without live updates |
-| Pressing Enter | Submits your current answer | Submits your current answer |
-| Deadline passes before Enter | Captures and scores unfinished input, then clears the input line | Waits for Enter, then scores the submitted answer |
-| Late-attempt scoring | Uses captured text and actual elapsed time | Uses submitted text and actual elapsed time |
-
-You can correct text before submission. Only the final captured or submitted text is scored;
-mistakes that you corrected do not reduce accuracy. Submit one line even if the passage wraps
-across several screen lines. An empty answer gives zero damage and a surviving enemy still attacks.
-Expiry is announced with `Time's up!`; there is no separate timeout damage penalty.
-
-All player skills use the same damage formula. Their names select the kind of typing practice
-and its time allowance, rather than a fixed player attack strength.
+On Hard, a 50 WPM, 100% accurate Overclock attack deals 50 damage and adds 20 base seconds. At
+50 WPM and 95% accuracy, it deals 40 damage and adds 16 base seconds. Repeated uses accumulate;
+puzzle and merchant penalties subtract from that same total. The bonus changes later challenges,
+not the one just completed, and is scaled with the next challenge's difficulty. It does not extend
+reaction or merchant deadlines.
 
 ### Combat and progression
 
-Each turn follows this sequence: **choose a skill → type → receive feedback → deal damage**.
-If the enemy survives, it retaliates before your next skill selection. A defeated enemy does not
-retaliate. Regular enemies use a fixed repeating attack order associated with their type.
+Combat shows the enemy's HP and your skills. Choose a skill, type its passage and submit.
+Feedback shows WPM, character accuracy, elapsed time, required time and damage; individual wrong
+words are not listed. A surviving enemy uses its next attack before your next skill choice.
+A defeated enemy does not retaliate.
 
-| Encounter | Starting enemy HP | After defeating it |
+If you choose combat, enemy HP depends on the scenario. Events also advance scenarios, so a run
+need not contain five regular fights.
+
+| Encounter | Starting enemy HP if combat is chosen | What follows completion |
 | --- | --- | --- |
-| Scenario 1 | 30 | Advance to scenario 2 |
-| Scenario 2 | 35 | Advance to scenario 3 |
-| Scenario 3 | 50 | Advance to scenario 4 |
-| Scenario 4 | 60 | Advance to scenario 5 |
-| Scenario 5 | 70 | Begin the final boss |
-| Kernel Overlord, phase 1 | 50 | Begin phase 2 |
-| Kernel Overlord, phase 2 | 70 | Win the run and return to the main menu |
+| Scenario 1 | 30 | Choose an encounter for scenario 2 |
+| Scenario 2 | 35 | Choose an encounter for scenario 3 |
+| Scenario 3 | 50 | Choose an encounter for scenario 4 |
+| Scenario 4 | 60 | Choose an encounter for scenario 5 |
+| Scenario 5 | 70 | Start the final boss |
+| Kernel Overlord, phase 1 | 50 | Start phase 2 |
+| Kernel Overlord, phase 2 | 70 | Win the run |
 
-Regular enemy types are chosen randomly; scenario number determines their starting HP. The boss
-deals 10 damage per retaliation in phase 1 and 20 in phase 2. Both phases must be defeated to win.
+When the boss survives your attack, it retaliates for 10 damage in phase 1 or 20 damage in
+phase 2. Defeating either phase does not trigger retaliation from that defeated phase.
 
-Your remaining HP carries into every encounter without healing. Excess damage is discarded when
-an enemy is defeated, and a transition does not give the next enemy or boss phase a free attack.
-If your HP reaches zero, the run ends and you return to the main menu.
+Regular combat varies enemy names and attack rotations. Passages vary within their difficulty,
+without immediately repeating the previous passage of that difficulty. Enemies, events and
+passages can reappear later.
 
-Passages are selected within the chosen skill's difficulty. Selection avoids immediately reusing
-the previous bank passage for that difficulty, including across encounters. Encryption generates
-symbols instead of displaying a bank passage. Enemies and passages can reappear later in a run.
+Damage beyond an enemy's remaining HP is discarded. It does not carry to the next scenario or
+boss phase. A phase transition neither heals you nor grants the boss an extra attack. Both boss
+phases are mandatory after the five regular scenarios; beating phase 1 alone does not win.
 
-**A useful target on Hard:** 50 WPM and 95% accuracy gives 40 damage per attempt. Maintaining that
-performance defeats every encounter in at most two attacks and leaves at least 10 HP after victory,
-even against the strongest regular enemy choices. Lower speed or accuracy can require extra turns.
+For an all-combat route on Hard, 50 WPM and at least 95% character accuracy yield at least 40 damage
+per attack. Each enemy and boss phase then takes at most two attacks, and even the strongest
+regular rotations leave at least 10 HP after victory. Event routes can change health and allowances;
+this combat-route example does not guarantee an event outcome.
+
+If your HP reaches zero in combat or an event, the run ends immediately. Victory or defeat returns
+to the main menu. Start begins a fresh run at scenario 1 using the selected mode.
+
+### Seeds and repeatable runs
+
+A seed controls encounter offers, enemy and event content, rewards, reaction waits and combat
+passages. After Start, enter:
+
+* A signed 64-bit whole number, such as `42` or `-19`, to use that exact number.
+* Nonblank text, such as `practice-run`, to convert it consistently into a numeric seed.
+* An empty line to generate and display a random numeric seed.
+
+`exit` remains reserved for quitting, including at the seed prompt.
+
+Reusing a seed repeats choices with the same selections, responses and event outcomes in the same order.
+Different encounter selections, skills or event rewards can change later choices. All three offers
+are generated before selection, so unselected offers can affect that sequence too. Seeds are for
+repeatable gameplay and testing.
+
+Continue retains displayed offers and selected event content instead of drawing new choices.
+It also preserves future selections and the previous combat passages used to avoid immediate
+repeats. You do not re-enter the seed. Older combat-only saves still load; saves without random
+selection information continue with a fresh random sequence.
+
+### Saving and continuing a run
+
+**Where:** Main menu. **Format:** `continue` or `5`.
+
+There is one slot at `data/game-save.properties`, relative to the folder where you launch the JAR.
+Progress saves when choices appear, when you select an encounter, after a completed combat turn
+and between event response stages. Rewards and penalties are saved with that progression.
+
+To leave and return later:
+
+1. Enter `exit`.
+2. Launch the JAR again from the same folder.
+3. Enter `5` or `continue` at the main menu.
+
+The game restores difficulty, HP, owned skills, accumulated time adjustment and position in the
+run. A saved choice menu shows the same three offers. Combat restores enemy HP and the next enemy
+attack without an extra turn. A puzzle restores its question; a merchant restores the current
+opening, trade or escape stage without granting another copy of an earlier reward.
+
+Unfinished text and the response timer are not saved. An interrupted combat challenge returns to
+skill selection; an active event response is shown again with a fresh deadline. Choosing the same
+combat skill reproduces the interrupted passage after continuing a current save.
+
+During a reaction wait, Exit records the remaining wait. Continue resumes that saved wait; time
+spent with the application closed does not consume it. Abruptly closing the terminal can instead
+restore the earlier autosaved waiting point.
+
+Older combat-only saves resume that fight with the starting loadout and no earned time adjustment.
+They acquire the current save behavior when progress saves again. Do not edit save contents;
+malformed, unsupported or unreadable saves produce an error without starting a run.
+
+Start replaces the previous slot without confirmation when its new offers are successfully saved.
+Winning or losing removes the active save; Records and Leaderboard remain. There is no manual
+save command. A saving failure
+shows an error and play continues; until a later save succeeds, Continue can restore only the last
+successful checkpoint. Failure to remove a finished save is also reported.
+
+### Saved typing history
+
+**Where:** Main menu. **Format:** `records` or `2`.
+
+Example: enter `records` after a completed challenge to see your latest results.
+The list contains the latest ten typing responses, oldest first.
+Each is one combat passage or timed event response, not a whole game. A two-stage conversation
+produces two entries. Reaction waiting and menu selections do not create typing records.
+
+Records shows WPM and character accuracy. The `#` column is its displayed position, not a permanent
+ID or score rank. Automatic live-timer submissions, including empty responses, are also recorded.
+The full menu reappears afterward, keeping the selected difficulty.
+
+History is stored in `data/keyboardwarrior.txt` and survives restarts. Empty history produces a
+message. Invalid or unreadable history produces an error and returns to the menu. A saving error
+does not stop combat or an event, but that response may be missing from Records.
+
+### Leaderboard
+
+**Where:** Main menu. **Format:** `leaderboard` or `6`.
+
+Example: enter `leaderboard` to see the single all-time best response. Ranking uses
+**highest WPM**, then higher character accuracy to break WPM ties. There is no minimum accuracy
+requirement. Exact ties keep the existing best. Combat and event responses across all modes and
+seeds share this local board; it is not a total-damage or whole-run score.
+
+The best is stored in `data/keyboardwarrior.txt.high-score`. It survives restarts and removal of
+older entries from the ten-response history. Only a better response replaces it. When no high
+score exists, existing history supplies its initial best; discarded responses cannot be recovered.
+Metrics display two decimal places, but comparisons use full precision, so entries that look equal
+can rank differently.
+
+An empty leaderboard produces a message. Unreadable or malformed data produces an error; initial
+loading can also fail if history is unreadable or the first high score cannot be saved. The full
+menu reappears after results or errors, retaining the selected difficulty.
 
 ### Typing feedback
 
-After each attempt, the game shows WPM, character accuracy, elapsed time, required time and combat
-damage. Individual wrong words are not listed. Metrics display two decimal places, while scoring
-uses the full values.
-
 #### Words per minute (WPM)
 
-WPM measures gross typing speed using five characters per word:
+Gross WPM uses five characters as one word:
 
 ```text
 WPM = (normalized submitted characters / 5) / (elapsed seconds / 60)
 ```
 
-Leading and trailing whitespace is removed, and repeated internal spaces, tabs and line breaks
-become one space. Letters, punctuation and remaining spaces count; Enter does not. Incorrect
-characters also count toward gross WPM, so read speed alongside accuracy. Empty or whitespace-only
-input gives 0 WPM.
+Leading/trailing whitespace is removed and repeated internal whitespace becomes one space.
+Remaining letters, punctuation and spaces count; Enter does not. Incorrect characters count
+toward gross WPM, so read it alongside accuracy. Empty or whitespace-only input gives 0 WPM.
 
 #### Character accuracy
 
-Accuracy measures the minimum number of character insertions, deletions and substitutions needed
-to change the normalized expected passage into your normalized answer:
+Accuracy uses the fewest single-character insertions, deletions and substitutions needed to
+change normalized expected text into normalized input:
 
 ```text
 Accuracy % = 100 * (1 - edit distance / longer normalized text length)
 ```
 
-Capitalization and punctuation matter. A missing character counts as one edit instead of making
-every later character wrong. Matching text gives 100% accuracy; an empty answer gives 0%.
+Capitalization and punctuation count for this score, including when an event accepts an answer
+without regard to case. Matching text scores 100%; empty input scores 0%. One missing character
+does not shift every later character into an error. Only the final text is scored.
+
+An event may therefore accept a case-insensitive match while showing less than 100% accuracy.
+Puzzles require solving their question; copying a displayed combat passage is not the task there.
 
 #### Damage and the deadline
+
+Combat damage is:
 
 ```text
 Damage = floor(WPM * (accuracy percentage / 100)^4 * game difficulty multiplier)
 ```
 
-`floor` means round down once, after applying the multiplier. Accuracy has a strong effect: on
-Hard, 50 WPM gives 50 damage at 100% accuracy, 40 at 95%, and 20 at 80%.
+`floor` rounds down once after the multiplier. On Hard, 50 WPM and 100% accuracy deal 50 damage;
+50 WPM and 95% accuracy deal 40; 50 WPM and 80% accuracy deal 20. At 50 WPM and 95% accuracy,
+damage is 162 on Easy, 81 on Normal, 40 on Hard and 32 on Coder. All combat skills use this
+formula; enemy attacks use fixed damage.
 
-| At 50 WPM and 95% accuracy | Easy | Normal | Hard | Coder |
-| --- | --- | --- | --- | --- |
-| Damage | 162 | 81 | 40 | 32 |
+Combat has no separate damage deduction for exceeding its allowance. Its submitted text and
+actual elapsed time still determine speed and accuracy. **A late event response fails its stage**,
+even if otherwise correct. Feedback still records the text you submitted.
+An answer measured exactly at its allowance is on time; it is late only when elapsed time is greater.
 
-Every player skill follows this formula. Passing the deadline adds no separate penalty, although
-longer elapsed time lowers WPM for the same submitted text. In a live terminal, expiry ends the
-attempt and can trigger the surviving enemy's attack; in plain mode, Enter ends the attempt.
+Live expiry announces `Time's up!`, captures input and resolves the attack or event response.
+Plain mode waits for Enter, then checks elapsed time. Metrics display two decimal places;
+calculations use full values.
 
-#### Example
+#### Illustrative scoring example
 
-For an **illustrative scoring example**, suppose the target were `Strike the goblin` with a
-10-second allowance. Submitting `Strike teh goblin` in 6 seconds would display:
+This is a hypothetical calculation, not a passage or deadline you can select in the game.
+Suppose a Hard combat challenge expects `Strike the goblin` with a 10-second allowance.
+Submitting `Strike teh goblin` in 6 seconds gives:
 
 ```text
 WPM: 34.00
@@ -299,176 +448,87 @@ Elapsed time: 6.00 seconds
 Required time: 10.00 seconds
 ```
 
-The swapped letters require two edits. On Hard, this gives **20 damage**. Correctly typing the
-same target in six seconds gives **100.00% accuracy** and **34 damage**. This short passage and
-deadline illustrate the calculation; they are not a selectable in-game challenge. Actual passages
-and deadlines are assigned by the game.
+The swapped letters need two edits. Damage is **20** after the formula and rounding. Correct text
+in six seconds gives **100.00% accuracy** and **34 damage**. If the hypothetical allowance were
+five seconds and plain mode accepted that response after six seconds, it would be late without
+an additional combat damage penalty. A late event response instead fails its stage.
 
-<a id="saved-typing-history"></a>
+### Exiting the game
 
-### Viewing typing history: `records`
+**Where:** Any input prompt. **Format:** `exit`; `3` also quits at the main menu.
 
-**Where:** Main menu. **Format:** `records` or `2`.
-
-Shows the latest ten evaluated typing attempts, oldest first, with WPM and accuracy for each.
-The `#` column is the row's position in the current display, not a permanent record ID or score rank.
-Each row represents one passage attempt, including partial or empty submissions, rather than a whole run.
-
-**Example:** After completing several attempts, quit and relaunch from the same folder, then enter
-`records`. Your saved attempts appear under `Typing history (oldest to newest)`. Once you have more
-than ten saved attempts, the oldest entries are removed as new ones arrive.
-
-With no records, the game displays `No typing records saved yet. Play a game to record your results.`
-After results, an empty message or a loading error, the full main menu appears again with your
-selected difficulty unchanged. Saving and loading problems are explained under [Known issues](#known-issues).
-
-<a id="leaderboard"></a>
-
-### Viewing your best attempt: `leaderboard`
-
-**Where:** Main menu. **Format:** `leaderboard` or `6`.
-
-Shows **one all-time best typing attempt**, with its WPM and accuracy. The highest WPM wins;
-higher accuracy breaks equal-WPM ties. There is no minimum accuracy requirement. Exact ties
-leave the saved best unchanged, and comparisons use full precision rather than the rounded display.
-
-**Example:** If your best is 60 WPM at 95% accuracy, 50 WPM at 100% does not replace it.
-60 WPM at 98% does. Enter `leaderboard` to view the current best.
-
-The leaderboard is local and shared across runs, seeds and difficulty modes using the same data
-folder. It ranks individual typing attempts, not total combat damage or whole-run scores.
-The best attempt survives application restarts and removal from the ten-entry history.
-
-On first use without a high-score file, the game initializes the best from the available history.
-Previously discarded attempts cannot be recovered. With no attempts, it displays
-`No typing records saved yet. Play a game to appear on the leaderboard.` The full menu reappears
-after the result, empty message or loading error, keeping your selected difficulty.
-
-<a id="saving-and-continuing-a-run"></a>
-
-### Continuing a saved run: `continue`
-
-**Where:** Main menu. **Format:** `continue` or `5`.
-
-Restores the unfinished run at skill selection. Your HP, difficulty, scenario or boss phase,
-opponent's HP and next attack are preserved. Current saves also preserve the random sequence and
-previous passage selections. Continuing does not heal you or grant an extra enemy attack.
-
-**Example:** Finish a typing attempt, wait for the next skill selection, then enter `exit`.
-Relaunch from the same folder and enter `continue` to return to that saved turn.
-
-Progress saves automatically at the start of each new encounter and after a completed turn while
-the run remains active. There is no manual save command. Quitting during typing retains the last
-successfully saved turn: the unfinished answer and remaining timer are not saved. On resuming,
-you choose a skill again. With the same choices and combat progression, current saves reproduce
-future random selections from that saved point.
-
-There is **one save slot**. Starting a new run replaces it when saving succeeds. Winning or losing
-removes the active save; typing history and the leaderboard remain. Changing difficulty at the
-main menu does not modify the saved run.
-
-If no save exists, the game displays `No saved game to continue. Choose Start to begin a new run.`
-and stays in the menu. Invalid, unsupported or unreadable saves produce a loading error instead.
-
-<a id="exiting-the-game"></a>
-
-### Exiting the game: `exit`
-
-**Where:** Any input stage. **Format:** `exit`; `3` also works at the main menu only.
-
-Closes the application. Enter `exit` by itself and press Enter, including during seed entry,
-difficulty selection or a typing attempt. In a live countdown, submit it before expiry to quit
-without scoring that unfinished attempt. Merely typing it without Enter does not issue the command.
-
-Exiting preserves the last successfully saved turn of an unfinished run. To view Records or
-Leaderboard during an unfinished run, quit, relaunch, and use the main menu; `continue` then
-resumes your saved progress. There is no command to return directly to the menu during combat.
-End-of-input also closes the application.
-
-### Saving and moving your data
-
-The game creates its data files automatically. Paths are relative to the **folder from which you
-launch the game**, which may differ from the JAR's folder if you launch it using a path.
-
-| File | What it stores | Retention |
-| --- | --- | --- |
-| `data/keyboardwarrior.txt` | WPM and accuracy for evaluated attempts | Latest ten attempts |
-| `data/keyboardwarrior.txt.high-score` | WPM and accuracy for the best attempt | Until a better attempt replaces it |
-| `data/game-save.properties` | Progress of one unfinished run | Until replaced by a new run or removed after victory/defeat |
-
-To transfer your progress, close the game and copy the **whole `data` folder** into the folder
-from which you will launch it on the other computer. Back up any existing destination data before
-replacing it. Install Java 25 and use the same game version there.
-
-No manual file editing is required. Keep a backup if you change files yourself; malformed data can
-prevent history, leaderboard or run loading. If saving fails, the game reports the error and
-combat continues, but that progress or attempt may not be available after restarting. History,
-high score and run progress are saved separately; an error can leave only some of them updated.
+Example: enter `exit` at combat skill selection, then relaunch from the same folder and enter
+`continue` to resume the saved fight. The application closes rather than returning to the menu.
+Progress is saved automatically at checkpoints; unfinished text is not saved. See
+[Saving and continuing a run](#saving-and-continuing-a-run) for event and timer behavior.
 
 ## FAQ
 
-**Why is my damage low even when my WPM is high?**
+**How do I move my progress to another computer?**
+Copy the `data` folder into the folder from which you will launch the JAR on the other computer.
+It contains the active run, recent typing history and best response. Launching from another folder
+uses separate data, even if you run the same JAR.
 
-Damage uses the fourth power of accuracy. Improving accuracy can help more than typing faster
-with mistakes. See [Typing feedback](#typing-feedback) for examples.
+**Why did Continue ignore the difficulty I just selected?**
+Continue restores the saved run's own difficulty. Menu selection applies to a new run.
 
-**Do stronger-sounding skills automatically deal more damage?**
+**Why can I not choose Overclock?**
+Earn it through a successful puzzle or merchant trade first. It then appears at combat skill
+selection and remains available for the rest of that run.
 
-No. For the same WPM, accuracy and game difficulty, every player skill deals the same damage.
-Skills change the passage and time allowance. Choose one suited to the practice you want.
+**Why is a faster response ranked above a more accurate one?**
+Leaderboard ranks by WPM first and uses accuracy only to break WPM ties. Combat damage also
+depends strongly on accuracy, so the highest-ranked response need not deal the most damage.
 
-**Why does Continue use a different difficulty from the main menu?**
+**Why does a correct event answer fail, or show less than 100% accuracy?**
+A correct answer submitted after the deadline fails. An on-time answer can succeed despite
+capitalization differences, while the character accuracy score still counts those differences.
 
-Continue restores the saved run's mode. The menu selection applies to your next new run.
-
-**Why is my best attempt missing from Records but still on the Leaderboard?**
-
-Records keeps only ten attempts. The leaderboard stores your best separately, so it can outlive
-its history row. Scores that look equal can also differ beyond the two displayed decimal places.
-
-**Why did my records or saved game disappear after I moved the JAR?**
-
-Check the folder from which you launched the game. It looks for `data` there. Launch from the
-original folder or copy your data using [Saving and moving your data](#saving-and-moving-your-data).
-
-**Can I pause the countdown or save an unfinished answer?**
-
-No. You can exit and continue later, but the game resumes from the last successfully saved turn
-at skill selection. It does not restore unfinished text or remaining seconds.
+<a id="troubleshooting-and-data-files"></a>
 
 ## Known issues
 
-The following limitations and error messages can affect play. Use the suggested action before
-trying again; the game does not need to be reinstalled for ordinary menu errors.
+The main terminal limitation and common setup or data problems are listed below.
 
-| Symptom or message | Meaning and suggested action |
+| Problem | What to do |
 | --- | --- |
-| `Live countdown is unavailable in this console. Press Enter to submit each passage.` | Your console cannot provide the live input mode. Play by pressing Enter, or relaunch in a native terminal. IDE Run consoles and redirected input commonly use plain mode. |
-| The displayed deadline has passed but the game is waiting | In plain mode this is expected: press Enter. The actual elapsed time is used, with no separate timeout penalty. |
-| `java` is not found, or an unsupported class-version error appears | Check `java -version` in the same terminal and make Java 25 available before launching again. |
-| `Unable to access jarfile` | Open a terminal in the folder containing `KeyboardWarrior.jar` and check the filename. Download the JAR asset rather than a source-code archive. |
-| `Could not load typing history: ...` or `Could not load leaderboard: ...` | A data file may be unreadable or malformed; first-use leaderboard initialization can also fail while reading history or saving the initial best. Check access to the launch folder and restore a known-good backup if needed. The menu stays usable. |
-| `Could not load game: ...` | The run save is unreadable, invalid or unsupported. Check file access and whether the save came from the same game version. Preserve a backup before choosing Start, which replaces the save when successful. |
-| `Could not save typing history: ...` or `Could not save game: ...` | Combat continues, but the latest attempt or progress may not be saved. Check folder permissions and available disk space. Resume uses the last successful run save, if one exists. |
-| `Could not remove finished game save: ...` | The completed run's old save may remain. Check file permissions; Continue may still load that earlier turn until the save is replaced or removed. |
+| The JAR does not start | Run `java -version` and select JDK 25. Open a terminal in the JAR's folder and use its actual filename. |
+| No live countdown appears | The game is in plain mode. Use a native terminal or IntelliJ's Terminal for live capture, or submit with Enter. |
+| A reaction command has not appeared | Wait for the ambush delay. Do not answer before its command is revealed. |
+| A correct event answer failed | Check its deadline. In plain mode, time runs until Enter. |
+| A skill name is rejected | Enter a displayed skill at combat skill selection. Overclock must be earned first. |
+| An encounter is rejected | Enter one of the displayed numbers, 1 to 3. Skill names do not select encounters. |
+| Records, Leaderboard or Continue is empty | Launch from the same folder used previously. |
+| Saving or loading reports an error | Check that the folder and `data` are writable/readable. Back up data before replacing or removing damaged files. |
 
-Older saves that lack random-sequence information can restore combat progress but cannot reproduce
-the original future passages and enemies. New saves retain that information.
+The files are `data/game-save.properties`, `data/keyboardwarrior.txt` and
+`data/keyboardwarrior.txt.high-score`. Keep `data` with the game when moving saved progress.
+Different launch folders have separate progress, history and leaderboards.
+
+<a id="command-reference"></a>
 
 ## Command summary
 
-Enter one input at a time and press Enter. Numbers apply only to the menu named in the first column.
+Submit each command or response with Enter. See [Command conventions](#command-conventions)
+for capitalization and input-stage rules.
 
-| Where | Action | Accepted input | Result |
-| --- | --- | --- | --- |
-| Main menu | [Start a new run](#starting-a-new-run) | `1` or `start` | Prompts for a seed, then starts scenario 1 |
-| Main menu | [View history](#saved-typing-history) | `2` or `records` | Shows the latest ten attempts, oldest first |
-| Main menu | [Exit](#exiting-the-game) | `3` or `exit` | Closes the application |
-| Main menu | [Choose difficulty](#main-menu-and-game-difficulty) | `4` or `choose difficulty` | Opens the difficulty menu |
-| Main menu | [Continue](#saving-and-continuing-a-run) | `5` or `continue` | Loads the unfinished run at skill selection |
-| Main menu | [View best attempt](#leaderboard) | `6` or `leaderboard` | Shows one all-time best attempt |
-| Difficulty menu | Select a mode | `1` / `easy`, `2` / `normal`, `3` / `hard`, or `4` / `coder` | Selects the mode and returns to the main menu |
-| Seed prompt | [Choose a seed](#seeds-and-repeatable-runs) | A number, text other than `exit`, or an empty line | Starts a seeded or random run |
-| Skill selection | [Choose a skill](#skills-and-countdown) | `Ping`, `Brute Force`, `Buffer Overflow`, `SIGKILL`, or `Encryption` | Displays and starts a typing challenge |
-| Typing attempt | Submit an answer | Type the passage and press Enter | Scores the answer and resolves the combat turn |
-| Any input stage | [Exit](#exiting-the-game) | `exit` | Closes the application, retaining the last successful run save |
+| Where you are | Input | Result |
+| --- | --- | --- |
+| Main menu | `1` or `start` | Ask for a seed, then begin a new run |
+| Main menu | `2` or `records` | Show the latest ten typing responses |
+| Main menu | `3` or `exit` | Quit |
+| Main menu | `4` or `choose difficulty` | Open difficulty selection |
+| Main menu | `5` or `continue` | Resume the saved run |
+| Main menu | `6` or `leaderboard` | Show the single all-time best response |
+| Difficulty selection | `1` / `easy`, `2` / `normal`, `3` / `hard`, `4` / `coder` | Select a mode and return to the main menu |
+| Seed prompt | A number, nonblank text or an empty line | Use that seed, convert the text into a seed or generate one |
+| Encounter selection | `1`, `2` or `3` | Start that displayed choice |
+| Combat skill selection | A displayed skill name | Start its typing challenge |
+| Active combat challenge | Your typed passage | Submit that attack |
+| Active event challenge | Your answer or the displayed response | Resolve that event stage |
+| Reaction waiting period | Wait for the command | Respond after it appears |
+| Any phase | `exit` | Quit the application |
+
+Numbers have meaning only in their displayed menu. For example, `3` selects the third encounter
+at an encounter prompt; it quits only at the main menu. Invalid encounter input leaves the same
+three choices available. There is no manual `save` command.

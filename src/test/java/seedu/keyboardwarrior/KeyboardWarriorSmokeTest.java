@@ -5,11 +5,16 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarFile;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import seedu.keyboardwarrior.combat.Player;
+import seedu.keyboardwarrior.encounter.EncounterSnapshot;
+import seedu.keyboardwarrior.storage.GameSaveStore;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,7 +51,7 @@ class KeyboardWarriorSmokeTest {
 
     @Test
     void packagedJar_endOfInputDuringChallenge_exitsWithoutScoringAnEmptyAttempt() throws Exception {
-        ProcessResult result = runJar("Start\n2026\nPing\n");
+        ProcessResult result = runJar("Start\n2026\n1\nPing\n");
 
         assertCleanExit(result);
         assertTrue(result.output().contains("Type the following text and press Enter to attack:"), result.output());
@@ -84,7 +89,7 @@ class KeyboardWarriorSmokeTest {
 
     @Test
     void packagedJar_typingAttempt_displaysPassageAndEvaluatesSubmittedText() throws Exception {
-        ProcessResult result = runJar("Start\n2026\nPing\nsmoke test answer\nExit\n");
+        ProcessResult result = runJar("Start\n2026\n1\nPing\nsmoke test answer\nExit\n");
 
         assertCleanExit(result);
         assertTrue(result.output().contains("Starting run with seed: 2026"), result.output());
@@ -104,12 +109,42 @@ class KeyboardWarriorSmokeTest {
         }
     }
 
+    @Test
+    void packagedJar_continueMerchantStage_preservesRewardAndAdvancesSavedRun() throws Exception {
+        Player player = new Player("Player", 110);
+        player.setBonusTime(7);
+        GameSave saved = GameSave.forEncounter(GameDifficulty.NORMAL, player, 1, 0, null,
+                new EncounterSnapshot("dialogue", Map.of("phase", "ACCEPTING_ANSWER", "node", "1")));
+
+        ProcessResult result = runJar("continue\nShow me your rare wares\nexit\n", saved);
+
+        assertCleanExit(result);
+        assertTrue(result.output().contains("Secure the deal"));
+        assertTrue(result.output().contains("You have received: Overclock!"));
+        assertTrue(result.output().contains("Scenario 3/5"));
+        GameSave continued = new GameSaveStore(tempDir.resolve("working directory/data/game-save.properties"))
+                .load().orElseThrow();
+        assertEquals(110, continued.playerHealth());
+        assertEquals(7, continued.bonusTime());
+        assertTrue(continued.skillIds().contains("overclock"));
+        assertEquals(GameDifficulty.NORMAL, continued.difficulty());
+        assertEquals(3, continued.choices().size());
+    }
+
     /**
      * Runs plain java -jar from a directory and JAR path containing spaces, without an inherited terminal.
      * Output goes to temporary files to prevent a full output pipe from deadlocking the child process.
      */
     private ProcessResult runJar(String input) throws Exception {
+        return runJar(input, null);
+    }
+
+    /** Runs the real entry point with an optional persisted event checkpoint. */
+    private ProcessResult runJar(String input, GameSave initialSave) throws Exception {
         Path workingDirectory = Files.createDirectory(tempDir.resolve("working directory"));
+        if (initialSave != null) {
+            new GameSaveStore(workingDirectory.resolve("data/game-save.properties")).save(initialSave);
+        }
         Path jar = Files.copy(releaseJar(), workingDirectory.resolve("Keyboard Warrior demo.jar"));
         Path outputFile = tempDir.resolve("stdout.txt");
         Path errorFile = tempDir.resolve("stderr.txt");

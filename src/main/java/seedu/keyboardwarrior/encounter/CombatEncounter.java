@@ -26,7 +26,9 @@ public class CombatEncounter extends Encounter {
     public record CombatSnapshot(String enemyType, int enemyHealth, int nextEnemySkillIndex) {
     }
 
-    /** Diagnostic encounter lifecycle events, hidden at the default logging level. */
+    /**
+     * Diagnostic encounter lifecycle events, hidden at the default logging level.
+     */
     private static final Logger LOGGER = Logger.getLogger(CombatEncounter.class.getName());
     private Player player;
     private Enemy enemy;
@@ -51,8 +53,8 @@ public class CombatEncounter extends Encounter {
      * Creates a combat encounter for the supplied participants and interface.
      *
      * @param player player taking part in the encounter
-     * @param enemy enemy taking part in the encounter
-     * @param ui interface used for combat input and output
+     * @param enemy  enemy taking part in the encounter
+     * @param ui     interface used for combat input and output
      * @throws NullPointerException if a participant or interface is null
      */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui) {
@@ -62,18 +64,21 @@ public class CombatEncounter extends Encounter {
     /**
      * Creates an encounter using a prompt factory shared by the current run.
      *
-     * @param player player taking part in the encounter
-     * @param enemy enemy taking part in the encounter
-     * @param ui combat interface
+     * @param player           player taking part in the encounter
+     * @param enemy            enemy taking part in the encounter
+     * @param ui               combat interface
      * @param challengeFactory factory retaining prompt selection history between
-     *     encounters
+     *                         encounters
      * @throws NullPointerException if any dependency is null
      */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui, TypingChallengeFactory challengeFactory) {
         this(player, enemy, ui, challengeFactory, GameDifficulty.HARD);
     }
 
-    /** Creates an encounter with the run's shared prompt factory and player damage multiplier. */
+    /**
+     * Creates an encounter with the run's shared prompt factory and player damage
+     * multiplier.
+     */
     public CombatEncounter(Player player, Enemy enemy, CombatUi ui, TypingChallengeFactory challengeFactory,
             GameDifficulty difficulty) {
         super();
@@ -88,7 +93,6 @@ public class CombatEncounter extends Encounter {
     /**
      * Alternates player and enemy turns until one participant is defeated.
      */
-    @Override
     public void start() {
         begin();
         while (!isCompleted) {
@@ -104,13 +108,16 @@ public class CombatEncounter extends Encounter {
      * The application can then collect input while continuing timer updates.
      *
      * @throws IllegalStateException if combat already began or a living enemy
-     *     cannot take a turn
+     *                               cannot take a turn
      */
     public void begin() {
         begin(0);
     }
 
-    /** Starts a restored encounter at its saved enemy attack without taking an enemy turn. */
+    /**
+     * Starts a restored encounter at its saved enemy attack without taking an enemy
+     * turn.
+     */
     public void begin(int nextEnemySkillIndex) {
         if (isStarted) {
             throw new IllegalStateException("Combat has already begun.");
@@ -136,10 +143,26 @@ public class CombatEncounter extends Encounter {
         }
     }
 
-    /** Captures opponent data only between turns, when no unfinished typing attack exists. */
+    /**
+     * Captures opponent data only between turns, when no unfinished typing attack
+     * exists.
+     */
     public CombatSnapshot snapshot() {
         if (!isStarted || isCompleted || pendingSkill != null) {
             throw new IllegalStateException("Combat can only be saved between active turns");
+        }
+        return snapshotForSave();
+    }
+
+    /**
+     * Captures either an unselected combat offer or a stable player turn.
+     * Unfinished attacks and completed fights cannot be restored as fresh turns.
+     *
+     * @return current opponent and its next attack index
+     */
+    public CombatSnapshot snapshotForSave() {
+        if (isCompleted || pendingSkill != null) {
+            throw new IllegalStateException("Combat offers and stable turns alone can be saved");
         }
         assert player.getHealth() > 0 && enemy.getHealth() > 0 : "Saved combat must have living participants";
         assert enemySkillIndex >= 0 && enemySkillIndex < enemy.getActiveSkills().size()
@@ -149,13 +172,14 @@ public class CombatEncounter extends Encounter {
 
     /**
      * Prepares a chosen skill's challenge without blocking for a submission.
+     * The player's signed bonus time is applied before the factory scales the countdown.
      *
      * @param chosenSkill skill selected by the player
      * @return challenge to display and time before submitting its result
-     * @throws NullPointerException if the chosen skill is null
+     * @throws NullPointerException     if the chosen skill is null
      * @throws IllegalArgumentException if the player does not have the chosen skill
-     * @throws IllegalStateException if combat has not begun, ended or a result
-     *     is already pending
+     * @throws IllegalStateException    if combat has not begun, ended or a result
+     *                                  is already pending
      */
     public TypingChallenge preparePlayerTurn(Skill chosenSkill) {
         if (!isStarted || isCompleted || pendingSkill != null) {
@@ -166,7 +190,7 @@ public class CombatEncounter extends Encounter {
             throw new IllegalArgumentException("Chosen skill must be available to the player.");
         }
         assert player.getHealth() > 0 && enemy.getHealth() > 0 : "A player turn requires living participants";
-        TypingChallenge challenge = challengeFactory.generateForSkill(chosenSkill);
+        TypingChallenge challenge = challengeFactory.generateForSkill(chosenSkill, player.getBonusTime());
         assert challenge != null : "The challenge factory must generate a challenge";
         ui.showTypingPrep();
         pendingSkill = chosenSkill;
@@ -179,7 +203,7 @@ public class CombatEncounter extends Encounter {
      * turn.
      *
      * @param result evaluated result of the pending typing challenge
-     * @throws NullPointerException if the result is null
+     * @throws NullPointerException  if the result is null
      * @throws IllegalStateException if there is no pending player turn
      */
     public void submitTypingResult(TypingResult result) {

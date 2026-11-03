@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 /**
- * Represents a combat participant with health and a collection of usable skills.
+ * Represents a combat participant with health and a collection of usable
+ * skills.
  */
 public abstract class Entity {
     /**
@@ -27,9 +28,9 @@ public abstract class Entity {
     /**
      * Creates a living combat participant without any active skills.
      *
-     * @param name name displayed during combat
+     * @param name   name displayed during combat
      * @param health starting health points
-     * @throws NullPointerException if the name is null
+     * @throws NullPointerException     if the name is null
      * @throws IllegalArgumentException if the name is blank or health is negative
      */
     public Entity(String name, int health) {
@@ -46,16 +47,15 @@ public abstract class Entity {
     }
 
     /**
-     * Replaces the entity's current health value.
+     * Replaces current health, clamping negative values to zero without imposing a gameplay maximum.
+     * The encounter remains responsible for updating the defeated flag. Callers must prevent
+     * arithmetic overflow before passing a calculated value to this setter.
      *
-     * @param health new health value
-     * @throws IllegalArgumentException if health is negative
+     * @param health requested health value; negative values are stored as zero
      */
     public void setHealth(int health) {
-        if (health < 0) {
-            throw new IllegalArgumentException("Health must not be negative");
-        }
-        this.health = health;
+        this.health = Math.max(health, 0);
+        assert this.health >= 0 : "Stored health must remain nonnegative";
     }
 
     /**

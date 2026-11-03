@@ -20,7 +20,7 @@ class CombatModelTest {
     @Test
     void enemy_newAndUpdated_preservesCombatState() {
         Enemy enemy = new Enemy("Training Bot", 50);
-        Skill skill = new Skill("Test Strike", 12, Difficulty.EASY);
+        Skill skill = new Skill("Test Strike", 12, 0, Difficulty.EASY);
 
         assertEquals("Training Bot", enemy.getName());
         assertEquals(50, enemy.getHealth());
@@ -38,7 +38,7 @@ class CombatModelTest {
     }
 
     /**
-     * Checks that a new player receives all four standard skills in order.
+     * Checks that a new player receives all five standard skills in order.
      */
     @Test
     void player_new_hasDefaultSkillsInOrder() {
@@ -60,7 +60,7 @@ class CombatModelTest {
      */
     @Test
     void skill_new_exposesConfiguredValues() {
-        Skill skill = new Skill("Test Strike", 12, Difficulty.HARD);
+        Skill skill = new Skill("Test Strike", 12, 0, Difficulty.HARD);
 
         assertEquals("Test Strike", skill.getName());
         assertEquals(12, skill.getBaseDamage());
@@ -85,13 +85,27 @@ class CombatModelTest {
     void entity_invalidUpdates_preservePreviousState() {
         Enemy enemy = new Enemy("Target", 50);
 
-        assertThrows(IllegalArgumentException.class, () -> enemy.setHealth(-1));
         assertThrows(NullPointerException.class, () -> enemy.setIsDead(null));
         assertThrows(NullPointerException.class, () -> enemy.addSkill(null));
 
         assertEquals(50, enemy.getHealth());
         assertFalse(enemy.getIsDead());
         assertTrue(enemy.getActiveSkills().isEmpty());
+    }
+
+    /** Negative updates clamp to zero while positive updates have no gameplay cap or defeated-flag side effect. */
+    @Test
+    void entity_setHealth_clampsNegativesWithoutChangingDefeatedFlag() {
+        Enemy enemy = new Enemy("Target", 50);
+        for (int requested : new int[] {-1, Integer.MIN_VALUE, 0, 25, Integer.MAX_VALUE}) {
+            enemy.setHealth(requested);
+            assertEquals(Math.max(0, requested), enemy.getHealth());
+            assertFalse(enemy.getIsDead());
+        }
+        enemy.setIsDead(true);
+        enemy.setHealth(50);
+        assertEquals(50, enemy.getHealth());
+        assertTrue(enemy.getIsDead(), "Health updates must not automatically revive an entity.");
     }
 
     /**
@@ -114,11 +128,11 @@ class CombatModelTest {
      */
     @Test
     void skill_invalidArguments_rejectsConstruction() {
-        assertThrows(NullPointerException.class, () -> new Skill(null, 12, Difficulty.EASY));
-        assertThrows(IllegalArgumentException.class, () -> new Skill("", 12, Difficulty.EASY));
-        assertThrows(IllegalArgumentException.class, () -> new Skill(" \t", 12, Difficulty.EASY));
-        assertThrows(IllegalArgumentException.class, () -> new Skill("Strike", -1, Difficulty.EASY));
-        assertThrows(NullPointerException.class, () -> new Skill("Strike", 12, null));
+        assertThrows(NullPointerException.class, () -> new Skill(null, 12, 0, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill("", 12, 0, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill(" \t", 12, 0, Difficulty.EASY));
+        assertThrows(IllegalArgumentException.class, () -> new Skill("Strike", -1, 0, Difficulty.EASY));
+        assertThrows(NullPointerException.class, () -> new Skill("Strike", 12, 0, null));
     }
 
     /**
@@ -126,7 +140,7 @@ class CombatModelTest {
      */
     @Test
     void skill_zeroDamage_isAllowed() {
-        Skill skill = new Skill("Wait", 0, Difficulty.EASY);
+        Skill skill = new Skill("Wait", 0, 0, Difficulty.EASY);
 
         assertEquals(0, skill.getBaseDamage());
     }

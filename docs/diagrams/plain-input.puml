@@ -1,0 +1,71 @@
+@startuml
+hide footbox
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+skinparam sequenceMessageAlign center
+title Plain console: queued input and waiting updates
+
+box "Background reader"
+participant "inputThread:\nThread" as input
+participant "reader:\nBufferedReader" as reader
+end box
+queue "inputQueue:\nBlockingQueue" as queue
+box "Main thread"
+participant "KeyboardWarrior" as main <<class>>
+participant "machine:\nStateMachine" as machine
+participant "current:\nState" as state
+end box
+
+note over input, state
+  Scope: runPlainLoop(...) after setup.
+  Only the main thread changes application states.
+  Output and reader cleanup are omitted.
+end note
+par read complete lines
+  loop until EOF, failure or interruption
+    input -> reader : readLine()
+    reader --> input : line
+    input -> queue : offer(...)
+    queue --> input
+    note over input, queue
+      Queued PlainInput wraps a line,
+      EOF or IOException, in FIFO order.
+    end note
+  end
+else dispatch and wait
+  loop while running
+    main -> queue : poll(...)
+    queue --> main : next
+    alt next contains a line
+      main -> machine : handleInput(...)
+      machine -> state : handleInput(...)
+      state --> machine
+      machine --> main
+    else next marks EOF
+      main -> machine : stop()
+      machine --> main
+      note over main, state : Leave the loop.
+    else next contains a failure
+      note over main, state
+        Throw next.failure().
+        Finally stop the state if still running.
+      end note
+    end
+    opt still running
+      main -> machine : updateWaiting()
+      machine -> state : updateWaiting()
+      state --> machine
+      machine --> main
+    end
+  end
+end
+note over main, state
+  Queue polling waits up to 100 ms.
+  updateWaiting() can reveal a reaction command.
+  Full update() and automatic typing submission stay disabled.
+  Enter supplies the response and actual elapsed time.
+end note
+@enduml

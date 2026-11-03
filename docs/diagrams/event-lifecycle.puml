@@ -1,0 +1,45 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam defaultFontSize 14
+hide empty description
+title Event lifecycle and save boundaries
+
+state NOT_STARTED
+state WAITING
+state ACCEPTING_ANSWER
+state RESOLVING
+state COMPLETED
+
+[*] --> NOT_STARTED
+NOT_STARTED --> WAITING : prepareEvent(...)\n[reaction]
+NOT_STARTED --> ACCEPTING_ANSWER : prepareEvent(...)\n[puzzle or dialogue]
+WAITING --> ACCEPTING_ANSWER : updateEvent(...)\n[delay elapsed]
+ACCEPTING_ANSWER --> RESOLVING : submitAnswer(...)
+RESOLVING --> ACCEPTING_ANSWER : [dialogue opening]\nprepareFollowUp(...)
+RESOLVING --> COMPLETED : completeEvent()\n[terminal response resolved]
+COMPLETED --> [*]
+
+note left of WAITING
+  Reaction delay only.
+  Both input modes poll it.
+end note
+note right of ACCEPTING_ANSWER
+  Controller owns the clock.
+  Overdue input is incorrect.
+  Resume keeps this stage
+  with a fresh deadline.
+end note
+note right of RESOLVING
+  Effects cannot be saved midway
+  or reward twice on retry.
+end note
+legend bottom
+  States are EventEncounter.EventPhase values.
+  NOT_STARTED, WAITING and ACCEPTING_ANSWER are saveable.
+  Only a dialogue opening creates another answer stage.
+  Inline validation, UI calls and failure paths are omitted.
+endlegend
+@enduml

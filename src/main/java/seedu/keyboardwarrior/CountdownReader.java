@@ -17,6 +17,8 @@ public class CountdownReader extends LineReaderImpl {
      * Target passage displayed below the timer while a challenge is active.
      */
     private String challengeText;
+    /** Instruction shown above either a combat passage or an event response. */
+    private String challengeInstruction;
     private int timeLimitSeconds;
 
     /**
@@ -74,9 +76,20 @@ public class CountdownReader extends LineReaderImpl {
      * @param seconds seconds to display
      */
     public void showTypingChallenge(String text, int seconds) {
+        showChallenge(text, seconds, "Type the following text and press Enter to attack:");
+    }
+
+    /** Displays an event response without presenting it as a combat attack. */
+    public void showEventChallenge(String text, int seconds) {
+        showChallenge(text, seconds, "Enter your response before time runs out:");
+    }
+
+    /** Publishes a complete timed input display under the editing lock. */
+    private void showChallenge(String text, int seconds, String instruction) {
         lock.lock();
         try {
             challengeText = text;
+            challengeInstruction = instruction;
             timeLimitSeconds = seconds;
             remainingSeconds = seconds;
             refreshPrompt();
@@ -139,7 +152,7 @@ public class CountdownReader extends LineReaderImpl {
         String challengeDisplay = challengeText == null ? ""
                 : "Time limit: " + timeLimitSeconds + " seconds\n"
                 // JLine expands percent markers in prompts, so passage symbols must be escaped.
-                + "Type the following text and press Enter to attack:\n"
+                + challengeInstruction + "\n"
                 + challengeText.replace("%", "%%") + "\n";
         return "Time remaining: " + remainingSeconds + "s\n" + challengeDisplay + "Your input: ";
     }

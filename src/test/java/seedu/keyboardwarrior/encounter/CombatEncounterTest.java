@@ -110,7 +110,7 @@ class CombatEncounterTest {
         assertThrows(IllegalStateException.class, () -> encounter.preparePlayerTurn(skill));
         encounter.begin();
         assertThrows(NullPointerException.class, () -> encounter.preparePlayerTurn(null));
-        Skill unavailable = new Skill("Unavailable", 10, Difficulty.EASY);
+        Skill unavailable = new Skill("Unavailable", 10, 0, Difficulty.EASY);
         assertThrows(IllegalArgumentException.class, () -> encounter.preparePlayerTurn(unavailable));
         assertTrue(encounter.preparePlayerTurn(skill).getTime() >= 15);
         assertThrows(IllegalStateException.class, () -> encounter.preparePlayerTurn(skill));
@@ -191,7 +191,7 @@ class CombatEncounterTest {
     @Test
     void start_enemyDefeatsPlayer_recordsDefeat() {
         Player player = new Player("Player", 10);
-        Skill zeroDamageSkill = new Skill("Wait", 0, Difficulty.EASY);
+        Skill zeroDamageSkill = new Skill("Wait", 0, 0, Difficulty.EASY);
         player.getActiveSkills().clear();
         player.addSkill(zeroDamageSkill);
         Enemy enemy = new Enemy("Training Bot", 100);
@@ -341,16 +341,17 @@ class CombatEncounterTest {
          * Fails the first generation request and delegates subsequent requests to the real factory.
          *
          * @param difficulty requested challenge difficulty
+         * @param bonusTime countdown adjustment forwarded to the real factory
          * @return generated challenge after the first failed request
          * @throws IllegalStateException on the first call
          */
         @Override
-        public TypingChallenge generate(Difficulty difficulty) {
+        public TypingChallenge generate(Difficulty difficulty, int bonusTime) {
             if (shouldFail) {
                 shouldFail = false;
                 throw new IllegalStateException("Simulated challenge generation failure");
             }
-            return super.generate(difficulty);
+            return super.generate(difficulty, bonusTime);
         }
     }
 

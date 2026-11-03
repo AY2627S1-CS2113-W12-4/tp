@@ -1,8 +1,16 @@
 @startuml
-' Focus: active-run references and creation dependencies.
-left to right direction
+' Scope: retained run references, encounter variants and opponent creation.
+!pragma layout smetana
+top to bottom direction
 skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam backgroundColor white
 skinparam shadowing false
+skinparam defaultFontSize 14
+skinparam classAttributeIconSize 0
+hide empty members
+hide circle
+
 class GamePlayState {
   -scenarioIndex : int
   -bossPhase : int
@@ -10,29 +18,45 @@ class GamePlayState {
   -startBossPhase()
   -advanceAfterVictory()
 }
-class Player {
-  +getHealth() : int
+abstract class Encounter {
+  +getIsCompleted()
+  +getEncounterOutcome()
 }
+class Player
 class CombatEncounter {
   +begin()
-  +preparePlayerTurn(skill)
-  +submitTypingResult(result)
+  +preparePlayerTurn(...)
+  +submitTypingResult(...)
 }
-class Enemy {
-  +getHealth() : int
+abstract class EventEncounter {
+  +prepareEvent(...)
+  +updateEvent(...)
+  +submitAnswer(...)
+  +resumeEvent(...)
 }
-class EnemyFactory {
-  {static} +createRandomEnemy(random, scenarioNumber)
-  {static} +createBossPhase(phase)
+class EncounterFactory {
+  +generateChoices(...)
+  +snapshot(...)
+  +restore(...)
 }
-GamePlayState --> "1" Player : player
-GamePlayState --> "1" CombatEncounter : encounter
-GamePlayState ..> EnemyFactory : calls
-CombatEncounter --> "1" Player : player
-CombatEncounter --> "1" Enemy : enemy
-EnemyFactory ..> Enemy : creates
+class Enemy
+class EnemyFactory
+
+GamePlayState --> "1\nplayer" Player
+GamePlayState --> "0..1\nencounter" Encounter
+GamePlayState --> "0..3\nchoices" Encounter
+GamePlayState --> "1\nencounterFactory" EncounterFactory
+GamePlayState ..> EnemyFactory
+Encounter <|-- CombatEncounter
+Encounter <|-- EventEncounter
+EncounterFactory ..> EnemyFactory
+CombatEncounter --> "1\nplayer" Player
+CombatEncounter --> "1\nenemy" Enemy
+EnemyFactory ..> Enemy : <<create>>
+
 note bottom of GamePlayState
-  bossPhase = 0 for regular scenarios;
-  1 or 2 for the boss.
+  bossPhase = 0 in regular scenarios;
+  1 or 2 in the final boss encounter.
+  Either three offers or one selected encounter.
 end note
 @enduml

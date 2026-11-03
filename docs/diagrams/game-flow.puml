@@ -1,0 +1,32 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam ArrowColor #294A6B
+skinparam activity {
+  BackgroundColor #F2F6FA
+  BorderColor #294A6B
+  FontColor #172B40
+  DiamondBackgroundColor #FFF4D9
+  DiamondBorderColor #99752B
+  StartColor #294A6B
+  EndColor #294A6B
+}
+
+start
+:Start and enter a seed;
+repeat
+  :Choose 1 of 3 encounters;
+  note right
+    1: Combat
+    2: Event
+    3: Combat or event
+  end note
+  :Complete the chosen encounter\nand stay alive;
+repeat while (Five scenarios completed?) is (No) not (Yes)
+:Defeat boss phase 1;
+:Defeat boss phase 2;
+:Win and return to the main menu;
+stop
+@enduml

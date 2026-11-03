@@ -1,6 +1,7 @@
 package seedu.keyboardwarrior.state;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.logging.Logger;
@@ -11,6 +12,11 @@ import seedu.keyboardwarrior.combat.EnemyFactory;
 import seedu.keyboardwarrior.combat.Player;
 import seedu.keyboardwarrior.combat.Skill;
 import seedu.keyboardwarrior.encounter.CombatEncounter;
+import seedu.keyboardwarrior.encounter.Encounter;
+import seedu.keyboardwarrior.encounter.EncounterFactory;
+import seedu.keyboardwarrior.encounter.EncounterSnapshot;
+import seedu.keyboardwarrior.encounter.EventEncounter;
+import seedu.keyboardwarrior.encounter.PuzzleEncounter;
 import seedu.keyboardwarrior.seed.RandomSnapshot;
 import seedu.keyboardwarrior.seed.RunRandom;
 import seedu.keyboardwarrior.seed.SeedGenerator;
@@ -23,10 +29,11 @@ import seedu.keyboardwarrior.typing.TypingChallengeFactory;
 import seedu.keyboardwarrior.typing.TypingEvaluator;
 import seedu.keyboardwarrior.typing.TypingResult;
 import seedu.keyboardwarrior.ui.CombatUi;
+import seedu.keyboardwarrior.ui.EventUi;
 import seedu.keyboardwarrior.ui.StateUi;
 
 /**
- * Runs five combat scenarios and a two-phase final boss while keeping typing
+ * Runs five encounter choices and a two-phase final boss while keeping typing
  * countdowns live.
  */
 public class GamePlayState extends State {
@@ -45,21 +52,35 @@ public class GamePlayState extends State {
     private final SaveStore saveStore;
     private final GameDifficulty difficulty;
     private final GameSaveStore gameSaveStore;
-    /** Null for a fresh run; otherwise supplies the initial stable turn to restore. */
+    /**
+     * Null for a fresh run; otherwise supplies the initial stable turn to restore.
+     */
     private final GameSave restoredSave;
-    /** Shares prompt selection history across regular scenarios and both boss phases. */
+    /**
+     * Shares prompt selection history across regular scenarios and both boss
+     * phases.
+     */
     private final TypingChallengeFactory challengeFactory;
-    /** Shares both random choices and previous-passage exclusions with saved runs. */
+    /**
+     * Shares both random choices and previous-passage exclusions with saved runs.
+     */
     private final PromptBank promptBank;
+    /** Displays the existing puzzle, reaction and merchant event interfaces. */
+    private final EventUi eventUi = new EventUi();
+    /** Shares event content and unclaimed rewards across the player's entire run. */
+    private EncounterFactory encounterFactory;
+    /** Nonempty only while choosing the next regular encounter. */
+    private List<Encounter> choices = List.of();
     /** The same player's remaining health carries into the next scenario. */
     private Player player;
-    private CombatEncounter encounter;
+    private Encounter encounter;
     /**
-     * Null while choosing a skill; otherwise input is the current typing answer.
+     * Null at encounter/skill selection or during a reaction wait; otherwise holds the active answer target.
      */
     private TypingChallenge challenge;
     /**
-     * Zero-based regular scenario index; equals the scenario count during the boss fight.
+     * Zero-based regular scenario index; equals the scenario count during the boss
+     * fight.
      */
     private int scenarioIndex;
     /**
@@ -85,7 +106,7 @@ public class GamePlayState extends State {
      *
      * @param stateMachine machine that controls this state
      * @param masterRandom shared source for enemy and prompt selection
-     * @param saveStore history store retained when returning to the menu
+     * @param saveStore    history store retained when returning to the menu
      */
     public GamePlayState(StateMachine stateMachine, Random masterRandom, SaveStore saveStore) {
         this(stateMachine, new ChallengeClock(), new CombatUi(), masterRandom, saveStore);
@@ -96,8 +117,9 @@ public class GamePlayState extends State {
      *
      * @param stateMachine machine that controls this state
      * @param masterRandom shared source for enemy and prompt selection
-     * @param saveStore history store retained when returning to the menu
-     * @param difficulty selected difficulty for health, damage and typing deadlines
+     * @param saveStore    history store retained when returning to the menu
+     * @param difficulty   selected difficulty for health, damage and typing
+     *                     deadlines
      */
     GamePlayState(StateMachine stateMachine, Random masterRandom, SaveStore saveStore, GameDifficulty difficulty) {
         this(stateMachine, new ChallengeClock(), new CombatUi(), masterRandom, saveStore, difficulty);
@@ -119,8 +141,8 @@ public class GamePlayState extends State {
      * progression.
      *
      * @param stateMachine machine that controls this state
-     * @param clock clock used to measure typing duration
-     * @param combatUi interface used to display combat and typing challenges
+     * @param clock        clock used to measure typing duration
+     * @param combatUi     interface used to display combat and typing challenges
      */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi) {
         this(stateMachine, clock, combatUi, SeedGenerator.createRandom());
@@ -130,9 +152,9 @@ public class GamePlayState extends State {
      * Accepts a shared random source for reproducible enemy and prompt selection.
      *
      * @param stateMachine machine that controls this state
-     * @param clock clock used to measure typing duration
-     * @param combatUi interface used to display combat and typing challenges
-     * @param random shared source for enemy and prompt selection
+     * @param clock        clock used to measure typing duration
+     * @param combatUi     interface used to display combat and typing challenges
+     * @param random       shared source for enemy and prompt selection
      */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi, Random random) {
         this(stateMachine, clock, combatUi, random, new SaveStore());
@@ -142,24 +164,30 @@ public class GamePlayState extends State {
      * Accepts a save location so tests do not overwrite the player's history.
      *
      * @param stateMachine machine that controls this state
-     * @param clock clock used to measure typing duration
-     * @param combatUi interface used to display combat and typing challenges
-     * @param random shared source for enemy and prompt selection
-     * @param saveStore history store retained when returning to the menu
+     * @param clock        clock used to measure typing duration
+     * @param combatUi     interface used to display combat and typing challenges
+     * @param random       shared source for enemy and prompt selection
+     * @param saveStore    history store retained when returning to the menu
      */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi,
             Random random, SaveStore saveStore) {
         this(stateMachine, clock, combatUi, random, saveStore, GameDifficulty.HARD);
     }
 
-    /** Accepts controlled dependencies and run settings for testing difficulty effects and progression. */
+    /**
+     * Accepts controlled dependencies and run settings for testing difficulty
+     * effects and progression.
+     */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi,
             Random random, SaveStore saveStore, GameDifficulty difficulty) {
         this(stateMachine, clock, combatUi, random, saveStore, difficulty,
                 new GameSaveStore(saveStore.getDirectory().resolve("game-save.properties")), null);
     }
 
-    /** Accepts run storage and an optional snapshot for deterministic restoration and failure tests. */
+    /**
+     * Accepts run storage and an optional snapshot for deterministic restoration
+     * and failure tests.
+     */
     GamePlayState(StateMachine stateMachine, ChallengeClock clock, CombatUi combatUi,
             Random random, SaveStore saveStore, GameDifficulty difficulty, GameSaveStore gameSaveStore,
             GameSave restoredSave) {
@@ -168,7 +196,8 @@ public class GamePlayState extends State {
         this.combatUi = Objects.requireNonNull(combatUi, "Combat interface must not be null");
         Objects.requireNonNull(random, "Random generator must not be null");
         this.random = restoredSave != null && restoredSave.randomSnapshot() != null
-                ? restoreRandom(restoredSave) : random;
+                ? restoreRandom(restoredSave)
+                : random;
         this.saveStore = Objects.requireNonNull(saveStore, "Save store must not be null");
         this.difficulty = Objects.requireNonNull(difficulty, "Game difficulty must not be null");
         this.gameSaveStore = Objects.requireNonNull(gameSaveStore, "Game save store must not be null");
@@ -183,7 +212,10 @@ public class GamePlayState extends State {
         this.challengeFactory = new TypingChallengeFactory(promptBank, difficulty);
     }
 
-    /** Older saves still load, but only new saves contain the original random sequence position. */
+    /**
+     * Older saves still load, but only new saves contain the original random
+     * sequence position.
+     */
     private static Random restoreRandom(GameSave save) {
         return save.randomSnapshot() == null ? SeedGenerator.createRandom()
                 : RunRandom.restore(save.randomSnapshot().state());
@@ -199,6 +231,7 @@ public class GamePlayState extends State {
             return;
         }
         player = new Player("Player", difficulty.getStartingHealth());
+        encounterFactory = new EncounterFactory(random, player);
         scenarioIndex = 0;
         bossPhase = 0;
         challenge = null;
@@ -207,10 +240,14 @@ public class GamePlayState extends State {
         startScenario();
     }
 
-    /** Restores health and attack rotation directly, without applying difficulty multipliers again. */
+    /**
+     * Restores health and attack rotation directly, without applying difficulty
+     * multipliers again.
+     */
     private void restoreRun() {
         assert restoredSave != null : "Restoration requires a validated run snapshot";
-        player = new Player("Player", restoredSave.playerHealth());
+        player = restoredSave.restorePlayer();
+        encounterFactory = new EncounterFactory(random, player);
         scenarioIndex = restoredSave.scenarioIndex();
         bossPhase = restoredSave.bossPhase();
         challenge = null;
@@ -220,13 +257,27 @@ public class GamePlayState extends State {
         } else {
             StateUi.showBossPhase(bossPhase, BOSS_PHASE_COUNT);
         }
-        encounter = new CombatEncounter(player, restoredSave.restoreEnemy(), combatUi, challengeFactory, difficulty);
-        encounter.begin(restoredSave.nextEnemySkillIndex());
-        assert player.getHealth() == restoredSave.playerHealth() && challenge == null
-                : "Restoration must preserve health and return to skill selection";
-        assert encounter.snapshot().equals(new CombatEncounter.CombatSnapshot(restoredSave.enemyType(),
-                restoredSave.enemyHealth(), restoredSave.nextEnemySkillIndex()))
-                : "Restoration must preserve the opponent's health and next attack";
+        if (restoredSave.activeEncounter() == null) {
+            choices = restoredSave.choices().stream().map(this::restoreEncounter).toList();
+            StateUi.showEncounterChoices(choices);
+        } else {
+            EncounterSnapshot savedEncounter = restoredSave.activeEncounter();
+            encounter = restoreEncounter(savedEncounter);
+            if (encounter instanceof CombatEncounter combat) {
+                combat.begin(Integer.parseInt(savedEncounter.data().get("nextEnemySkillIndex")));
+            } else {
+                EventEncounter event = (EventEncounter) encounter;
+                activateEventChallenge(savedEncounter.data().get("phase").equals("NOT_STARTED")
+                        ? event.prepareEvent(challengeFactory) : event.resumeEvent(challengeFactory));
+            }
+        }
+        assert player.getHealth() == restoredSave.playerHealth() : "Restoration must preserve health";
+    }
+
+    /** Restores a previously generated choice without consuming the shared random sequence. */
+    private Encounter restoreEncounter(EncounterSnapshot snapshot) {
+        return encounterFactory.restore(snapshot, player, combatUi, eventUi, challengeFactory, difficulty,
+                scenarioIndex + 1, bossPhase);
     }
 
     /**
@@ -238,18 +289,31 @@ public class GamePlayState extends State {
     }
 
     /**
-     * Handles an exit command, skill selection or typing submission for the active turn.
+     * Handles an exit command, skill selection or typing submission for the active
+     * turn.
      *
      * @param input input interpreted according to the current state
      */
     @Override
     public void handleInput(String input) {
         if (input.trim().equalsIgnoreCase("exit")) {
+            if (encounter instanceof EventEncounter && challenge == null) {
+                // Preserve the remaining reaction wait without saving unfinished combat input.
+                saveCurrentRun();
+            }
             stateMachine.stop();
             return;
         }
+        if (!choices.isEmpty()) {
+            chooseEncounter(input);
+            return;
+        }
         if (challenge == null) {
-            chooseSkill(input);
+            if (encounter instanceof CombatEncounter) {
+                chooseSkill(input);
+            } else {
+                StateUi.printLine("Wait for the reaction command, or type Exit to quit.");
+            }
             return;
         }
         double elapsedSeconds = Math.max(0.000000001, clock.getElapsedSeconds());
@@ -260,10 +324,12 @@ public class GamePlayState extends State {
     }
 
     /**
-     * Refreshes the countdown and scores unfinished input once the deadline has passed.
+     * Refreshes the countdown and scores unfinished input once the deadline has
+     * passed.
      */
     @Override
     public void update() {
+        updateWaiting();
         if (challenge == null) {
             return;
         }
@@ -281,6 +347,18 @@ public class GamePlayState extends State {
         }
     }
 
+    /** Advances delayed events even in plain consoles, without auto-submitting buffered input. */
+    @Override
+    public void updateWaiting() {
+        if (choices.isEmpty() && challenge == null && encounter instanceof EventEncounter event) {
+            TypingChallenge nextChallenge = event.updateEvent(challengeFactory);
+            if (nextChallenge != null) {
+                activateEventChallenge(nextChallenge);
+                saveCurrentRun();
+            }
+        }
+    }
+
     /**
      * Starts the next numbered encounter using the player's current health.
      */
@@ -288,10 +366,49 @@ public class GamePlayState extends State {
         assert scenarioIndex >= 0 && scenarioIndex < SCENARIO_COUNT : "Scenario index must be in the run";
         assert player != null && player.getHealth() > 0 : "A scenario needs a living player";
         StateUi.showScenario(scenarioIndex + 1, SCENARIO_COUNT);
-        encounter = new CombatEncounter(player, EnemyFactory.createRandomEnemy(random, scenarioIndex + 1),
-                combatUi, challengeFactory, difficulty);
-        encounter.begin();
+        encounter = null;
+        choices = encounterFactory.generateChoices(player, combatUi, eventUi, challengeFactory,
+                difficulty, scenarioIndex + 1);
+        StateUi.showEncounterChoices(choices);
         saveCurrentRun();
+    }
+
+    /** Starts exactly one of the already generated choices; invalid input changes no run state. */
+    private void chooseEncounter(String input) {
+        int selected;
+        try {
+            selected = Integer.parseInt(input.trim()) - 1;
+        } catch (NumberFormatException exception) {
+            StateUi.showInvalidEncounterChoice();
+            return;
+        }
+        if (selected < 0 || selected >= choices.size()) {
+            StateUi.showInvalidEncounterChoice();
+            return;
+        }
+        encounter = choices.get(selected);
+        choices = List.of();
+        if (encounter instanceof CombatEncounter combat) {
+            combat.begin();
+        } else {
+            activateEventChallenge(((EventEncounter) encounter).prepareEvent(challengeFactory));
+        }
+        saveCurrentRun();
+    }
+
+    /** Reports whether the state is waiting for an encounter selection. */
+    boolean isChoosingEncounter() {
+        return !choices.isEmpty();
+    }
+
+    /** Starts an event stage's clock without displaying a puzzle's hidden answer. */
+    private void activateEventChallenge(TypingChallenge nextChallenge) {
+        challenge = nextChallenge;
+        if (challenge != null) {
+            StateUi.showEventChallenge(challenge, encounter instanceof PuzzleEncounter);
+            clock.start(challenge.getTime());
+            lastDisplayedSeconds = clock.getRemainingSeconds();
+        }
     }
 
     /**
@@ -304,21 +421,24 @@ public class GamePlayState extends State {
         assert player != null && player.getHealth() > 0 : "A boss phase needs a living player";
         LOGGER.fine(() -> "Starting final boss phase " + bossPhase);
         StateUi.showBossPhase(bossPhase, BOSS_PHASE_COUNT);
-        encounter = new CombatEncounter(player, EnemyFactory.createBossPhase(bossPhase), combatUi,
+        CombatEncounter combat = new CombatEncounter(player, EnemyFactory.createBossPhase(bossPhase), combatUi,
                 challengeFactory, difficulty);
-        encounter.begin();
+        encounter = combat;
+        choices = List.of();
+        combat.begin();
         saveCurrentRun();
     }
 
     /**
      * Starts a timed typing attempt only after an available skill is selected.
      *
-     * @param input skill display name, compared without case or surrounding whitespace
+     * @param input skill display name, compared without case or surrounding
+     *              whitespace
      */
     private void chooseSkill(String input) {
         for (Skill skill : player.getActiveSkills()) {
             if (skill.getName().equalsIgnoreCase(input.trim())) {
-                challenge = encounter.preparePlayerTurn(skill);
+                challenge = ((CombatEncounter) encounter).preparePlayerTurn(skill);
                 combatUi.showTypingChallenge(challenge);
                 clock.start(challenge.getTime());
                 lastDisplayedSeconds = clock.getRemainingSeconds();
@@ -329,14 +449,16 @@ public class GamePlayState extends State {
     }
 
     /**
-     * Scores and saves one submission, then resolves combat and advances after victory.
+     * Scores and saves one submission, then resolves combat and advances after
+     * victory.
      * A storage failure is reported without preventing the combat turn.
      *
-     * @param typedText text captured or submitted for evaluation
+     * @param typedText      text captured or submitted for evaluation
      * @param elapsedSeconds elapsed typing duration in seconds
      */
     private void finishAttempt(String typedText, double elapsedSeconds) {
         assert challenge != null : "An active challenge is required to finish a typing attempt";
+        boolean overdue = elapsedSeconds > challenge.getTime();
         TypingResult result = TypingEvaluator.evaluateTyping(challenge.getText(), typedText,
                 elapsedSeconds, challenge.getTime());
         challenge = null;
@@ -347,7 +469,13 @@ public class GamePlayState extends State {
         } catch (IOException e) {
             StateUi.printLine("Could not save typing history: " + e.getMessage());
         }
-        encounter.submitTypingResult(result);
+        if (encounter instanceof CombatEncounter combat) {
+            combat.submitTypingResult(result);
+        } else {
+            TypingChallenge nextChallenge = ((EventEncounter) encounter)
+                    .submitAnswer(overdue ? "" : typedText, challengeFactory);
+            activateEventChallenge(nextChallenge);
+        }
         if (!encounter.getIsCompleted()) {
             saveCurrentRun();
             return;
@@ -368,19 +496,23 @@ public class GamePlayState extends State {
         stateMachine.transitState(new MainMenuState(stateMachine, saveStore, difficulty));
     }
 
-    /** Persists only stable player turns; storage failures leave combat playable. */
+    /**
+     * Persists only stable player turns; storage failures leave combat playable.
+     */
     private void saveCurrentRun() {
-        assert challenge == null : "Autosave must not capture an unfinished typing attempt";
         assert player != null && player.getHealth() > 0 : "Autosave requires a living player";
-        assert encounter != null && !encounter.getIsCompleted() : "Autosave requires an active encounter";
+        assert !choices.isEmpty() || encounter != null && !encounter.getIsCompleted()
+                : "Autosave requires encounter choices or an active encounter";
         assert (bossPhase == 0 && scenarioIndex >= 0 && scenarioIndex < SCENARIO_COUNT)
                 || (bossPhase >= 1 && bossPhase <= BOSS_PHASE_COUNT && scenarioIndex == SCENARIO_COUNT)
                 : "Autosave progression must identify a regular scenario or a final boss phase";
-        CombatEncounter.CombatSnapshot snapshot = encounter.snapshot();
-        GameSave save = new GameSave(GameSave.CURRENT_VERSION, difficulty, player.getHealth(), scenarioIndex,
-                bossPhase, snapshot.enemyType(), snapshot.enemyHealth(), snapshot.nextEnemySkillIndex(),
-                random instanceof RunRandom runRandom
-                        ? new RandomSnapshot(runRandom.snapshot(), promptBank.snapshotHistory()) : null);
+        RandomSnapshot randomSnapshot = random instanceof RunRandom runRandom
+                ? new RandomSnapshot(runRandom.snapshot(), promptBank.snapshotHistory()) : null;
+        GameSave save = !choices.isEmpty()
+                ? GameSave.forChoices(difficulty, player, scenarioIndex, randomSnapshot,
+                        choices.stream().map(encounterFactory::snapshot).toList())
+                : GameSave.forEncounter(difficulty, player, scenarioIndex, bossPhase, randomSnapshot,
+                        encounterFactory.snapshot(encounter));
         try {
             gameSaveStore.save(save);
         } catch (IOException exception) {
@@ -393,7 +525,7 @@ public class GamePlayState extends State {
      * enemy turn.
      *
      * @return true when another encounter started, or false after the final boss
-     *     phase
+     *         phase
      */
     private boolean advanceAfterVictory() {
         if (bossPhase == 0) {
