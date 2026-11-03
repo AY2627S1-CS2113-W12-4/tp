@@ -60,15 +60,15 @@ repeatable seeded runs and saved progress.
 
 ### Contributions to the Developer Guide
 
-- Expanded [ChallengeClock implementation](../DeveloperGuide.md#challengeclock-implementation)
-  with monotonic timing, remaining-time rounding, expiry and restart behaviour, fractional elapsed
-  time and assertion checks. Documented the five existing
-  [clock unit tests](../DeveloperGuide.md#challengeclock-unit-tests), their expected results,
-  the focused test command and coverage limitations.
-- Expanded [Records and all-time leaderboard](../DeveloperGuide.md#records-and-all-time-leaderboard)
-  with responsibilities, formats, initialization, save ordering, validation, menu behaviour and
-  design alternatives. Documented regression coverage and manual checks in
-  [Testing](../DeveloperGuide.md#testing)
+- Documented [ChallengeClock implementation](../DeveloperGuide.md#challengeclock-implementation):
+  monotonic timing, countdown rounding, expiry/restart behaviour and fractional elapsed time.
+  Summarized [clock unit-test coverage](../DeveloperGuide.md#challengeclock-unit-tests), the focused
+  test command and limitations without duplicating individual test cases.
+- Documented [Records and all-time leaderboard](../DeveloperGuide.md#records-and-all-time-leaderboard):
+  storage responsibilities, formats, initialization, save ordering, validation and error handling.
+  Explained why the best score uses a separate file and why separate writes are not transactional.
+  Linked regression coverage in [Testing](../DeveloperGuide.md#testing) and acceptance checks in
+  [Instructions for Manual Testing](../DeveloperGuide.md#appendix-e-instructions-for-manual-testing)
   ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36),
   [PR #41](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/41)).
 - Added the [typing-history save UML sequence diagram](../diagrams/typing-history-save.svg) and
@@ -78,6 +78,11 @@ repeatable seeded runs and saved progress.
 - Documented the [SLAP decomposition](../DeveloperGuide.md#single-level-of-abstraction-principle-slap),
   including helper responsibilities and the ordering needed to preserve gameplay. Updated the
   save/restoration explanation and boss-transition sequence to match the extracted helpers.
+- Condensed the [Developer Guide](../DeveloperGuide.md) from about 10,800 to 4,300 words
+  ([commit b0e91d9](https://github.com/shengyang2010/tp/commit/b0e91d9)). Removed repeated rules,
+  method inventories and detailed test descriptions while retaining all 14 diagrams, design
+  rationale, required appendices and manual checks for every user-facing feature. Preserved
+  portfolio links to guide sections and verified the documentation website build and local links.
 
 ### Contributions to team-based tasks
 
