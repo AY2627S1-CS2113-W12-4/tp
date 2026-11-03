@@ -2,69 +2,86 @@
 
 ## Overview
 
-Keyboard Warrior is a Java terminal game that turns typing practice into combat. Players choose
-skills and type passages against a countdown, with typing speed and accuracy determining attack
-damage. A complete run consists of five regular encounters followed by a two-phase final boss.
+Keyboard Warrior is a Java terminal game that turns typing practice into combat: players choose
+skills and type passages against a countdown, with speed and accuracy determining damage.
+Players survive five regular encounters and a two-phase boss, with selectable difficulty,
+repeatable seeded runs and saved progress.
 
 ## Summary of Contributions
 
-**Code contributed:** [tP Code Dashboard - shengyang2010](https://nus-cs2113-ay2627-s1.github.io/tp-dashboard/?search=shengyang2010&sort=groupTitle&sortWithin=title&timeframe=commit&groupSelect=groupByAuthors&breakdown=true&checkedFileTypes=docs~functional-code~test-code~other).
+**Code contributed:** [tP Code Dashboard - shengyang2010](https://nus-cs2113-ay2627-s1.github.io/tp-dashboard/?search=shengyang2010&breakdown=true).
 
 ### Enhancements implemented
 
-- **Challenge countdown and typing-result integration**
-  ([PR #9](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/9)):
-  Implemented `ChallengeClock` to track remaining and elapsed time using `System.nanoTime()`,
-  keeping elapsed-time measurements independent of system-clock changes. Integrated the countdown
-  into gameplay and the initial terminal display, and connected submitted or timed-out attempts
-  to the existing typing evaluator and result formatter so players receive feedback after each attempt.
-- **Persistent typing history**
-  ([PR #23](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/23)):
-  Implemented `SaveStore` to save WPM and accuracy automatically after each evaluated attempt.
-  Retained the latest ten records in chronological order across application restarts and added the
-  `records` main-menu command to display them. Added empty-history and loading-error messages,
-  while allowing combat to continue if saving fails.
-- **All-time leaderboard**
-  ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36)):
-  Added the `6` / `leaderboard` menu option and `LeaderboardStore` to retain one best typing
-  attempt. Scores rank by WPM, with accuracy breaking ties. Stored the best attempt separately
-  so it survives restarts and removal from the ten-entry history, and initialized it from existing
-  history when no high-score file exists. Updated Records and Leaderboard to redisplay the full
-  menu after results, empty messages or loading errors while preserving the selected difficulty.
-- **Shared file-storage implementation**
-  ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36)):
-  Extracted `FileStore` for shared path handling and file replacement, and reused it in
-  `SaveStore`, `LeaderboardStore` and the existing `GameSaveStore`. Writes go to a temporary
-  file before replacing the destination, using an atomic move where supported and cleaning up
-  temporary files on failure. This reduces duplicated storage code and protects existing data
-  when writing new contents fails.
+- **Challenge countdown and result integration** ([PR #9](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/9)).
+  Implemented `ChallengeClock` using `System.nanoTime()` to measure remaining and elapsed time
+  independently of system-clock changes. Integrated the initial countdown display and connected
+  submitted/timed-out attempts to the team's existing evaluator and formatter. This gives players
+  timed practice and immediate feedback. Tests cover expiry, restarting, invalid durations and
+  gameplay integration; [PR #18](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/18) adds assertions
+  for internal timing invariants.
+- **Persistent typing history** ([PR #23](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/23)).
+  Implemented `SaveStore` to save WPM and accuracy after each evaluated attempt, retain the latest
+  ten records across restarts, and display them through `records`. This lets players compare
+  recent performance. Covered storage, gameplay and menu integration, including empty history,
+  loading errors and combat continuing after a saving failure.
+- **All-time leaderboard** ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36)).
+  Added `leaderboard` and `LeaderboardStore` to retain one best attempt, ranked by WPM with accuracy
+  breaking ties. A separate high-score file preserves achievements after history rotation and
+  restarts. Initialized it from existing history before trimming old records, avoiding loss of
+  the previous best. Tests cover migration, rotation, improved scores, exact ties and malformed
+  data. Records and Leaderboard redisplay the full menu while preserving the selected difficulty.
+- **Reusable file storage** ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36)).
+  Extracted `FileStore` and adapted history, leaderboard and the existing run-save store to reuse
+  path handling and temporary-file replacement. Atomic replacement is used where supported,
+  with a regular-move fallback. A simulated partial-write failure test verifies that the original
+  file survives and temporary files are removed. This reduces duplicated storage logic; the
+  separate history and high-score writes are not a single transaction.
 
-### Contributions to documentation
+### Contributions to the User Guide
 
-- **User Guide:** Updated [Saved typing history](../UserGuide.md#saved-typing-history) and
-  [Leaderboard](../UserGuide.md#leaderboard) with commands, file locations, retention rules,
-  score comparisons and error behaviour. Clarified that each record represents one typing
-  attempt and that the leaderboard is shared across difficulty modes and seeds in the same folder
+- Updated [Saved typing history](../UserGuide.md#saved-typing-history) and
+  [Leaderboard](../UserGuide.md#leaderboard), explaining commands, retention, ranking, shared local
+  data and error behaviour ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36),
+  [PR #41](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/41)).
+- Reorganized the guide around AB3's structure. Expanded [Quick start](../UserGuide.md#quick-start),
+  added [command conventions](../UserGuide.md#command-conventions), command formats and examples,
+  [FAQ](../UserGuide.md#faq), [Known issues](../UserGuide.md#known-issues) and a
+  [Command summary](../UserGuide.md#command-summary). Clarified input stages, save replacement,
+  live/plain countdown behaviour and the illustrative scoring example for peer testers.
+
+### Contributions to the Developer Guide
+
+- Expanded [Records and all-time leaderboard](../DeveloperGuide.md#records-and-all-time-leaderboard)
+  with responsibilities, formats, initialization, save ordering, validation, menu behaviour and
+  design alternatives. Documented regression coverage and manual checks in
+  [Testing](../DeveloperGuide.md#testing)
   ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36),
   [PR #41](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/41)).
-- **Developer Guide:** Expanded
-  [Records and all-time leaderboard](../DeveloperGuide.md#records-and-all-time-leaderboard)
-  to explain class responsibilities, file formats, high-score initialization, save ordering,
-  menu behaviour, validation and design alternatives. Added automated-test coverage descriptions
-  and manual acceptance checks under [Testing](../DeveloperGuide.md#testing)
-  ([PR #36](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36),
-  [PR #41](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/41)).
+- Added the [typing-history save UML sequence diagram](../diagrams/typing-history-save.svg) and
+  [editable PlantUML source](../diagrams/typing-history-save.puml). It explains initialization
+  and high-score updates before history rotation, plus the boundary between storage errors and
+  combat. Updated the diagram maintenance index.
 
-### Testing and code quality
+### Contributions to team-based tasks
 
-- Added clock tests for initial state, zero and negative durations, expiry and restarting,
-  alongside gameplay and terminal tests for countdown integration and typing feedback.
-- Added storage and menu tests for saved metrics, latest-ten retention across reopened stores,
-  records display, empty history and loading errors.
-- Added leaderboard regressions for score ordering, exact ties, persistence after history rotation,
-  initialization from existing history, malformed high-score data and menu redisplay.
-- Added a `FileStore` regression test that simulates a partial write failure and verifies that
-  the previous save remains intact and the temporary file is removed.
-- Added assertions to `ChallengeClock` to check internal duration and elapsed-time invariants
-  ([PR #18](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/18)), and removed unused UI methods
-  during leaderboard integration.
+- Created implementation tasks for the [countdown](https://github.com/AY2627S1-CS2113-W12-4/tp/issues/8)
+  and [score saving](https://github.com/AY2627S1-CS2113-W12-4/tp/issues/21).
+- Integrated storage with teammates' gameplay, menu and run-save components; updated affected tests
+  and removed unused UI methods during [leaderboard integration](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/36).
+
+### Review and mentoring contributions
+
+- Left brief feedback on a teammate's
+  [DG update](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/13#discussion_r4357678123)
+  and [bug-fix PR](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/25#discussion_r4357709481),
+  acknowledging the documentation improvement and reporting that the fix worked. Also left a
+  [brief comment on the switch-case implementation](https://github.com/AY2627S1-CS2113-W12-4/tp/pull/59#discussion_r4449057066)
+  in `EncounterSnapshot` during the v2.1 finalization PR.
+
+### Contributions beyond the project team
+
+- Reviewed TripJio's Developer Guide and
+  [recommended shorter, more concise explanations](https://github.com/NUS-CS2113-AY2627-S1/tp/pull/1#discussion_r4396927065).
+  Also [commented on diagram readability in HTML](https://github.com/NUS-CS2113-AY2627-S1/tp/pull/1#discussion_r4396935158)
+  during the cross-team documentation review.
