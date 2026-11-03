@@ -10,7 +10,7 @@ import java.util.Objects;
 public class Player extends Entity {
     /**
      * Cumulative countdown adjustment in seconds; negative values represent event
-     * penalties.
+     * penalties. Combat completion resets the adjustment to zero on victory or defeat.
      */
     private int bonusTime = 0;
 
@@ -64,7 +64,8 @@ public class Player extends Entity {
     }
 
     /**
-     * Returns the adjustment carried between encounters in this player instance.
+     * Returns the adjustment retained until combat completes. Event adjustments can carry into
+     * the next combat, but victory or defeat clears both bonuses and penalties.
      *
      * @return signed countdown adjustment in seconds
      */
