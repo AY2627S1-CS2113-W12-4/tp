@@ -31,6 +31,18 @@ To update diagrams, edit the `.puml` sources and render them from the repository
 java -jar /path/to/plantuml.jar -charset UTF-8 -tsvg "docs/diagrams/*.puml"
 ```
 
+After regenerating a static SVG, normalize its generated markup (Node.js 24):
+
+```text
+node .github/docs/normalize-svg.mjs docs/diagrams/boss-phase-transition.svg
+```
+
+Pass the SVG files you regenerated as separate arguments. This removes PlantUML `data-*` metadata,
+empty titles/definitions and an unused XLink declaration, plus the default `lengthAdjust="spacing"`
+attribute emitted on a group instead of a text element. These trigger strict SVG 1.1 inspections
+in editors such as IntelliJ. The cleanup preserves coordinates, text, styles and embedded PlantUML
+source. It refuses script- or stylesheet-based figures because those may depend on the metadata.
+
 Use the installed JAR's actual path. PlantUML is a documentation tool, not an application dependency;
 Gradle does not regenerate these figures. Check the SVGs visually before rebuilding the DG PDF.
 Do not hand-position activation bars in the SVG: regeneration must preserve the source's call and

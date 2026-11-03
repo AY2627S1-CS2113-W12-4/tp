@@ -62,6 +62,31 @@ Start accepts a seed before entering gameplay; Choose Difficulty returns to the 
 selected mode; Continue restores a saved run. Victory and defeat return to the menu. Records and
 Leaderboard display results inside the existing menu and do not trigger a state transition.
 
+### Single Level of Abstraction Principle (SLAP)
+
+The larger coordinating methods delegate detailed work to private helpers. This keeps the sequence
+of actions readable while placing parsing, validation, storage and effect calculations in named
+operations. The helpers remain in the classes that own the relevant state.
+
+| Class | Coordination and helper responsibilities |
+| --- | --- |
+| `GamePlayState` | `finishAttempt(...)` checks the deadline, then calls `evaluateAttempt(...)`, `saveTypingHistory(...)`, `resolveAttempt(...)` and `advanceAfterAttempt()`. `finishRun()` handles save deletion and return to the menu. |
+| `MainMenuState` | `handleInput(...)` dispatches commands to `requestSeed()`, `startSeededRun(...)`, `showRecords()`, `showLeaderboard()` and `continueSavedRun()`. Each loading action handles its own storage errors. |
+| `DialogueEncounter` | `submitAnswer(...)` controls the lifecycle and branch selection; `resolveTrade(...)`, `grantTradeReward()` and `resolveEscape(...)` apply the branch-specific effects and feedback. |
+| `GameSave` | Its constructor copies collections and calls `validateRunProgress(...)`, `validateSkills(...)`, `validateEncounterSelection(...)` and `validateCombatFields(...)` before accepting the snapshot. |
+| `GameSaveStore` | `save(...)` converts the snapshot through `toProperties(...)`, then calls `writeProperties(...)`. Separate encoding helpers populate progression, encounters and optional random history. |
+| `EncounterFactory` | `restore(...)` dispatches to `restoreCombat(...)`, `restorePuzzle(...)`, `restoreReaction(...)` or `restoreDialogue(...)`; `restoreCombatEnemy(...)` checks opponent bounds and restores HP. |
+
+Ordering remains part of the contract. Typing feedback is displayed and history saving is attempted
+before encounter resolution; a history `IOException` does not prevent that resolution. Dialogue
+enters `RESOLVING` before terminal rewards or penalties, preventing repeated effects on retries.
+Snapshot validation still runs during construction, and restoration preserves random-call order.
+
+Private helpers are sufficient for this decomposition. The existing abstract classes continue to
+share state and behavior; the refactor introduces no new interfaces or public APIs. Commands,
+scoring, checkpoints and save-file formats are unchanged. See [automated checks](#automated-checks)
+for the behavior-level regression tests used to verify these boundaries.
+
 ## Implementation
 
 ### Source launchers and release startup
@@ -153,6 +178,8 @@ Neither file contains resumable game state; that belongs to `GameSaveStore`.
 The sequence follows one evaluated response through history saving and encounter resolution. The nested
 `loadHighScore()` call initializes the best available history entry before rotation if an
 installation has no high-score file yet. File-format details are outside this store-level sequence.
+The storage sequences omit private orchestration helpers: `finishAttempt(...)` reaches history
+through `saveTypingHistory(...)`, then dispatches the response through `resolveAttempt(...)`.
 
 ![Saving typing metrics before resolving combat or an event response](diagrams/history-saving.svg)
 
@@ -190,8 +217,8 @@ The gameplay state reports the `IOException` as a typing-history saving error an
 
 | Command | Load and display flow |
 | --- | --- |
-| `2` or `records` | `SaveStore.load()` returns an immutable list, passed to `StateUi.showRecords(...)` |
-| `6` or `leaderboard` | `SaveStore.loadHighScore()` selects `StateUi.showLeaderboard(SavedRecord)` or `StateUi.showEmptyLeaderboard()` through `ifPresentOrElse(...)` |
+| `2` or `records` | `showRecords()` loads an immutable list through `SaveStore.load()` and passes it to `StateUi.showRecords(...)` |
+| `6` or `leaderboard` | `showLeaderboard()` loads through `SaveStore.loadHighScore()` and selects `StateUi.showLeaderboard(SavedRecord)` or `StateUi.showEmptyLeaderboard()` through `ifPresentOrElse(...)` |
 
 After results, an empty message or a loading error, `showMainMenu(difficulty)` redisplays all options
 without changing state or difficulty. The state unwraps optional records before passing them to the
@@ -261,10 +288,16 @@ fields are preserved if present; missing random data cannot recover the original
 A previous-prompt key without `randomState`, invalid passage index or invalid generator position
 is rejected. New files use prefixed encounter fields and do not write the legacy opponent fields.
 
-Restoration rebuilds the player without replaying rewards or reapplying difficulty scaling, then
-creates one shared `EncounterFactory`. Its `RewardPool` excludes the restored owned skills, so an
-earned Overclock is not offered again. It restores `RunRandom` and prompt history before rebuilding
-the exact saved choices or encounter; rebuilding content consumes no random draws.
+The gameplay constructor restores `RunRandom` and prompt history before `restoreRun()` is entered.
+`restoreRun()` calls `restoreRunProgress()`, `showRestoredProgress()` and `restorePendingEncounter()`
+in order. The first helper rebuilds the player without replaying rewards or reapplying difficulty
+scaling, then creates one shared `EncounterFactory`. Its `RewardPool` excludes the restored owned
+skills, so an earned Overclock is not offered again.
+
+Pending choices are reconstructed directly; a selected encounter is reopened through
+`resumeActiveEncounter(...)`. Rebuilding the saved content consumes no random draws. For autosaving,
+`createRunSnapshot()` checks stable-state assertions and captures the data before `saveCurrentRun()`
+passes it to storage and reports any write failure.
 
 Runtime clocks, terminal objects and unfinished input are excluded. An interrupted combat returns
 to skill selection with the saved pre-challenge random position; choosing the same skill reproduces
@@ -402,7 +435,7 @@ incorrect, even though its actual typed text still supplies the displayed and sa
 
 #### ChallengeClock implementation
 
-[`ChallengeClock`](../src/main/java/seedu/keyboardwarrior/typing/ChallengeClock.java) measures time;
+[`ChallengeClock`](https://github.com/AY2627S1-CS2113-W12-4/tp/blob/master/src/main/java/seedu/keyboardwarrior/typing/ChallengeClock.java) measures time;
 it does not create a thread, sleep, print a countdown or submit an answer. The active state reads
 the clock and decides what to display or resolve. The [runtime diagrams](#runtime-and-terminal-input)
 show how state updates continue while the input reader waits for typing.
@@ -575,8 +608,9 @@ keeps default enemy HP and Hard damage for standalone component callers.
 Invalid input leaves both choices and randomness unchanged. A combat begins at skill selection;
 an event calls `prepareEvent(...)`. The controller displays and times each returned challenge,
 but `StateUi.showEventChallenge(...)` replaces a puzzle's hidden answer with response instructions.
-`updateWaiting()` polls reaction delays. `finishAttempt(...)` saves metrics, calls `submitAnswer(...)`,
-activates any dialogue follow-up and advances only after a completed survival outcome.
+`updateWaiting()` polls reaction delays. Within `finishAttempt(...)`, `saveTypingHistory(...)` saves
+metrics before `resolveAttempt(...)` calls `submitAnswer(...)` and activates any dialogue follow-up.
+`advanceAfterAttempt()` saves an unfinished encounter or advances after a completed survival outcome.
 
 ![Event phases and the stages that can be saved](diagrams/event-lifecycle.svg)
 
@@ -651,8 +685,9 @@ player defeat is checked before the next turn is offered. `GamePlayState` inspec
 encounter and advances only on victory. It does not infer success merely because a challenge ended.
 
 The sequence covers a lethal phase-1 attack through the creation of phase 2. Nested activation bars
-follow the real `advanceAfterVictory()` and `startBossPhase()` calls; phase changes are explained in
-a note rather than appended to a method label. The factory is a class-level participant and the
+follow `resolveAttempt(...)`, `advanceAfterAttempt()`, `advanceAfterVictory()` and `startBossPhase()`;
+phase changes are explained in a note rather than appended to a method label.
+The factory is a class-level participant and the
 new encounter is an object. UI and persistence calls are outside this transition's scope.
 Abbreviated constructor arguments include the same player, enemy, UI, shared factory and difficulty.
 
@@ -755,7 +790,7 @@ in a real terminal on each supported OS.
 
 ### ChallengeClock unit tests
 
-[`ChallengeClockTest`](../src/test/java/seedu/keyboardwarrior/typing/ChallengeClockTest.java)
+[`ChallengeClockTest`](https://github.com/AY2627S1-CS2113-W12-4/tp/blob/master/src/test/java/seedu/keyboardwarrior/typing/ChallengeClockTest.java)
 contains the following five tests. Gradle enables assertions during tests.
 
 | Test | Setup and expected result |
