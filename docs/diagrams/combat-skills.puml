@@ -1,0 +1,60 @@
+@startuml
+' Scope: entity inheritance, shared skill references and reward-pool initialization.
+!pragma layout smetana
+top to bottom direction
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontSize 14
+skinparam classAttributeIconSize 0
+skinparam ranksep 70
+skinparam nodesep 100
+hide empty members
+hide circle
+title Combat entities and skill management
+
+abstract class Entity {
+  #name : String
+  #health : int
+  #isDead : Boolean
+  +addSkill(skill)
+  +getActiveSkills()
+}
+class Player {
+  -bonusTime : int
+  +addBonusTime(seconds)
+  +getBonusTime() : int
+}
+class Enemy
+class Skill {
+  -name : String
+  -baseDamage : int
+  -timeBonus : int
+  -difficulty : Difficulty
+}
+class SkillRegistry {
+  {static} +getSkill(id) : Skill
+  {static} +getId(skill) : String
+  {static} +getDefaultPlayerSkillIds()
+  {static} +getAllSkills() : List<Skill>
+}
+class RewardPool {
+  +RewardPool(random, player)
+  +popRandomReward() : Skill
+}
+
+Entity <|-- Player
+Entity <|-- Enemy
+Entity -right-> "0..*\nactiveSkills" Skill
+SkillRegistry -down-> "0..*\nSKILL_DATABASE" Skill
+RewardPool -up-> "0..*\navailableSkills" Skill
+RewardPool ..[norank]> SkillRegistry : getAllSkills()
+
+legend bottom
+  Solid arrows: retained references; labels name the target-end fields.
+  Dashed arrows: dependencies; hollow triangles: inheritance.
+  Skill objects are shared; SKILL_DATABASE is a static map keyed by ID.
+  Selected members only; enemy factories, damage resolution and UI are omitted.
+endlegend
+@enduml

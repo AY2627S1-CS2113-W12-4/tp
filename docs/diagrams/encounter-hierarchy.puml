@@ -1,0 +1,56 @@
+@startuml
+' Scope: encounter inheritance and selected subtype state/operations.
+!pragma layout smetana
+top to bottom direction
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontSize 14
+skinparam classAttributeIconSize 0
+hide empty members
+hide circle
+title Encounter and event hierarchy
+
+abstract class Encounter {
+  #isCompleted : boolean
+  {abstract} +getDisplayText() : String
+  +getIsCompleted() : boolean
+  +getEncounterOutcome() : EncounterOutcome
+}
+class CombatEncounter {
+  +begin()
+  +preparePlayerTurn(...)
+  +submitTypingResult(...)
+}
+abstract class EventEncounter {
+  #phase : EventPhase
+  {abstract} +prepareEvent(...)
+  {abstract} +submitAnswer(...)
+  +updateEvent(...)
+  {abstract} +resumeEvent(...)
+}
+class PuzzleEncounter {
+  -puzzle : PuzzleBank.Puzzle
+}
+class ReactionEncounter {
+  -targetWord : String
+  -delayMillis : long
+}
+class DialogueEncounter {
+  -dialogueNode : int
+  -currentExpectedAnswer : String
+}
+
+Encounter <|-- CombatEncounter
+Encounter <|-- EventEncounter
+EventEncounter <|-- PuzzleEncounter
+EventEncounter <|-- ReactionEncounter
+EventEncounter <|-- DialogueEncounter
+
+legend bottom
+  Hollow triangles point to the superclass.
+  Italic class names and operations are abstract.
+  Selected fields and operations only; UI, factories and save data are omitted.
+endlegend
+@enduml
