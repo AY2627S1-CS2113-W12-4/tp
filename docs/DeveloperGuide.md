@@ -420,6 +420,15 @@ The combat package defines mutable participants and shared skill definitions. `E
 display text, completion state and guarded outcome access. `CombatEncounter` handles combat turns;
 the `EventEncounter` subclasses handle the noncombat choices described in the next section.
 
+The class diagram shows how `Player` and `Enemy` inherit their active-skill collection from
+`Entity`. The registry, loadouts and reward pool reference shared `Skill` objects. The dashed arrow
+shows the pool's registry lookup. `RewardPool` also inspects the player's skills at construction,
+but does not retain the player. Removing a reward changes only the pool's list; the event caller grants it.
+
+![Combat entity inheritance and shared skill management](diagrams/combat-skills.svg)
+
+[Editable PlantUML source](diagrams/combat-skills.puml).
+
 | Class | Responsibility |
 | --- | --- |
 | `combat.Entity` | Store a participant's display name, nonnegative HP, defeated flag and active skills |
@@ -496,6 +505,19 @@ combat starts, while a typing result is pending or after combat completes, preve
 representing a partially resolved turn.
 
 ### Encounter choices and events
+
+The hierarchy separates combat turns from the common event lifecycle. Hollow triangle arrows
+point from each subclass to its superclass: both `CombatEncounter` and abstract `EventEncounter`
+extend `Encounter`, while puzzles, reactions and dialogue extend `EventEncounter`.
+
+![Encounter hierarchy with combat and the three event subclasses](diagrams/encounter-hierarchy.svg)
+
+[Editable PlantUML source](diagrams/encounter-hierarchy.puml).
+
+The diagram shows selected fields and operations. `EncounterFactory` obtains content from
+`PuzzleBank` and `ReactionBank` before constructing events; `PuzzleEncounter` retains a
+`PuzzleBank.Puzzle` value and `ReactionEncounter` retains a target string, rather than either
+encounter retaining its content bank.
 
 `startScenario()` asks the run's shared `EncounterFactory` for three unstarted choices: combat,
 one event, then an equal-probability combat or event. Event categories (puzzle, reaction and dialogue)

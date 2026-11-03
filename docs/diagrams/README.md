@@ -15,6 +15,8 @@ diagram shows an illustrative runtime snapshot, and sequence diagrams show selec
 | Storage structure | Store inheritance and the retained high-score store reference | [PlantUML](storage-structure.puml) | [SVG](storage-structure.svg) |
 | Saving an attempt | High-score initialization/update, history replacement, then combat or an event response | [PlantUML](history-saving.puml) | [SVG](history-saving.svg) |
 | Typing evaluation | Class-level metric calls in code order and result construction | [PlantUML](typing-evaluation.puml) | [SVG](typing-evaluation.svg) |
+| Combat entities and skills | Entity inheritance, shared skill references, registry lookups and reward-pool initialization | [PlantUML](combat-skills.puml) | [SVG](combat-skills.svg) |
+| Encounter hierarchy | Combat/event inheritance and the puzzle, reaction and dialogue subclasses | [PlantUML](encounter-hierarchy.puml) | [SVG](encounter-hierarchy.svg) |
 | Run progression | Pending offers versus a selected Encounter, combat/event subtypes and opponent factory dependency | [PlantUML](run-progression.puml) | [SVG](run-progression.svg) |
 | Boss phase transition | Completed victory, nested helper calls and phase-2 creation | [PlantUML](boss-phase-transition.puml) | [SVG](boss-phase-transition.svg) |
 | Event lifecycle | Actual EventPhase values, reaction waits, dialogue follow-ups and saveable stages | [PlantUML](event-lifecycle.puml) | [SVG](event-lifecycle.svg) |
