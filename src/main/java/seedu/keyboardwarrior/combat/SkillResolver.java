@@ -47,8 +47,9 @@ public class SkillResolver {
      * Resolves one skill use against a target.
      * Player damage is WPM multiplied by the fourth power of character accuracy
      * as a fraction and the run difficulty multiplier, rounded down once at the
-     * end. The selected skill's base
-     * damage and the time limit do not modify this result. A {@code null} result
+     * end, except that the registered Overclock skill deals no damage.
+     * Overclock still uses the full performance score for its time bonus.
+     * The selected skill's base damage and the time limit do not otherwise modify this result. A {@code null} result
      * applies the skill's base damage directly for automated enemy turns.
      * A player's time adjustment is
      * {@code floor(baseBonus * (WPM / 50) * accuracy^4 * multiplier)},
@@ -77,18 +78,19 @@ public class SkillResolver {
         }
 
         double accuracy = result.getAccuracyPercent() / 100.0;
-        double damage = result.getWpm() * Math.pow(accuracy, 4) * difficulty.getMultiplier();
+        double performanceScore = result.getWpm() * Math.pow(accuracy, 4) * difficulty.getMultiplier();
         assert accuracy >= 0.0 && accuracy <= 1.0 : "Typing accuracy must be normalized";
-        assert Double.isFinite(damage) && damage >= 0.0 : "Typing damage must be valid";
+        assert Double.isFinite(performanceScore) && performanceScore >= 0.0 : "Typing performance must be valid";
         // Retain fractional precision until the final conversion; Java caps extreme
         // values at Integer.MAX_VALUE.
-        int calculatedDamage = (int) damage;
+        int calculatedDamage = chosenSkill == SkillRegistry.getSkill("overclock") ? 0 : (int) performanceScore;
         assert calculatedDamage >= 0 : "Calculated damage must not be negative";
         if (source instanceof Player && chosenSkill.getTimeBonus() != 0) {
             Player player = (Player) source;
-            // Use unrounded damage to retain fractional performance; the cast saturates at
+            // Use unrounded performance, even for Overclock; the cast saturates at
             // integer limits.
-            int scaledBonus = (int) Math.floor(chosenSkill.getTimeBonus() * (damage / TIME_BONUS_BASELINE_WPM));
+            int scaledBonus = (int) Math.floor(chosenSkill.getTimeBonus()
+                    * (performanceScore / TIME_BONUS_BASELINE_WPM));
             int appliedBonus = player.addBonusTime(scaledBonus);
             if (appliedBonus != 0) {
                 ui.showTimeBonus(appliedBonus);
