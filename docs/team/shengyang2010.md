@@ -52,6 +52,11 @@ repeatable seeded runs and saved progress.
 
 ### Contributions to the Developer Guide
 
+- Expanded [ChallengeClock implementation](../DeveloperGuide.md#challengeclock-implementation)
+  with monotonic timing, remaining-time rounding, expiry and restart behaviour, fractional elapsed
+  time and assertion checks. Documented the five existing
+  [clock unit tests](../DeveloperGuide.md#challengeclock-unit-tests), their expected results,
+  the focused test command and coverage limitations.
 - Expanded [Records and all-time leaderboard](../DeveloperGuide.md#records-and-all-time-leaderboard)
   with responsibilities, formats, initialization, save ordering, validation, menu behaviour and
   design alternatives. Documented regression coverage and manual checks in

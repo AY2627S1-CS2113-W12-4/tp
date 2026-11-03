@@ -171,35 +171,63 @@ public class EncounterFactory {
         Map<String, String> data = snapshot.data();
         switch (snapshot.type()) {
         case "combat":
-            Enemy enemy = bossPhase == 0
-                    ? EnemyFactory.createScenarioEnemy(data.get("enemyType"), scenarioNumber)
-                    : EnemyFactory.createBossPhase(bossPhase);
-            if (bossPhase != 0 && !data.get("enemyType").equals("kernel_overlord")) {
-                throw new IllegalArgumentException("A boss snapshot must contain the Kernel Overlord");
-            }
-            int health = Integer.parseInt(data.get("enemyHealth"));
-            int attackIndex = Integer.parseInt(data.get("nextEnemySkillIndex"));
-            if (health > enemy.getHealth() || attackIndex >= enemy.getActiveSkills().size()) {
-                throw new IllegalArgumentException("Saved combat data exceeds the opponent's bounds");
-            }
-            enemy.setHealth(health);
-            return new CombatEncounter(player, enemy, combatUi, typingChallengeFactory, difficulty);
+            return restoreCombat(data, player, combatUi, typingChallengeFactory, difficulty, scenarioNumber, bossPhase);
         case "puzzle":
-            PuzzleEncounter puzzle = new PuzzleEncounter(player, eventUi,
-                    new PuzzleBank.Puzzle(data.get("question"), data.get("answer")), random, rewardPool);
-            puzzle.restorePhase(data.get("phase"));
-            return puzzle;
+            return restorePuzzle(data, player, eventUi);
         case "reaction":
-            ReactionEncounter reaction = new ReactionEncounter(player, eventUi, data.get("targetWord"), random);
-            reaction.restorePhase(data.get("phase"), Long.parseLong(data.get("delayMillis")));
-            return reaction;
+            return restoreReaction(data, player, eventUi);
         case "dialogue":
-            DialogueEncounter dialogue = new DialogueEncounter(player, eventUi, rewardPool);
-            dialogue.restorePhase(data.get("phase"), Integer.parseInt(data.get("node")));
-            return dialogue;
+            return restoreDialogue(data, player, eventUi);
         default:
             throw new IllegalArgumentException("Unsupported saved encounter: " + snapshot.type());
         }
+    }
+
+    /** Rebuilds a combat opponent without selecting another enemy or starting its turn. */
+    private CombatEncounter restoreCombat(Map<String, String> data, Player player, CombatUi combatUi,
+            TypingChallengeFactory typingChallengeFactory, GameDifficulty difficulty,
+            int scenarioNumber, int bossPhase) {
+        Enemy enemy = restoreCombatEnemy(data, scenarioNumber, bossPhase);
+        return new CombatEncounter(player, enemy, combatUi, typingChallengeFactory, difficulty);
+    }
+
+    /** Validates saved opponent bounds before restoring health, without consuming randomness. */
+    private Enemy restoreCombatEnemy(Map<String, String> data, int scenarioNumber, int bossPhase) {
+        Enemy enemy = bossPhase == 0
+                ? EnemyFactory.createScenarioEnemy(data.get("enemyType"), scenarioNumber)
+                : EnemyFactory.createBossPhase(bossPhase);
+        if (bossPhase != 0 && !data.get("enemyType").equals("kernel_overlord")) {
+            throw new IllegalArgumentException("A boss snapshot must contain the Kernel Overlord");
+        }
+        int health = Integer.parseInt(data.get("enemyHealth"));
+        int attackIndex = Integer.parseInt(data.get("nextEnemySkillIndex"));
+        if (health > enemy.getHealth() || attackIndex >= enemy.getActiveSkills().size()) {
+            throw new IllegalArgumentException("Saved combat data exceeds the opponent's bounds");
+        }
+        enemy.setHealth(health);
+        return enemy;
+    }
+
+    /** Restores the chosen puzzle and lifecycle stage without drawing content or rewards. */
+    private PuzzleEncounter restorePuzzle(Map<String, String> data, Player player, EventUi eventUi) {
+        PuzzleEncounter puzzle = new PuzzleEncounter(player, eventUi,
+                new PuzzleBank.Puzzle(data.get("question"), data.get("answer")), random, rewardPool);
+        puzzle.restorePhase(data.get("phase"));
+        return puzzle;
+    }
+
+    /** Restores the selected command and remaining wait without drawing another delay. */
+    private ReactionEncounter restoreReaction(Map<String, String> data, Player player, EventUi eventUi) {
+        ReactionEncounter reaction = new ReactionEncounter(player, eventUi, data.get("targetWord"), random);
+        reaction.restorePhase(data.get("phase"), Long.parseLong(data.get("delayMillis")));
+        return reaction;
+    }
+
+    /** Restores the conversation branch without replaying its previous rewards or penalties. */
+    private DialogueEncounter restoreDialogue(Map<String, String> data, Player player, EventUi eventUi) {
+        DialogueEncounter dialogue = new DialogueEncounter(player, eventUi, rewardPool);
+        dialogue.restorePhase(data.get("phase"), Integer.parseInt(data.get("node")));
+        return dialogue;
     }
 
     /**

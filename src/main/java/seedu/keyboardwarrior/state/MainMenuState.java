@@ -78,47 +78,72 @@ public class MainMenuState extends State {
             return;
         }
         if (isWaitingForSeed) {
-            long seed = SeedGenerator.parseSeed(input);
-            StateUi.showSeed(seed);
-            RunRandom masterRandom = new RunRandom(seed);
-            stateMachine.transitState(new GamePlayState(stateMachine, masterRandom, saveStore, difficulty));
+            startSeededRun(input);
             return;
         }
 
         if (choice.equalsIgnoreCase("start") || choice.equals("1")) {
-            isWaitingForSeed = true;
-            StateUi.showSeedPrompt();
+            requestSeed();
         } else if (choice.equalsIgnoreCase("records") || choice.equals("2")) {
-            try {
-                StateUi.showRecords(saveStore.load());
-            } catch (IOException e) {
-                StateUi.printLine("Could not load typing history: " + e.getMessage());
-            }
-            StateUi.showMainMenu(difficulty);
+            showRecords();
         } else if (choice.equalsIgnoreCase("leaderboard") || choice.equals("6")) {
-            try {
-                saveStore.loadHighScore().ifPresentOrElse(StateUi::showLeaderboard, StateUi::showEmptyLeaderboard);
-            } catch (IOException exception) {
-                StateUi.printLine("Could not load leaderboard: " + exception.getMessage());
-            }
-            StateUi.showMainMenu(difficulty);
+            showLeaderboard();
         } else if (choice.equalsIgnoreCase("choose difficulty") || choice.equals("4")) {
             stateMachine.transitState(new DifficultySelectionState(stateMachine, saveStore));
         } else if (choice.equalsIgnoreCase("continue") || choice.equals("5")) {
-            try {
-                GameSaveStore gameSaveStore = new GameSaveStore(
-                        saveStore.getDirectory().resolve("game-save.properties"));
-                Optional<GameSave> save = gameSaveStore.load();
-                if (save.isPresent()) {
-                    stateMachine.transitState(new GamePlayState(stateMachine, saveStore, save.get()));
-                } else {
-                    StateUi.printLine("No saved game to continue. Choose Start to begin a new run.");
-                }
-            } catch (IOException exception) {
-                StateUi.printLine("Could not load game: " + exception.getMessage());
-            }
+            continueSavedRun();
         } else {
             StateUi.showInvalidOption();
+        }
+    }
+
+    /** Interprets the next non-exit input as a seed instead of a menu command. */
+    private void requestSeed() {
+        isWaitingForSeed = true;
+        StateUi.showSeedPrompt();
+    }
+
+    /** Starts a run using the submitted seed and the menu's retained settings. */
+    private void startSeededRun(String input) {
+        long seed = SeedGenerator.parseSeed(input);
+        StateUi.showSeed(seed);
+        RunRandom masterRandom = new RunRandom(seed);
+        stateMachine.transitState(new GamePlayState(stateMachine, masterRandom, saveStore, difficulty));
+    }
+
+    /** Displays history or its read error, then redisplays the menu. */
+    private void showRecords() {
+        try {
+            StateUi.showRecords(saveStore.load());
+        } catch (IOException e) {
+            StateUi.printLine("Could not load typing history: " + e.getMessage());
+        }
+        StateUi.showMainMenu(difficulty);
+    }
+
+    /** Displays the best score or its read error, then redisplays the menu. */
+    private void showLeaderboard() {
+        try {
+            saveStore.loadHighScore().ifPresentOrElse(StateUi::showLeaderboard, StateUi::showEmptyLeaderboard);
+        } catch (IOException exception) {
+            StateUi.printLine("Could not load leaderboard: " + exception.getMessage());
+        }
+        StateUi.showMainMenu(difficulty);
+    }
+
+    /** Resumes a validated save, leaving the menu active when loading fails or no save exists. */
+    private void continueSavedRun() {
+        try {
+            GameSaveStore gameSaveStore = new GameSaveStore(
+                    saveStore.getDirectory().resolve("game-save.properties"));
+            Optional<GameSave> save = gameSaveStore.load();
+            if (save.isPresent()) {
+                stateMachine.transitState(new GamePlayState(stateMachine, saveStore, save.get()));
+            } else {
+                StateUi.printLine("No saved game to continue. Choose Start to begin a new run.");
+            }
+        } catch (IOException exception) {
+            StateUi.printLine("Could not load game: " + exception.getMessage());
         }
     }
 

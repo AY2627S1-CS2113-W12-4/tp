@@ -57,7 +57,21 @@ public class GameSaveStore extends FileStore {
     /** Writes a complete temporary file, then atomically replaces the previous save when supported. */
     public void save(GameSave save) throws IOException {
         Objects.requireNonNull(save);
+        Properties data = toProperties(save);
+        writeProperties(data);
+    }
+
+    /** Serializes a validated snapshot without creating or changing files. */
+    private static Properties toProperties(GameSave save) {
         Properties data = new Properties();
+        saveRunProgress(data, save);
+        saveEncounters(data, save);
+        saveRandomSnapshot(data, save.randomSnapshot());
+        return data;
+    }
+
+    /** Encodes run settings, player state and progression using the existing save-file keys. */
+    private static void saveRunProgress(Properties data, GameSave save) {
         data.setProperty("version", Integer.toString(save.version()));
         data.setProperty("difficulty", save.difficulty().name());
         data.setProperty("playerHealth", Integer.toString(save.playerHealth()));
@@ -65,6 +79,10 @@ public class GameSaveStore extends FileStore {
         data.setProperty("bossPhase", Integer.toString(save.bossPhase()));
         data.setProperty("bonusTime", Integer.toString(save.bonusTime()));
         data.setProperty("skillIds", String.join(",", save.skillIds()));
+    }
+
+    /** Encodes either the selected encounter or all offered choices in their original order. */
+    private static void saveEncounters(Properties data, GameSave save) {
         data.setProperty("choiceCount", Integer.toString(save.choices().size()));
         if (save.activeEncounter() != null) {
             saveEncounter(data, "activeEncounter.", save.activeEncounter());
@@ -73,11 +91,19 @@ public class GameSaveStore extends FileStore {
                 saveEncounter(data, "choice." + index + ".", save.choices().get(index));
             }
         }
-        if (save.randomSnapshot() != null) {
-            data.setProperty("randomState", Long.toString(save.randomSnapshot().state()));
-            save.randomSnapshot().previousPromptIndices().forEach((difficulty, index) ->
+    }
+
+    /** Encodes random position and prompt history when the run supports deterministic restoration. */
+    private static void saveRandomSnapshot(Properties data, RandomSnapshot snapshot) {
+        if (snapshot != null) {
+            data.setProperty("randomState", Long.toString(snapshot.state()));
+            snapshot.previousPromptIndices().forEach((difficulty, index) ->
                     data.setProperty("previousPrompt." + difficulty.name(), Integer.toString(index)));
         }
+    }
+
+    /** Writes the serialized data through the shared temporary-file replacement mechanism. */
+    private void writeProperties(Properties data) throws IOException {
         writeSafely("game-save-", temporary -> {
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                 data.store(writer, "Keyboard Warrior active run");
